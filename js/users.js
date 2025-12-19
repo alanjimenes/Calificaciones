@@ -1,8 +1,8 @@
 import { db, collection, getDocs, query, orderBy, limit, startAfter, where, endBefore, limitToLast, deleteDoc, doc } from './firebase-config.js';
 
-let lastVisible = null; 
-let firstVisible = null; 
-let pageStack = []; 
+let lastVisible = null;
+let firstVisible = null;
+let pageStack = [];
 const PAGE_SIZE = 10;
 let isSearching = false;
 
@@ -18,35 +18,30 @@ window.deleteUser = async (userId, userEmail) => {
         return;
     }
 
-    // Feedback visual inmediato en el botón
     const btn = document.getElementById(`btn-delete-${userId}`);
     const originalContent = btn ? btn.innerHTML : '';
-    if(btn) {
+    if (btn) {
         btn.disabled = true;
         btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-lg">refresh</span>';
     }
 
     try {
-        // Eliminar documento de la colección 'usuarios'
         await deleteDoc(doc(db, "usuarios", userId));
-        
-        if(window.showToast) window.showToast("Usuario eliminado correctamente", "success");
+
+        if (window.showToast) window.showToast("Usuario eliminado correctamente", "success");
         else alert("Usuario eliminado.");
-        
-        // Recargar la vista actual para reflejar cambios
-        // Si estábamos buscando, recargamos búsqueda, si no, init o refresh actual
+
         if (isSearching) {
-             const searchInput = document.getElementById('search-input');
-             searchInput.dispatchEvent(new Event('input')); // Re-trigger search
+            const searchInput = document.getElementById('search-input');
+            searchInput.dispatchEvent(new Event('input'));
         } else {
-            loadUsers('init'); // Simplificado: volver al inicio para evitar huecos en paginación
+            loadUsers('init');
         }
 
     } catch (error) {
         console.error("Error al eliminar:", error);
         alert("Error al eliminar: " + error.message);
-        // Restaurar botón si falló
-        if(btn) {
+        if (btn) {
             btn.disabled = false;
             btn.innerHTML = originalContent;
         }
@@ -61,48 +56,48 @@ async function loadUsers(direction = 'init') {
     const btnNext = document.getElementById('btn-next');
     const btnPrev = document.getElementById('btn-prev');
 
-    if(loader) loader.style.display = 'flex';
-    if(tableBody) tableBody.innerHTML = '';
-    
+    if (loader) loader.style.display = 'flex';
+    if (tableBody) tableBody.innerHTML = '';
+
     try {
         let q;
         const usersRef = collection(db, "usuarios");
 
         if (direction === 'init') {
             q = query(usersRef, orderBy("email"), limit(PAGE_SIZE));
-            pageStack = []; 
+            pageStack = [];
         } else if (direction === 'next' && lastVisible) {
-            pageStack.push(firstVisible); 
+            pageStack.push(firstVisible);
             q = query(usersRef, orderBy("email"), startAfter(lastVisible), limit(PAGE_SIZE));
         } else if (direction === 'prev' && pageStack.length > 0) {
             if (pageStack.length === 0) {
-                 q = query(usersRef, orderBy("email"), limit(PAGE_SIZE));
+                q = query(usersRef, orderBy("email"), limit(PAGE_SIZE));
             } else {
-                 q = query(usersRef, orderBy("email"), endBefore(firstVisible), limitToLast(PAGE_SIZE));
-                 pageStack.pop(); 
+                q = query(usersRef, orderBy("email"), endBefore(firstVisible), limitToLast(PAGE_SIZE));
+                pageStack.pop();
             }
         } else {
-             q = query(usersRef, orderBy("email"), limit(PAGE_SIZE));
+            q = query(usersRef, orderBy("email"), limit(PAGE_SIZE));
         }
 
         const querySnapshot = await getDocs(q);
-        
+
         if (!querySnapshot.empty) {
             lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
             firstVisible = querySnapshot.docs[0];
             renderTable(querySnapshot);
-            
-            if(btnNext) btnNext.disabled = querySnapshot.docs.length < PAGE_SIZE;
-            if(btnPrev) btnPrev.disabled = (direction === 'init' || pageStack.length === 0 && direction !== 'next');
-            if(direction === 'next' && btnPrev) btnPrev.disabled = false;
+
+            if (btnNext) btnNext.disabled = querySnapshot.docs.length < PAGE_SIZE;
+            if (btnPrev) btnPrev.disabled = (direction === 'init' || pageStack.length === 0 && direction !== 'next');
+            if (direction === 'next' && btnPrev) btnPrev.disabled = false;
 
         } else {
             if (direction === 'init') {
-                if(emptyState) emptyState.classList.remove('hidden');
-                if(btnNext) btnNext.disabled = true;
-                if(btnPrev) btnPrev.disabled = true;
+                if (emptyState) emptyState.classList.remove('hidden');
+                if (btnNext) btnNext.disabled = true;
+                if (btnPrev) btnPrev.disabled = true;
             } else {
-                if(btnNext) btnNext.disabled = true;
+                if (btnNext) btnNext.disabled = true;
             }
         }
 
@@ -110,7 +105,7 @@ async function loadUsers(direction = 'init') {
         console.error("Error cargando usuarios:", error);
         tableBody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-danger">Error: ${error.message}</td></tr>`;
     } finally {
-        if(loader) loader.style.display = 'none';
+        if (loader) loader.style.display = 'none';
     }
 }
 
@@ -121,13 +116,13 @@ function setupSearch() {
 
     searchInput.addEventListener('input', (e) => {
         const term = e.target.value.trim().toLowerCase();
-        
+
         clearTimeout(timeout);
-        
+
         timeout = setTimeout(async () => {
             if (term.length === 0) {
                 isSearching = false;
-                loadUsers('init'); 
+                loadUsers('init');
                 return;
             }
 
@@ -137,16 +132,16 @@ function setupSearch() {
 
             const loader = document.getElementById('loader');
             const tableBody = document.getElementById('users-table-body');
-            if(loader) loader.style.display = 'flex';
-            if(tableBody) tableBody.innerHTML = '';
+            if (loader) loader.style.display = 'flex';
+            if (tableBody) tableBody.innerHTML = '';
 
             try {
                 const q = query(
-                    collection(db, "usuarios"), 
-                    orderBy("email"), 
+                    collection(db, "usuarios"),
+                    orderBy("email"),
                     where("email", ">=", term),
                     where("email", "<=", term + '\uf8ff'),
-                    limit(20) 
+                    limit(20)
                 );
 
                 const snapshot = await getDocs(q);
@@ -161,20 +156,20 @@ function setupSearch() {
             } catch (error) {
                 console.error("Error búsqueda:", error);
             } finally {
-                if(loader) loader.style.display = 'none';
+                if (loader) loader.style.display = 'none';
             }
 
-        }, 500); 
+        }, 500);
     });
 }
 
 function setupPagination() {
     document.getElementById('btn-next').addEventListener('click', () => {
-        if(!isSearching) loadUsers('next');
+        if (!isSearching) loadUsers('next');
     });
-    
+
     document.getElementById('btn-prev').addEventListener('click', () => {
-        if(!isSearching) loadUsers('prev');
+        if (!isSearching) loadUsers('prev');
     });
 }
 
@@ -182,22 +177,24 @@ function renderTable(snapshot) {
     const tableBody = document.getElementById('users-table-body');
     const emptyState = document.getElementById('empty-state');
     const pageCount = document.getElementById('page-count');
-    
-    if(emptyState) emptyState.classList.add('hidden');
-    if(pageCount) pageCount.innerText = snapshot.docs.length;
 
-    tableBody.innerHTML = ''; 
+    if (emptyState) emptyState.classList.add('hidden');
+    if (pageCount) pageCount.innerText = snapshot.docs.length;
+
+    tableBody.innerHTML = '';
 
     snapshot.forEach((docSnap) => {
         const user = docSnap.data();
-        const userId = docSnap.id; 
-        
+        const userId = docSnap.id;
+
         const row = document.createElement('tr');
         row.className = "hover:bg-surface-border/10 transition-colors group";
 
+        // LÓGICA DE COLORES DE ROL (Actualizada)
         let roleBadgeClass = "bg-primary/10 text-primary border-primary/20";
         if (user.rol === 'admin') roleBadgeClass = "bg-admin/10 text-admin border-admin/20";
         if (user.rol === 'titular') roleBadgeClass = "bg-blue-500/10 text-blue-400 border-blue-500/20";
+        if (user.rol === 'secretaria') roleBadgeClass = "bg-purple-500/10 text-purple-400 border-purple-500/20"; // <--- Nuevo estilo
 
         row.innerHTML = `
             <td class="px-6 py-4 whitespace-nowrap">
@@ -236,12 +233,12 @@ function renderTable(snapshot) {
 }
 
 function getInitials(name) {
-    if(!name) return "U";
+    if (!name) return "U";
     return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 }
 
 function formatDate(timestamp) {
-    if(!timestamp) return "N/A";
-    if(timestamp.seconds) return new Date(timestamp.seconds * 1000).toLocaleDateString();
+    if (!timestamp) return "N/A";
+    if (timestamp.seconds) return new Date(timestamp.seconds * 1000).toLocaleDateString();
     return "N/A";
 }
