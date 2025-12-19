@@ -1,8 +1,9 @@
-import { db, collection, getDocs, doc, getDoc, deleteDoc, updateDoc, setDoc, arrayUnion, arrayRemove, query, orderBy, onSnapshot } from './firebase-config.js';
+import { db, collection, getDocs, doc, getDoc, deleteDoc, updateDoc, setDoc, arrayUnion, arrayRemove, query, orderBy, onSnapshot, deleteField, auth } from './firebase-config.js'; // <--- AGREGADO auth
 
 const grid = document.getElementById('courses-grid');
 let isAdminUser = false;
 let currentCourseIdForSubjects = null; 
+let teacherOptionsCache = ""; // Caché para el dropdown de edición rápida
 
 window.addEventListener('userReady', (e) => {
     const { role } = e.detail;
@@ -12,7 +13,7 @@ window.addEventListener('userReady', (e) => {
     // Cargar catálogo global si es admin
     if(isAdminUser) {
         loadGlobalCatalog();
-        // Llenar selectores de profesores en los modales
+        // Llenar selectores de profesores en los modales y caché
         loadTeachersIntoSelects();
     }
 });
@@ -38,68 +39,69 @@ async function loadCourses(isAdmin) {
 
         querySnapshot.forEach((docSnap) => {
             const course = docSnap.data();
-            const courseId = docSnap.id;
-            const materias = course.materias || [];
+            course.id = docSnap.id; 
             
-            // Imagen de fondo aleatoria o fija
-            const bgImage = "https://lh3.googleusercontent.com/aida-public/AB6AXuBKlz27CPdY5AUeYAH0R7A2Yrl2WzbhGdLaBUGg3p_xUikEJVl26Mk9zA091rWSG50VbCFg78jdEL0vL1ecxCTiWwxqJGg400D11mOOULbqiQUGt6-7E-pMaXlCsearuXwFT2QaFHlIrHC2xrm2WP4G1XJSmcQ6ZosWkQ9XchVCDFoQkBQXHkXTcWzUqgtMphMVvYiqLIe_es6_NGzsl1F3BA3JIsChgbT7ejE4QbA1C-iuQCESqaro8OWeO80wPZaJqEDZA0X_wJhI";
+            // Filtro: Mostrar si es Admin o es el Titular
+            const isTitular = (course.titular_email === (auth.currentUser ? auth.currentUser.email : ''));
+            
+            if (isAdmin || isTitular) {
+                const bgImage = "https://lh3.googleusercontent.com/aida-public/AB6AXuBKlz27CPdY5AUeYAH0R7A2Yrl2WzbhGdLaBUGg3p_xUikEJVl26Mk9zA091rWSG50VbCFg78jdEL0vL1ecxCTiWwxqJGg400D11mOOULbqiQUGt6-7E-pMaXlCsearuXwFT2QaFHlIrHC2xrm2WP4G1XJSmcQ6ZosWkQ9XchVCDFoQkBQXHkXTcWzUqgtMphMVvYiqLIe_es6_NGzsl1F3BA3JIsChgbT7ejE4QbA1C-iuQCESqaro8OWeO80wPZaJqEDZA0X_wJhI";
 
-            const card = document.createElement('div');
-            card.className = "group flex flex-col overflow-hidden rounded-2xl bg-surface-dark border border-surface-border transition-all hover:border-primary/50 shadow-lg hover:shadow-xl h-full";
-            
-            // Sección Superior (Imagen y Título)
-            let cardContent = `
-                <a href="calificaciones.html?curso=${courseId}" class="block relative h-32 w-full bg-cover bg-center" style='background-image: url("${bgImage}");'>
-                    <div class="absolute inset-0 bg-gradient-to-t from-surface-dark to-transparent"></div>
-                    <div class="absolute left-4 bottom-4">
-                        <h3 class="text-xl font-bold text-white group-hover:text-primary transition-colors leading-tight drop-shadow-md">${course.nombre}</h3>
-                        <p class="text-xs text-white/80 font-mono tracking-wide mt-0.5 drop-shadow-md">${course.id.toUpperCase()}</p>
-                    </div>
-                </a>
+                const card = document.createElement('div');
+                card.className = "group flex flex-col overflow-hidden rounded-2xl bg-surface-dark border border-surface-border transition-all hover:border-primary/50 shadow-lg hover:shadow-xl h-full";
                 
-                <div class="flex-1 p-5 flex flex-col gap-4">
-                    <div class="flex items-center gap-2 text-xs text-text-secondary">
-                        <span class="material-symbols-outlined text-sm">person</span>
-                        <span class="truncate">${course.titular_email || "Sin Titular"}</span>
-                    </div>
+                let cardContent = `
+                    <a href="calificaciones.html?curso=${course.id}" class="block relative h-32 w-full bg-cover bg-center" style='background-image: url("${bgImage}");'>
+                        <div class="absolute inset-0 bg-gradient-to-t from-surface-dark to-transparent"></div>
+                        <div class="absolute left-4 bottom-4">
+                            <h3 class="text-xl font-bold text-white group-hover:text-primary transition-colors leading-tight drop-shadow-md">${course.nombre}</h3>
+                            <p class="text-xs text-white/80 font-mono tracking-wide mt-0.5 drop-shadow-md">${course.id.toUpperCase()}</p>
+                        </div>
+                    </a>
+                    
+                    <div class="flex-1 p-5 flex flex-col gap-4">
+                        <div class="flex items-center gap-2 text-xs text-text-secondary">
+                            <span class="material-symbols-outlined text-sm">person</span>
+                            <span class="truncate">${course.titular_email || "Sin Titular"}</span>
+                        </div>
 
-                    <div class="flex flex-wrap gap-1.5">
-                        ${materias.length > 0 
-                            ? `<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-surface-border text-white border border-surface-border/50">${materias.length} Asignaturas</span>` 
-                            : `<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-surface-border/20 text-text-secondary border border-surface-border/20 border-dashed">Sin plan</span>`
-                        }
-                        <span class="px-2 py-1 rounded-md text-[10px] font-bold bg-surface-border text-white border border-surface-border/50">${(course.estudiantes || []).length} Estudiantes</span>
-                    </div>
-                </div>
-            `;
-
-            // Sección Inferior (Botones de Acción VISIBLES)
-            if (isAdmin) {
-                cardContent += `
-                    <div class="p-3 border-t border-surface-border bg-black/20 flex items-center gap-2 justify-between">
-                        <button onclick="openSubjectsModal('${courseId}', '${course.nombre}')" class="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-surface-border/50 hover:bg-surface-border text-white text-xs font-bold transition-colors">
-                            <span class="material-symbols-outlined text-sm">view_list</span> Materias
-                        </button>
-                        <button onclick="openEditModal('${courseId}')" class="flex items-center justify-center p-2 rounded-lg bg-surface-border/50 hover:bg-admin hover:text-background-dark text-admin transition-colors" title="Editar Info">
-                            <span class="material-symbols-outlined text-sm">edit</span>
-                        </button>
-                        <button onclick="deleteCourse('${courseId}')" class="flex items-center justify-center p-2 rounded-lg bg-surface-border/50 hover:bg-danger hover:text-white text-danger transition-colors" title="Eliminar Curso">
-                            <span class="material-symbols-outlined text-sm">delete</span>
-                        </button>
+                        <div class="flex flex-wrap gap-1.5">
+                            ${(course.materias || []).length > 0 
+                                ? `<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-surface-border text-white border border-surface-border/50">${(course.materias || []).length} Asignaturas</span>` 
+                                : `<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-surface-border/20 text-text-secondary border border-surface-border/20 border-dashed">Sin plan</span>`
+                            }
+                            <span class="px-2 py-1 rounded-md text-[10px] font-bold bg-surface-border text-white border border-surface-border/50">${(course.estudiantes || []).length} Estudiantes</span>
+                        </div>
                     </div>
                 `;
-            } else {
-                 cardContent += `
-                    <div class="p-3 border-t border-surface-border bg-black/20 text-center">
-                        <a href="calificaciones.html?curso=${courseId}" class="block w-full py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-background-dark text-xs font-bold transition-colors">
-                            Ver Calificaciones
-                        </a>
-                    </div>
-                 `;
-            }
 
-            card.innerHTML = cardContent;
-            grid.appendChild(card);
+                if (isAdmin) {
+                    cardContent += `
+                        <div class="p-3 border-t border-surface-border bg-black/20 flex items-center gap-2 justify-between">
+                            <button onclick="openSubjectsModal('${course.id}', '${course.nombre}')" class="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-surface-border/50 hover:bg-surface-border text-white text-xs font-bold transition-colors">
+                                <span class="material-symbols-outlined text-sm">view_list</span> Materias
+                            </button>
+                            <button onclick="openEditModal('${course.id}')" class="flex items-center justify-center p-2 rounded-lg bg-surface-border/50 hover:bg-admin hover:text-background-dark text-admin transition-colors" title="Editar Info">
+                                <span class="material-symbols-outlined text-sm">edit</span>
+                            </button>
+                            <button onclick="deleteCourse('${course.id}')" class="flex items-center justify-center p-2 rounded-lg bg-surface-border/50 hover:bg-danger hover:text-white text-danger transition-colors" title="Eliminar Curso">
+                                <span class="material-symbols-outlined text-sm">delete</span>
+                            </button>
+                        </div>
+                    `;
+                } else {
+                     cardContent += `
+                        <div class="p-3 border-t border-surface-border bg-black/20 text-center">
+                            <a href="calificaciones.html?curso=${course.id}" class="block w-full py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-background-dark text-xs font-bold transition-colors">
+                                Ver Calificaciones
+                            </a>
+                        </div>
+                     `;
+                }
+
+                card.innerHTML = cardContent;
+                grid.appendChild(card);
+            }
         });
     } catch (error) {
         console.error("Error al cargar cursos:", error);
@@ -107,10 +109,9 @@ async function loadCourses(isAdmin) {
 }
 
 // --- GESTIÓN DE CATÁLOGO GLOBAL ---
-
 async function loadGlobalCatalog() {
     const list = document.getElementById('global-catalog-list');
-    const select = document.getElementById('select-global-subject'); // El select del modal de curso
+    const select = document.getElementById('select-global-subject'); 
     
     if(!list) return;
 
@@ -128,7 +129,7 @@ async function loadGlobalCatalog() {
             snapshot.forEach(docSnap => {
                 const item = docSnap.data();
                 
-                // 1. Renderizar en la lista de gestión del catálogo
+                // Lista de gestión
                 const div = document.createElement('div');
                 div.className = "flex justify-between items-center p-2 bg-surface-dark border border-surface-border rounded-lg group hover:border-primary/50";
                 div.innerHTML = `
@@ -139,7 +140,7 @@ async function loadGlobalCatalog() {
                 `;
                 list.appendChild(div);
 
-                // 2. Llenar el Select del modal de curso
+                // Select del modal
                 if(select) {
                     const option = document.createElement('option');
                     option.value = item.nombre;
@@ -148,45 +149,34 @@ async function loadGlobalCatalog() {
                 }
             });
         });
-    } catch (e) {
-        console.error("Error cargando catálogo:", e);
-    }
+    } catch (e) { console.error("Error cargando catálogo:", e); }
 }
 
 window.addGlobalSubject = async () => {
     const input = document.getElementById('new-global-subject-name');
     const name = input.value.trim();
     if(!name) return;
-
     try {
-        // Usar el nombre como ID para evitar duplicados fácilmente
-        await setDoc(doc(db, "asignaturas_catalogo", name.toLowerCase().replace(/\s+/g, '_')), {
-            nombre: name
-        });
+        await setDoc(doc(db, "asignaturas_catalogo", name.toLowerCase().replace(/\s+/g, '_')), { nombre: name });
         input.value = '';
-        if(window.showToast) window.showToast("Asignatura agregada al catálogo", "success");
-    } catch(e) {
-        console.error(e);
-        alert("Error al crear asignatura.");
-    }
-}
-
-window.deleteGlobalSubject = async (id) => {
-    if(!confirm("¿Eliminar del catálogo global? Esto no afectará a los cursos que ya la tengan.")) return;
-    try {
-        await deleteDoc(doc(db, "asignaturas_catalogo", id));
+        if(window.showToast) window.showToast("Asignatura agregada", "success");
     } catch(e) { console.error(e); }
 }
 
-// --- GESTIÓN DE MATERIAS EN CURSO ---
+window.deleteGlobalSubject = async (id) => {
+    if(!confirm("¿Eliminar del catálogo global?")) return;
+    try { await deleteDoc(doc(db, "asignaturas_catalogo", id)); } catch(e) { console.error(e); }
+}
+
+// --- GESTIÓN DE MATERIAS EN CURSO (MEJORADA) ---
 
 window.openSubjectsModal = async (courseId, courseName) => {
     currentCourseIdForSubjects = courseId;
     const titleEl = document.getElementById('modal-course-title');
     if(titleEl) titleEl.innerHTML = `Curso: <span class="text-white font-bold">${courseName}</span>`;
     
-    // Aseguramos que el select de docentes esté cargado
-    loadTeachersIntoSelects(); 
+    // Asegurar carga de docentes
+    await loadTeachersIntoSelects(); 
 
     if(window.toggleModal) window.toggleModal('modal-manage-subjects');
     loadCourseSubjects(courseId);
@@ -213,22 +203,33 @@ async function loadCourseSubjects(courseId) {
                 list.innerHTML = `<p class="text-center text-xs text-text-secondary py-4">Sin asignaturas.</p>`;
             } else {
                 materias.forEach(materia => {
-                    const teacherEmail = profesores[materia] || "Sin asignar";
-                    const isAssigned = profesores[materia] ? true : false;
+                    const teacherEmail = profesores[materia] || "";
+                    const isAssigned = !!teacherEmail;
+                    const cleanMateria = materia.replace(/'/g, "\\'"); // Escapar comillas para JS
 
                     const item = document.createElement('div');
+                    item.id = `subject-row-${cleanMateria.replace(/\s+/g, '-')}`; // ID único para edición
                     item.className = "flex items-center justify-between p-2.5 bg-surface-dark rounded-xl border border-surface-border mb-2";
+                    
+                    // Bloque Normal
                     item.innerHTML = `
-                        <div>
+                        <div class="flex-1">
                             <p class="text-white font-bold text-sm">${materia}</p>
-                            <div class="flex items-center gap-1.5 mt-0.5">
+                            <div class="flex items-center gap-1.5 mt-0.5" id="display-${cleanMateria.replace(/\s+/g, '-')}">
                                 <span class="material-symbols-outlined text-[10px] text-text-secondary">person</span>
-                                <span class="text-[10px] ${isAssigned ? 'text-primary' : 'text-text-secondary/50'}">${teacherEmail}</span>
+                                <span class="text-[10px] ${isAssigned ? 'text-primary' : 'text-text-secondary/50'} italic">
+                                    ${teacherEmail || "Sin asignar"}
+                                </span>
                             </div>
                         </div>
-                        <button onclick="removeSubjectFromCourse('${materia}')" class="text-text-secondary hover:text-danger p-1.5 transition-colors" title="Quitar">
-                            <span class="material-symbols-outlined text-lg">close</span>
-                        </button>
+                        <div class="flex gap-1">
+                             <button onclick="enableEditSubject('${cleanMateria}', '${teacherEmail}')" class="text-text-secondary hover:text-primary p-1.5 transition-colors" title="Cambiar Profesor">
+                                <span class="material-symbols-outlined text-lg">edit</span>
+                            </button>
+                            <button onclick="removeSubjectFromCourse('${cleanMateria}')" class="text-text-secondary hover:text-danger p-1.5 transition-colors" title="Quitar Asignatura">
+                                <span class="material-symbols-outlined text-lg">delete</span>
+                            </button>
+                        </div>
                     `;
                     list.appendChild(item);
                 });
@@ -236,7 +237,65 @@ async function loadCourseSubjects(courseId) {
         }
     } catch (e) {
         console.error(e);
-        list.innerHTML = '<p class="text-danger text-xs">Error.</p>';
+        list.innerHTML = '<p class="text-danger text-xs">Error al cargar materias.</p>';
+    }
+}
+
+// Nueva función: Habilita el modo edición (Select inline)
+window.enableEditSubject = (materia, currentEmail) => {
+    const safeId = materia.replace(/\s+/g, '-');
+    const row = document.getElementById(`subject-row-${safeId}`);
+    if(!row) return;
+
+    // Reemplazamos el contenido con un formulario inline
+    row.innerHTML = `
+        <div class="flex-1 flex flex-col gap-2">
+             <p class="text-white font-bold text-sm">${materia}</p>
+             <select id="edit-select-${safeId}" class="bg-background-dark border border-surface-border rounded-lg px-2 py-1 text-xs text-white focus:border-primary outline-none w-full">
+                ${teacherOptionsCache}
+             </select>
+        </div>
+        <div class="flex gap-1 items-end pb-1">
+             <button onclick="saveSubjectTeacher('${materia}', 'edit-select-${safeId}')" class="bg-primary text-background-dark p-1 rounded hover:brightness-110" title="Guardar">
+                <span class="material-symbols-outlined text-lg">check</span>
+            </button>
+             <button onclick="loadCourseSubjects('${currentCourseIdForSubjects}')" class="bg-surface-border text-white p-1 rounded hover:bg-white/20" title="Cancelar">
+                <span class="material-symbols-outlined text-lg">close</span>
+            </button>
+        </div>
+    `;
+
+    // Pre-seleccionar el profesor actual
+    const select = document.getElementById(`edit-select-${safeId}`);
+    if(select) select.value = currentEmail;
+}
+
+// Nueva función: Guardar el cambio de profesor
+window.saveSubjectTeacher = async (materia, selectId) => {
+    const select = document.getElementById(selectId);
+    const newEmail = select.value;
+    
+    // Feedback visual
+    const btn = select.parentElement.nextElementSibling.querySelector('button');
+    btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-sm">refresh</span>';
+
+    try {
+        const updateData = {};
+        if (newEmail) {
+            updateData[`profesores_materias.${materia}`] = newEmail;
+        } else {
+            // Si elige "Sin asignar", borramos la entrada del mapa
+            updateData[`profesores_materias.${materia}`] = deleteField();
+        }
+
+        await updateDoc(doc(db, "cursos_globales", currentCourseIdForSubjects), updateData);
+        if(window.showToast) window.showToast("Profesor actualizado", "success");
+        
+        // Recargar la lista para volver al modo vista
+        loadCourseSubjects(currentCourseIdForSubjects);
+    } catch (e) {
+        console.error(e);
+        alert("Error al actualizar: " + e.message);
     }
 }
 
@@ -261,33 +320,33 @@ window.addSubjectToCourse = async () => {
         }
 
         await updateDoc(doc(db, "cursos_globales", currentCourseIdForSubjects), updateData);
-        
         await loadCourseSubjects(currentCourseIdForSubjects); 
-        loadCourses(isAdminUser); // Actualizar tarjeta en grid
-        
-        if(window.showToast) window.showToast("Materia agregada al curso", "success");
+        loadCourses(isAdminUser); 
+        if(window.showToast) window.showToast("Materia agregada", "success");
 
-    } catch (e) {
-        console.error(e);
-        alert("Error: " + e.message);
-    }
+    } catch (e) { console.error(e); alert("Error: " + e.message); }
 }
 
 window.removeSubjectFromCourse = async (materiaName) => {
-    if(!confirm(`¿Quitar "${materiaName}" de este curso?`)) return;
+    if(!confirm(`¿Quitar "${materiaName}" del curso? \n\nSe eliminará la asignación del profesor y la materia de la lista.`)) return;
+    
     try {
-        await updateDoc(doc(db, "cursos_globales", currentCourseIdForSubjects), {
+        // Usamos deleteField() para limpieza profunda
+        const updateData = {
             materias: arrayRemove(materiaName)
-        });
+        };
+        updateData[`profesores_materias.${materiaName}`] = deleteField();
+
+        await updateDoc(doc(db, "cursos_globales", currentCourseIdForSubjects), updateData);
+        
         await loadCourseSubjects(currentCourseIdForSubjects);
         loadCourses(isAdminUser);
+        if(window.showToast) window.showToast("Asignatura eliminada", "info");
     } catch (e) { console.error(e); }
 }
 
 // --- AUXILIARES ---
-
 async function loadTeachersIntoSelects() {
-    // Cargar en el select de "Crear Curso" y en "Gestionar Materias"
     const selects = [
         document.getElementById('course-teacher-email'),
         document.getElementById('new-subject-teacher')
@@ -295,31 +354,30 @@ async function loadTeachersIntoSelects() {
 
     try {
         const usersSnap = await getDocs(collection(db, "usuarios"));
-        const optionsHTML = [];
-        optionsHTML.push('<option value="" selected>Sin asignar</option>');
+        const optionsHTML = ['<option value="" selected>Sin asignar</option>'];
 
         usersSnap.forEach(doc => {
             const user = doc.data();
-            // Filtrar solo profesores/titulares si se desea, o todos
             if (user.email !== 'admin@mail.com') {
                 optionsHTML.push(`<option value="${user.email}">${user.nombre || user.email}</option>`);
             }
         });
 
+        // Guardamos en caché para uso repetido en edición inline
+        teacherOptionsCache = optionsHTML.join('');
+
+        // Llenar selectores estáticos
         selects.forEach(sel => {
-            if(sel) sel.innerHTML = optionsHTML.join('');
+            if(sel) sel.innerHTML = teacherOptionsCache;
         });
     } catch (e) { console.error("Error cargando profesores", e); }
 }
 
-// --- EDICIÓN Y ELIMINACIÓN DE CURSOS ---
-
+// --- EDICIÓN Y ELIMINACIÓN DE CURSOS (GLOBAL) ---
 window.openEditModal = async (courseId) => {
     if(window.toggleModal) window.toggleModal('modal-create-course');
     const form = document.getElementById('form-create-course');
     form.reset();
-    
-    // Cargar docentes antes de setear valor
     await loadTeachersIntoSelects();
 
     try {
@@ -337,10 +395,10 @@ window.openEditModal = async (courseId) => {
 }
 
 window.deleteCourse = async (courseId) => {
-    if (!confirm(`PELIGRO: ¿Eliminar curso "${courseId}" y todos sus datos?`)) return;
+    if (!confirm(`PELIGRO: ¿Eliminar curso "${courseId}"?`)) return;
     try {
         await deleteDoc(doc(db, "cursos_globales", courseId));
         if(window.showToast) window.showToast("Curso eliminado", "success");
         loadCourses(isAdminUser);
-    } catch (error) { console.error(error); alert("Error: " + error.message); }
+    } catch (error) { alert("Error: " + error.message); }
 }

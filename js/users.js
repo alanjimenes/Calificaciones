@@ -1,8 +1,8 @@
-import { db, collection, getDocs, query, orderBy, limit, startAfter, where, endBefore, limitToLast } from './firebase-config.js';
+import { db, collection, getDocs, query, orderBy, limit, startAfter, where, endBefore, limitToLast, deleteDoc, doc } from './firebase-config.js';
 
-let lastVisible = null; // Último documento de la página actual (para "Siguiente")
-let firstVisible = null; // Primer documento de la página actual (para referencias)
-let pageStack = []; // Pila para guardar el historial de navegación (para "Anterior")
+let lastVisible = null; 
+let firstVisible = null; 
+let pageStack = []; 
 const PAGE_SIZE = 10;
 let isSearching = false;
 
@@ -11,6 +11,47 @@ window.addEventListener('adminReady', () => {
     setupSearch();
     setupPagination();
 });
+
+// --- FUNCIÓN DE ELIMINACIÓN ---
+window.deleteUser = async (userId, userEmail) => {
+    if (!confirm(`¿Estás seguro de eliminar al usuario ${userEmail}?\n\nEsta acción borrará sus datos de perfil y rol en la base de datos.`)) {
+        return;
+    }
+
+    // Feedback visual inmediato en el botón
+    const btn = document.getElementById(`btn-delete-${userId}`);
+    const originalContent = btn ? btn.innerHTML : '';
+    if(btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-lg">refresh</span>';
+    }
+
+    try {
+        // Eliminar documento de la colección 'usuarios'
+        await deleteDoc(doc(db, "usuarios", userId));
+        
+        if(window.showToast) window.showToast("Usuario eliminado correctamente", "success");
+        else alert("Usuario eliminado.");
+        
+        // Recargar la vista actual para reflejar cambios
+        // Si estábamos buscando, recargamos búsqueda, si no, init o refresh actual
+        if (isSearching) {
+             const searchInput = document.getElementById('search-input');
+             searchInput.dispatchEvent(new Event('input')); // Re-trigger search
+        } else {
+            loadUsers('init'); // Simplificado: volver al inicio para evitar huecos en paginación
+        }
+
+    } catch (error) {
+        console.error("Error al eliminar:", error);
+        alert("Error al eliminar: " + error.message);
+        // Restaurar botón si falló
+        if(btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalContent;
+        }
+    }
+};
 
 // --- CARGA INICIAL Y PAGINACIÓN ---
 async function loadUsers(direction = 'init') {
@@ -27,59 +68,40 @@ async function loadUsers(direction = 'init') {
         let q;
         const usersRef = collection(db, "usuarios");
 
-        // Construir Query según dirección
         if (direction === 'init') {
             q = query(usersRef, orderBy("email"), limit(PAGE_SIZE));
-            pageStack = []; // Resetear pila
+            pageStack = []; 
         } else if (direction === 'next' && lastVisible) {
-            pageStack.push(firstVisible); // Guardar dónde empezó esta página
+            pageStack.push(firstVisible); 
             q = query(usersRef, orderBy("email"), startAfter(lastVisible), limit(PAGE_SIZE));
         } else if (direction === 'prev' && pageStack.length > 0) {
-            const prevStart = pageStack.pop(); // Recuperar el inicio de la página anterior
-            // Usamos startAt o re-consultamos desde ese punto
-            // La forma más estable en retroceso simple es consultar desde ese punto hacia adelante de nuevo
-            q = query(usersRef, orderBy("email"), startAfter(prevStart ? prevStart : ''), limit(PAGE_SIZE)); 
-            
-            // CORRECCIÓN PARA 'PREV':
-            // Si vamos al principio absoluto (init), la lógica de arriba podría fallar si prevStart es null.
-            // Una estrategia más robusta para "prev" sin cursores complejos es usar endBefore del actual firstVisible.
-            // Pero el stack approach funciona bien si guardamos el snapshot del último doc de la página ANTERIOR a la actual.
-            
-            // Simplificación para estabilidad:
-            // Si stack está vacío, es la primera página.
             if (pageStack.length === 0) {
                  q = query(usersRef, orderBy("email"), limit(PAGE_SIZE));
             } else {
-                 const prevLastVisible = pageStack[pageStack.length - 1]; // Mirar el último de la pila anterior (conceptualmente)
-                 // Nota: Pagination bidireccional perfecta en Firestore requiere lógica compleja.
-                 // Vamos a usar una estrategia simple: Recargar 'init' si volvemos al principio, 
-                 // o usar endBefore(firstVisible) limitToLast(PAGE_SIZE).
                  q = query(usersRef, orderBy("email"), endBefore(firstVisible), limitToLast(PAGE_SIZE));
+                 pageStack.pop(); 
             }
+        } else {
+             q = query(usersRef, orderBy("email"), limit(PAGE_SIZE));
         }
 
         const querySnapshot = await getDocs(q);
         
-        // Actualizar cursores
         if (!querySnapshot.empty) {
             lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
             firstVisible = querySnapshot.docs[0];
             renderTable(querySnapshot);
             
-            // Manejo de botones
             if(btnNext) btnNext.disabled = querySnapshot.docs.length < PAGE_SIZE;
-            if(btnPrev) btnPrev.disabled = (direction === 'init' || (direction === 'prev' && pageStack.length === 0));
-            // Hack para habilitar Prev si acabamos de avanzar
+            if(btnPrev) btnPrev.disabled = (direction === 'init' || pageStack.length === 0 && direction !== 'next');
             if(direction === 'next' && btnPrev) btnPrev.disabled = false;
 
         } else {
-            // Si no hay datos (página vacía o colección vacía)
             if (direction === 'init') {
                 if(emptyState) emptyState.classList.remove('hidden');
                 if(btnNext) btnNext.disabled = true;
                 if(btnPrev) btnPrev.disabled = true;
             } else {
-                // Llegamos al final real
                 if(btnNext) btnNext.disabled = true;
             }
         }
@@ -92,7 +114,7 @@ async function loadUsers(direction = 'init') {
     }
 }
 
-// --- BUSCADOR (Server-side) ---
+// --- BUSCADOR ---
 function setupSearch() {
     const searchInput = document.getElementById('search-input');
     let timeout = null;
@@ -102,16 +124,14 @@ function setupSearch() {
         
         clearTimeout(timeout);
         
-        // Debounce para no saturar la API
         timeout = setTimeout(async () => {
             if (term.length === 0) {
                 isSearching = false;
-                loadUsers('init'); // Volver a paginación normal
+                loadUsers('init'); 
                 return;
             }
 
             isSearching = true;
-            // Deshabilitar paginación durante búsqueda
             document.getElementById('btn-next').disabled = true;
             document.getElementById('btn-prev').disabled = true;
 
@@ -121,15 +141,12 @@ function setupSearch() {
             if(tableBody) tableBody.innerHTML = '';
 
             try {
-                // Búsqueda por prefijo en 'email'
-                // Nota: Firestore requiere index compuesto si mezclas campos, pero esto es simple.
-                // '\uf8ff' es un caracter Unicode muy alto para simular "cualquier cosa después".
                 const q = query(
                     collection(db, "usuarios"), 
                     orderBy("email"), 
                     where("email", ">=", term),
                     where("email", "<=", term + '\uf8ff'),
-                    limit(20) // Límite de seguridad para búsqueda
+                    limit(20) 
                 );
 
                 const snapshot = await getDocs(q);
@@ -137,6 +154,8 @@ function setupSearch() {
 
                 if (snapshot.empty) {
                     document.getElementById('empty-state').classList.remove('hidden');
+                } else {
+                    document.getElementById('empty-state').classList.add('hidden');
                 }
 
             } catch (error) {
@@ -145,7 +164,7 @@ function setupSearch() {
                 if(loader) loader.style.display = 'none';
             }
 
-        }, 500); // 500ms delay
+        }, 500); 
     });
 }
 
@@ -167,10 +186,12 @@ function renderTable(snapshot) {
     if(emptyState) emptyState.classList.add('hidden');
     if(pageCount) pageCount.innerText = snapshot.docs.length;
 
-    tableBody.innerHTML = ''; // Limpiar previo
+    tableBody.innerHTML = ''; 
 
-    snapshot.forEach((doc) => {
-        const user = doc.data();
+    snapshot.forEach((docSnap) => {
+        const user = docSnap.data();
+        const userId = docSnap.id; 
+        
         const row = document.createElement('tr');
         row.className = "hover:bg-surface-border/10 transition-colors group";
 
@@ -181,7 +202,7 @@ function renderTable(snapshot) {
         row.innerHTML = `
             <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center">
-                    <div class="flex-shrink-0 h-10 w-10 rounded-full bg-surface-border flex items-center justify-center text-white font-bold text-sm">
+                    <div class="flex-shrink-0 h-10 w-10 rounded-full bg-surface-border flex items-center justify-center text-white font-bold text-sm border border-white/5">
                         ${getInitials(user.nombre || user.email || "?")}
                     </div>
                     <div class="ml-4">
@@ -205,8 +226,8 @@ function renderTable(snapshot) {
                 ${user.email}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <button class="text-text-secondary hover:text-white transition-colors p-2 rounded-full hover:bg-surface-border">
-                    <span class="material-symbols-outlined text-lg">more_vert</span>
+                <button id="btn-delete-${userId}" onclick="deleteUser('${userId}', '${user.email}')" class="text-text-secondary hover:text-danger transition-colors p-2 rounded-lg hover:bg-danger/10 group-hover:visible" title="Eliminar Usuario">
+                    <span class="material-symbols-outlined text-lg">delete</span>
                 </button>
             </td>
         `;

@@ -24,11 +24,16 @@ import {
     where, 
     orderBy, 
     limit,
+    limitToLast,
+    startAfter,
+    endBefore,
     updateDoc,
     deleteDoc,
     arrayUnion,
     arrayRemove,
-    runTransaction, // <--- NUEVO: Importante para concurrencia
+    runTransaction, 
+    onSnapshot,
+    deleteField, // <--- AGREGADO: Para borrar campos de mapas (profesores asignados)
     enableIndexedDbPersistence 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
@@ -96,10 +101,15 @@ export {
     where,
     orderBy,
     limit,
+    limitToLast,
+    startAfter,
+    endBefore,
     updateDoc,
     deleteDoc,
     arrayUnion,
     arrayRemove,
-    runTransaction, // <--- EXPORTAR
+    runTransaction,
+    onSnapshot, 
+    deleteField, // <--- EXPORTADO
     appId 
 };
