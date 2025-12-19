@@ -1,30 +1,33 @@
-import { db, collection, getDocs, doc, getDoc, deleteDoc, updateDoc, setDoc, arrayUnion, arrayRemove, query, orderBy, onSnapshot, deleteField, auth } from './firebase-config.js'; // <--- AGREGADO auth
+import { db, collection, getDocs, doc, getDoc, deleteDoc, updateDoc, setDoc, arrayUnion, arrayRemove, query, orderBy, onSnapshot, deleteField, auth } from './firebase-config.js';
 
 const grid = document.getElementById('courses-grid');
 let isAdminUser = false;
-let currentCourseIdForSubjects = null; 
-let teacherOptionsCache = ""; // Caché para el dropdown de edición rápida
+let isSecretariaUser = false; // Nueva bandera
+let currentCourseIdForSubjects = null;
+let teacherOptionsCache = "";
 
 window.addEventListener('userReady', (e) => {
     const { role } = e.detail;
     isAdminUser = (role === 'admin');
-    loadCourses(isAdminUser);
-    
+    isSecretariaUser = (role === 'secretaria'); // Detectar secretaria
+
+    // Las secretarias y admins ven todo
+    loadCourses(isAdminUser, isSecretariaUser);
+
     // Cargar catálogo global si es admin
-    if(isAdminUser) {
+    if (isAdminUser) {
         loadGlobalCatalog();
-        // Llenar selectores de profesores en los modales y caché
         loadTeachersIntoSelects();
     }
 });
 
 // --- CARGAR CURSOS ---
-async function loadCourses(isAdmin) {
+async function loadCourses(isAdmin, isSecretaria) {
     if (!grid) return;
     grid.innerHTML = '<div class="col-span-full flex justify-center p-10"><div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div></div>';
 
     try {
-        const q = query(collection(db, "cursos_globales")); 
+        const q = query(collection(db, "cursos_globales"));
         const querySnapshot = await getDocs(q);
         grid.innerHTML = '';
 
@@ -39,17 +42,17 @@ async function loadCourses(isAdmin) {
 
         querySnapshot.forEach((docSnap) => {
             const course = docSnap.data();
-            course.id = docSnap.id; 
-            
-            // Filtro: Mostrar si es Admin o es el Titular
+            course.id = docSnap.id;
+
+            // Filtro: Mostrar si es Admin, Titular o Secretaria
             const isTitular = (course.titular_email === (auth.currentUser ? auth.currentUser.email : ''));
-            
-            if (isAdmin || isTitular) {
+
+            if (isAdmin || isTitular || isSecretaria) {
                 const bgImage = "https://lh3.googleusercontent.com/aida-public/AB6AXuBKlz27CPdY5AUeYAH0R7A2Yrl2WzbhGdLaBUGg3p_xUikEJVl26Mk9zA091rWSG50VbCFg78jdEL0vL1ecxCTiWwxqJGg400D11mOOULbqiQUGt6-7E-pMaXlCsearuXwFT2QaFHlIrHC2xrm2WP4G1XJSmcQ6ZosWkQ9XchVCDFoQkBQXHkXTcWzUqgtMphMVvYiqLIe_es6_NGzsl1F3BA3JIsChgbT7ejE4QbA1C-iuQCESqaro8OWeO80wPZaJqEDZA0X_wJhI";
 
                 const card = document.createElement('div');
                 card.className = "group flex flex-col overflow-hidden rounded-2xl bg-surface-dark border border-surface-border transition-all hover:border-primary/50 shadow-lg hover:shadow-xl h-full";
-                
+
                 let cardContent = `
                     <a href="calificaciones.html?curso=${course.id}" class="block relative h-32 w-full bg-cover bg-center" style='background-image: url("${bgImage}");'>
                         <div class="absolute inset-0 bg-gradient-to-t from-surface-dark to-transparent"></div>
@@ -66,15 +69,16 @@ async function loadCourses(isAdmin) {
                         </div>
 
                         <div class="flex flex-wrap gap-1.5">
-                            ${(course.materias || []).length > 0 
-                                ? `<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-surface-border text-white border border-surface-border/50">${(course.materias || []).length} Asignaturas</span>` 
-                                : `<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-surface-border/20 text-text-secondary border border-surface-border/20 border-dashed">Sin plan</span>`
-                            }
+                            ${(course.materias || []).length > 0
+                        ? `<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-surface-border text-white border border-surface-border/50">${(course.materias || []).length} Asignaturas</span>`
+                        : `<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-surface-border/20 text-text-secondary border border-surface-border/20 border-dashed">Sin plan</span>`
+                    }
                             <span class="px-2 py-1 rounded-md text-[10px] font-bold bg-surface-border text-white border border-surface-border/50">${(course.estudiantes || []).length} Estudiantes</span>
                         </div>
                     </div>
                 `;
 
+                // Botones específicos según rol
                 if (isAdmin) {
                     cardContent += `
                         <div class="p-3 border-t border-surface-border bg-black/20 flex items-center gap-2 justify-between">
@@ -89,8 +93,18 @@ async function loadCourses(isAdmin) {
                             </button>
                         </div>
                     `;
+                } else if (isSecretaria) {
+                    // La secretaria ve "Gestión" (Acceso a la grilla para agregar estudiantes)
+                    cardContent += `
+                        <div class="p-3 border-t border-surface-border bg-black/20 text-center flex gap-2">
+                             <a href="calificaciones.html?curso=${course.id}" class="flex-1 py-2 rounded-lg bg-purple-500/20 text-purple-400 hover:bg-purple-500 hover:text-white text-xs font-bold transition-colors border border-purple-500/30 flex items-center justify-center gap-1">
+                                <span class="material-symbols-outlined text-sm">school</span> Gestión Académica
+                            </a>
+                        </div>
+                     `;
                 } else {
-                     cardContent += `
+                    // Docente Titular o Normal
+                    cardContent += `
                         <div class="p-3 border-t border-surface-border bg-black/20 text-center">
                             <a href="calificaciones.html?curso=${course.id}" class="block w-full py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-background-dark text-xs font-bold transition-colors">
                                 Ver Calificaciones
@@ -108,19 +122,23 @@ async function loadCourses(isAdmin) {
     }
 }
 
+// ... Resto del código (catálogo global, materias, etc.) igual ...
+// Solo necesitamos asegurarnos de que la funciones de carga y lógica estén disponibles
+// Copia del resto del archivo original con las funciones auxiliares (loadGlobalCatalog, etc.)
+
 // --- GESTIÓN DE CATÁLOGO GLOBAL ---
 async function loadGlobalCatalog() {
     const list = document.getElementById('global-catalog-list');
-    const select = document.getElementById('select-global-subject'); 
-    
-    if(!list) return;
+    const select = document.getElementById('select-global-subject');
+
+    if (!list) return;
 
     try {
         const q = query(collection(db, "asignaturas_catalogo"), orderBy("nombre"));
         onSnapshot(q, (snapshot) => {
             list.innerHTML = '';
-            if(select) select.innerHTML = '<option value="" disabled selected>Selecciona asignatura...</option>';
-            
+            if (select) select.innerHTML = '<option value="" disabled selected>Selecciona asignatura...</option>';
+
             if (snapshot.empty) {
                 list.innerHTML = '<p class="text-xs text-text-secondary italic text-center p-4">Catálogo vacío.</p>';
                 return;
@@ -128,7 +146,7 @@ async function loadGlobalCatalog() {
 
             snapshot.forEach(docSnap => {
                 const item = docSnap.data();
-                
+
                 // Lista de gestión
                 const div = document.createElement('div');
                 div.className = "flex justify-between items-center p-2 bg-surface-dark border border-surface-border rounded-lg group hover:border-primary/50";
@@ -141,7 +159,7 @@ async function loadGlobalCatalog() {
                 list.appendChild(div);
 
                 // Select del modal
-                if(select) {
+                if (select) {
                     const option = document.createElement('option');
                     option.value = item.nombre;
                     option.textContent = item.nombre;
@@ -155,64 +173,61 @@ async function loadGlobalCatalog() {
 window.addGlobalSubject = async () => {
     const input = document.getElementById('new-global-subject-name');
     const name = input.value.trim();
-    if(!name) return;
+    if (!name) return;
     try {
         await setDoc(doc(db, "asignaturas_catalogo", name.toLowerCase().replace(/\s+/g, '_')), { nombre: name });
         input.value = '';
-        if(window.showToast) window.showToast("Asignatura agregada", "success");
-    } catch(e) { console.error(e); }
+        if (window.showToast) window.showToast("Asignatura agregada", "success");
+    } catch (e) { console.error(e); }
 }
 
 window.deleteGlobalSubject = async (id) => {
-    if(!confirm("¿Eliminar del catálogo global?")) return;
-    try { await deleteDoc(doc(db, "asignaturas_catalogo", id)); } catch(e) { console.error(e); }
+    if (!confirm("¿Eliminar del catálogo global?")) return;
+    try { await deleteDoc(doc(db, "asignaturas_catalogo", id)); } catch (e) { console.error(e); }
 }
 
-// --- GESTIÓN DE MATERIAS EN CURSO (MEJORADA) ---
+// --- GESTIÓN DE MATERIAS EN CURSO ---
 
 window.openSubjectsModal = async (courseId, courseName) => {
     currentCourseIdForSubjects = courseId;
     const titleEl = document.getElementById('modal-course-title');
-    if(titleEl) titleEl.innerHTML = `Curso: <span class="text-white font-bold">${courseName}</span>`;
-    
-    // Asegurar carga de docentes
-    await loadTeachersIntoSelects(); 
+    if (titleEl) titleEl.innerHTML = `Curso: <span class="text-white font-bold">${courseName}</span>`;
 
-    if(window.toggleModal) window.toggleModal('modal-manage-subjects');
+    await loadTeachersIntoSelects();
+
+    if (window.toggleModal) window.toggleModal('modal-manage-subjects');
     loadCourseSubjects(courseId);
 }
 
-// Hacemos loadCourseSubjects global para que el botón Cancelar la encuentre
 window.loadCourseSubjects = async (courseId) => {
     const list = document.getElementById('subjects-list');
     const countBadge = document.getElementById('subject-count');
-    if(!list) return;
-    
+    if (!list) return;
+
     list.innerHTML = '<div class="text-center p-4"><div class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-primary inline-block"></div></div>';
-    
+
     try {
         const docSnap = await getDoc(doc(db, "cursos_globales", courseId));
         if (docSnap.exists()) {
             const data = docSnap.data();
-            const materias = data.materias || []; 
-            const profesores = data.profesores_materias || {}; 
-            
-            if(countBadge) countBadge.innerText = materias.length;
+            const materias = data.materias || [];
+            const profesores = data.profesores_materias || {};
+
+            if (countBadge) countBadge.innerText = materias.length;
             list.innerHTML = '';
-            
+
             if (materias.length === 0) {
                 list.innerHTML = `<p class="text-center text-xs text-text-secondary py-4">Sin asignaturas.</p>`;
             } else {
                 materias.forEach(materia => {
                     const teacherEmail = profesores[materia] || "";
                     const isAssigned = !!teacherEmail;
-                    const cleanMateria = materia.replace(/'/g, "\\'"); // Escapar comillas para JS
+                    const cleanMateria = materia.replace(/'/g, "\\'");
 
                     const item = document.createElement('div');
-                    item.id = `subject-row-${cleanMateria.replace(/\s+/g, '-')}`; // ID único para edición
+                    item.id = `subject-row-${cleanMateria.replace(/\s+/g, '-')}`;
                     item.className = "flex items-center justify-between p-2.5 bg-surface-dark rounded-xl border border-surface-border mb-2";
-                    
-                    // Bloque Normal
+
                     item.innerHTML = `
                         <div class="flex-1">
                             <p class="text-white font-bold text-sm">${materia}</p>
@@ -242,13 +257,11 @@ window.loadCourseSubjects = async (courseId) => {
     }
 }
 
-// Nueva función: Habilita el modo edición (Select inline)
 window.enableEditSubject = (materia, currentEmail) => {
     const safeId = materia.replace(/\s+/g, '-');
     const row = document.getElementById(`subject-row-${safeId}`);
-    if(!row) return;
+    if (!row) return;
 
-    // Reemplazamos el contenido con un formulario inline
     row.innerHTML = `
         <div class="flex-1 flex flex-col gap-2">
              <p class="text-white font-bold text-sm">${materia}</p>
@@ -266,17 +279,14 @@ window.enableEditSubject = (materia, currentEmail) => {
         </div>
     `;
 
-    // Pre-seleccionar el profesor actual
     const select = document.getElementById(`edit-select-${safeId}`);
-    if(select) select.value = currentEmail;
+    if (select) select.value = currentEmail;
 }
 
-// Nueva función: Guardar el cambio de profesor
 window.saveSubjectTeacher = async (materia, selectId) => {
     const select = document.getElementById(selectId);
     const newEmail = select.value;
-    
-    // Feedback visual
+
     const btn = select.parentElement.nextElementSibling.querySelector('button');
     btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-sm">refresh</span>';
 
@@ -285,14 +295,12 @@ window.saveSubjectTeacher = async (materia, selectId) => {
         if (newEmail) {
             updateData[`profesores_materias.${materia}`] = newEmail;
         } else {
-            // Si elige "Sin asignar", borramos la entrada del mapa
             updateData[`profesores_materias.${materia}`] = deleteField();
         }
 
         await updateDoc(doc(db, "cursos_globales", currentCourseIdForSubjects), updateData);
-        if(window.showToast) window.showToast("Profesor actualizado", "success");
-        
-        // Recargar la lista para volver al modo vista
+        if (window.showToast) window.showToast("Profesor actualizado", "success");
+
         loadCourseSubjects(currentCourseIdForSubjects);
     } catch (e) {
         console.error(e);
@@ -303,15 +311,15 @@ window.saveSubjectTeacher = async (materia, selectId) => {
 window.addSubjectToCourse = async () => {
     const selectSubject = document.getElementById('select-global-subject');
     const selectTeacher = document.getElementById('new-subject-teacher');
-    
+
     const subjectName = selectSubject.value;
     const teacherEmail = selectTeacher.value;
-    
+
     if (!subjectName || !currentCourseIdForSubjects) {
         alert("Selecciona una asignatura del catálogo.");
         return;
     }
-    
+
     try {
         const updateData = {
             materias: arrayUnion(subjectName)
@@ -321,32 +329,30 @@ window.addSubjectToCourse = async () => {
         }
 
         await updateDoc(doc(db, "cursos_globales", currentCourseIdForSubjects), updateData);
-        await loadCourseSubjects(currentCourseIdForSubjects); 
-        loadCourses(isAdminUser); 
-        if(window.showToast) window.showToast("Materia agregada", "success");
+        await loadCourseSubjects(currentCourseIdForSubjects);
+        loadCourses(isAdminUser, isSecretariaUser);
+        if (window.showToast) window.showToast("Materia agregada", "success");
 
     } catch (e) { console.error(e); alert("Error: " + e.message); }
 }
 
 window.removeSubjectFromCourse = async (materiaName) => {
-    if(!confirm(`¿Quitar "${materiaName}" del curso? \n\nSe eliminará la asignación del profesor y la materia de la lista.`)) return;
-    
+    if (!confirm(`¿Quitar "${materiaName}" del curso? \n\nSe eliminará la asignación del profesor y la materia de la lista.`)) return;
+
     try {
-        // Usamos deleteField() para limpieza profunda
         const updateData = {
             materias: arrayRemove(materiaName)
         };
         updateData[`profesores_materias.${materiaName}`] = deleteField();
 
         await updateDoc(doc(db, "cursos_globales", currentCourseIdForSubjects), updateData);
-        
+
         await loadCourseSubjects(currentCourseIdForSubjects);
-        loadCourses(isAdminUser);
-        if(window.showToast) window.showToast("Asignatura eliminada", "info");
+        loadCourses(isAdminUser, isSecretariaUser);
+        if (window.showToast) window.showToast("Asignatura eliminada", "info");
     } catch (e) { console.error(e); }
 }
 
-// --- AUXILIARES ---
 async function loadTeachersIntoSelects() {
     const selects = [
         document.getElementById('course-teacher-email'),
@@ -364,19 +370,16 @@ async function loadTeachersIntoSelects() {
             }
         });
 
-        // Guardamos en caché para uso repetido en edición inline
         teacherOptionsCache = optionsHTML.join('');
 
-        // Llenar selectores estáticos
         selects.forEach(sel => {
-            if(sel) sel.innerHTML = teacherOptionsCache;
+            if (sel) sel.innerHTML = teacherOptionsCache;
         });
     } catch (e) { console.error("Error cargando profesores", e); }
 }
 
-// --- EDICIÓN Y ELIMINACIÓN DE CURSOS (GLOBAL) ---
 window.openEditModal = async (courseId) => {
-    if(window.toggleModal) window.toggleModal('modal-create-course');
+    if (window.toggleModal) window.toggleModal('modal-create-course');
     const form = document.getElementById('form-create-course');
     form.reset();
     await loadTeachersIntoSelects();
@@ -392,14 +395,14 @@ window.openEditModal = async (courseId) => {
             idInput.classList.add('opacity-50', 'cursor-not-allowed');
             document.getElementById('course-teacher-email').value = data.titular_email || '';
         }
-    } catch(e) { console.error(e); }
+    } catch (e) { console.error(e); }
 }
 
 window.deleteCourse = async (courseId) => {
     if (!confirm(`PELIGRO: ¿Eliminar curso "${courseId}"?`)) return;
     try {
         await deleteDoc(doc(db, "cursos_globales", courseId));
-        if(window.showToast) window.showToast("Curso eliminado", "success");
-        loadCourses(isAdminUser);
+        if (window.showToast) window.showToast("Curso eliminado", "success");
+        loadCourses(isAdminUser, isSecretariaUser);
     } catch (error) { alert("Error: " + error.message); }
 }

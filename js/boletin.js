@@ -1,31 +1,43 @@
-// boletin.js - Sistema de generaciÃ³n de boletines oficiales
+// boletin.js - Sistema de generación de boletines oficiales
 import { db, collection, getDocs, doc, getDoc, query } from './firebase-config.js';
+
+// --- CONFIGURACIÓN DEL CENTRO EDUCATIVO ---
+// Edita estos datos para que aparezcan automáticamente en el boletín
+const SCHOOL_INFO = {
+    nombre: "CENTRO EDUCATIVO EJEMPLO",
+    codigo: "12345",
+    tanda: "JORNADA ESCOLAR EXTENDIDA",
+    distrito: "10-01",
+    regional: "10"
+};
 
 let allCourses = [];
 let selectedCourseData = null;
 let selectedStudentData = null;
 
 const AREAS_CURRICULARES = [
-    'Lengua EspaÃ±ola',
-    'Lenguas Extranjeras (inglÃ©s)',
-    'Lenguas Extranjeras (FrancÃ©s)',
-    'MatemÃ¡tica',
+    'Lengua Española',
+    'Lenguas Extranjeras (inglés)',
+    'Lenguas Extranjeras (Francés)',
+    'Matemática',
     'Ciencias Sociales',
     'Ciencias de la Naturaleza',
-    'EducaciÃ³n ArtÃ­stica',
-    'EducaciÃ³n FÃ­sica',
-    'FormaciÃ³n Integral Humana y Religiosa'
+    'Educación Artística',
+    'Educación Física',
+    'Formación Integral Humana y Religiosa',
+    'Salidas Optativas / Tecnología' // Agregado para materias técnicas/informática
 ];
 
-// Esperar a que el usuario estÃ© listo
+// Esperar a que el usuario esté listo
 window.addEventListener('userReady', async (e) => {
     const { role, email } = e.detail;
     document.getElementById('main-body').classList.remove('opacity-0');
-    await loadCourses(role === 'admin', email);
+    // Secretarias y Admins ven todo
+    await loadCourses(role === 'admin' || role === 'secretaria', email);
 });
 
 // Cargar cursos disponibles
-async function loadCourses(isAdmin, userEmail) {
+async function loadCourses(isAdminOrSecretaria, userEmail) {
     const selectCourse = document.getElementById('select-course');
 
     try {
@@ -39,9 +51,10 @@ async function loadCourses(isAdmin, userEmail) {
             const course = docSnap.data();
             course.id = docSnap.id;
 
-            // Filtrar por permisos
+            // Filtrar por permisos: Admin, Secretaria o Titular
             const isTitular = (course.titular_email === userEmail);
-            if (isAdmin || isTitular) {
+
+            if (isAdminOrSecretaria || isTitular) {
                 allCourses.push(course);
                 const option = document.createElement('option');
                 option.value = course.id;
@@ -103,9 +116,9 @@ window.generateBoletin = function () {
     document.getElementById('boletin-preview').innerHTML = boletinHTML;
 }
 
-// Crear HTML del boletÃ­n oficial
+// Crear HTML del boletín oficial
 function createBoletinHTML(course, student, yearFrom, yearTo) {
-    // Calcular promedios por Ã¡rea
+    // Calcular promedios por área
     const gradeSummary = calculateGradeSummary(course, student);
     const attendanceSummary = calculateAttendanceSummary(course, student);
 
@@ -115,26 +128,25 @@ function createBoletinHTML(course, student, yearFrom, yearTo) {
             <!-- ENCABEZADO -->
             <div style="text-align: center; margin-bottom: 15px; border-bottom: 2px solid #000; padding-bottom: 10px;">
                 <div style="font-size: 10px; margin-bottom: 5px;">
-                    <strong>Viceministro de Servicios TÃ©cnicos y PedagÃ³gicos</strong><br>
-                    <strong>DirecciÃ³n General de EducaciÃ³n Secundaria</strong>
+                    <strong>Viceministro de Servicios Técnicos y Pedagógicos</strong><br>
+                    <strong>Dirección General de Educación Secundaria</strong>
                 </div>
-                <h1 style="font-size: 18px; margin: 10px 0; font-weight: bold;">BOLETÃN DE CALIFICACIONES</h1>
+                <div style="display: flex; justify-content: center; align-items: center; gap: 15px;">
+                     <!-- Placeholder para escudo nacional si se desea -->
+                     <!-- <img src="ruta/escudo.png" style="height: 40px;"> -->
+                     <h1 style="font-size: 18px; margin: 10px 0; font-weight: bold;">BOLETÍN DE CALIFICACIONES</h1>
+                </div>
                 <div style="font-size: 11px;">
-                    AÃ±o escolar: 20<u>${yearFrom}</u> &nbsp;&nbsp; 20<u>${yearTo}</u>
+                    Año escolar: 20<u>${yearFrom}</u> &nbsp;&nbsp; 20<u>${yearTo}</u>
                 </div>
             </div>
 
-            <!-- INFORMACIÃ“N DEL ESTUDIANTE -->
+            <!-- INFORMACIÓN DEL ESTUDIANTE -->
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
                 <tr>
-<<<<<<< HEAD
-                    <td style="padding: 3px; font-size: 10px;"><strong>SecciÃ³n:</strong> ${course.nombre}</td>
-                    <td style="padding: 3px; font-size: 10px;"><strong>NÃºmero de orden:</strong> ${student.id}</td>
-=======
                     <td style="padding: 3px; font-size: 10px;"><strong>Sección:</strong> ${course.nombre}</td>
                     <!-- Usamos numero_orden si existe, si no, un guion -->
                     <td style="padding: 3px; font-size: 10px;"><strong>Número de orden:</strong> ${student.numero_orden || '-'}</td>
->>>>>>> 83ebcb7d32dd8f8f2c6d96ddfe7c1562d2714e0c
                 </tr>
                 <tr>
                     <td colspan="2" style="padding: 3px; font-size: 10px;"><strong>Nombre(s) y Apellido(s):</strong> ${student.nombre}</td>
@@ -147,15 +159,15 @@ function createBoletinHTML(course, student, yearFrom, yearTo) {
                     <td colspan="2" style="padding: 3px; font-size: 10px;"><strong>RNE:</strong> ${student.rne || '________________________'}</td>
                 </tr>
                 <tr>
-                    <td colspan="2" style="padding: 3px; font-size: 10px;"><strong>Centro educativo:</strong> ________________________________</td>
+                    <td colspan="2" style="padding: 3px; font-size: 10px;"><strong>Centro educativo:</strong> ${SCHOOL_INFO.nombre}</td>
                 </tr>
                 <tr>
-                    <td style="padding: 3px; font-size: 10px;"><strong>CÃ³digo del centro:</strong> _____________</td>
-                    <td style="padding: 3px; font-size: 10px;"><strong>Tanda:</strong> _____________</td>
+                    <td style="padding: 3px; font-size: 10px;"><strong>Código del centro:</strong> ${SCHOOL_INFO.codigo}</td>
+                    <td style="padding: 3px; font-size: 10px;"><strong>Tanda:</strong> ${SCHOOL_INFO.tanda}</td>
                 </tr>
                 <tr>
-                    <td style="padding: 3px; font-size: 10px;"><strong>Distrito educativo:</strong> _____________</td>
-                    <td style="padding: 3px; font-size: 10px;"><strong>Regional:</strong> _____________</td>
+                    <td style="padding: 3px; font-size: 10px;"><strong>Distrito educativo:</strong> ${SCHOOL_INFO.distrito}</td>
+                    <td style="padding: 3px; font-size: 10px;"><strong>Regional:</strong> ${SCHOOL_INFO.regional}</td>
                 </tr>
             </table>
 
@@ -163,10 +175,10 @@ function createBoletinHTML(course, student, yearFrom, yearTo) {
             <table class="boletin-table" style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
                 <thead>
                     <tr style="background-color: #e0e0e0;">
-                        <th rowspan="3" style="width: 20%; vertical-align: middle;">ÃREAS CURRICULARES</th>
-                        <th colspan="4" style="text-align: center;">PROMEDIO GRUPO DE COMPETENCIAS ESPECÃFICAS</th>
-                        <th rowspan="2" colspan="2" style="text-align: center;">CALIFICACIÃ“N<br>FINAL DEL ÃREA</th>
-                        <th rowspan="3" style="width: 8%;">SITUACIÃ“N FINAL</th>
+                        <th rowspan="3" style="width: 20%; vertical-align: middle;">ÁREAS CURRICULARES</th>
+                        <th colspan="4" style="text-align: center;">PROMEDIO GRUPO DE COMPETENCIAS ESPECÍFICAS</th>
+                        <th rowspan="2" colspan="2" style="text-align: center;">CALIFICACIÓN<br>FINAL DEL ÁREA</th>
+                        <th rowspan="3" style="width: 8%;">SITUACIÓN FINAL</th>
                     </tr>
                     <tr style="background-color: #e0e0e0;">
                         <th>P1</th>
@@ -206,7 +218,7 @@ function createBoletinHTML(course, student, yearFrom, yearTo) {
                         <th colspan="4" style="text-align: center;">RESUMEN DE ASISTENCIA</th>
                     </tr>
                     <tr style="background-color: #e0e0e0;">
-                        <th>PerÃ­odo</th>
+                        <th>Período</th>
                         <th>Asistencia</th>
                         <th>Ausencia</th>
                         <th>% Asist.</th>
@@ -231,8 +243,8 @@ function createBoletinHTML(course, student, yearFrom, yearTo) {
             <div style="font-size: 9px; border: 1px solid #000; padding: 8px; margin-bottom: 15px;">
                 <strong>LEYENDA:</strong><br>
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-top: 5px;">
-                    <div>(P1-P4) PerÃ­odo 1-4</div>
-                    <div>(C.F.) CalificaciÃ³n Final</div>
+                    <div>(P1-P4) Período 1-4</div>
+                    <div>(C.F.) Calificación Final</div>
                     <div>(A) Aprobado</div>
                     <div>(PC) Promedio Competencias</div>
                     <div>(C.E.C.) Cal. Completiva</div>
@@ -250,7 +262,7 @@ function createBoletinHTML(course, student, yearFrom, yearTo) {
                 </div>
             </div>
 
-            <!-- PIE DE PÃGINA -->
+            <!-- PIE DE PÁGINA -->
             <div style="margin-top: 30px;">
                 <table style="width: 100%; font-size: 10px;">
                     <tr>
@@ -279,7 +291,7 @@ function createBoletinHTML(course, student, yearFrom, yearTo) {
     `;
 }
 
-// Calcular promedios por Ã¡rea curricular
+// Calcular promedios por área curricular
 function calculateGradeSummary(course, student) {
     const summary = {};
     const notas = student.notas || {};
@@ -288,7 +300,7 @@ function calculateGradeSummary(course, student) {
 
     // Mapear cada materia del curso a un área curricular
     materias.forEach(materia => {
-        // Buscar Ã¡rea curricular correspondiente (puedes personalizar este mapeo)
+        // Buscar área curricular correspondiente (puedes personalizar este mapeo)
         let area = matchAreaCurricular(materia);
 
         if (!summary[area]) {
@@ -330,22 +342,24 @@ function calculateGradeSummary(course, student) {
     return summary;
 }
 
-// Mapear materias a Ã¡reas curriculares oficiales
+// Mapear materias a áreas curriculares oficiales
 function matchAreaCurricular(materia) {
     const lower = materia.toLowerCase();
 
-    if (lower.includes('español') || lower.includes('lengua')) return 'Lengua Española';
+    // Mapeo ampliado y robusto
+    if (lower.includes('español') || lower.includes('lengua') || lower.includes('literatura')) return 'Lengua Española';
     if (lower.includes('inglés') || lower.includes('ingles')) return 'Lenguas Extranjeras (inglés)';
     if (lower.includes('francés') || lower.includes('frances')) return 'Lenguas Extranjeras (Francés)';
-    if (lower.includes('matemática') || lower.includes('matematica')) return 'Matemática';
-    if (lower.includes('social') || lower.includes('historia') || lower.includes('geografía')) return 'Ciencias Sociales';
-    if (lower.includes('naturaleza') || lower.includes('biología') || lower.includes('física') || lower.includes('química')) return 'Ciencias de la Naturaleza';
-    if (lower.includes('artística') || lower.includes('arte') || lower.includes('música')) return 'Educación Artística';
-    if (lower.includes('física ed') || lower.includes('deporte')) return 'Educación Física';
-    if (lower.includes('religión') || lower.includes('ética') || lower.includes('moral')) return 'Formación Integral Humana y Religiosa';
+    if (lower.includes('matemática') || lower.includes('calculo') || lower.includes('álgebra') || lower.includes('algebra')) return 'Matemática';
+    if (lower.includes('social') || lower.includes('historia') || lower.includes('geografía') || lower.includes('cívica') || lower.includes('ciudadanía')) return 'Ciencias Sociales';
+    if (lower.includes('naturaleza') || lower.includes('biología') || lower.includes('física') || lower.includes('química') || lower.includes('naturales')) return 'Ciencias de la Naturaleza';
+    if (lower.includes('artística') || lower.includes('arte') || lower.includes('música') || lower.includes('dibujo')) return 'Educación Artística';
+    if (lower.includes('física ed') || lower.includes('deporte') || lower.includes('gimnasia')) return 'Educación Física';
+    if (lower.includes('religión') || lower.includes('ética') || lower.includes('moral') || lower.includes('humana')) return 'Formación Integral Humana y Religiosa';
+    if (lower.includes('informática') || lower.includes('tecnología') || lower.includes('computación') || lower.includes('taller')) return 'Salidas Optativas / Tecnología';
 
     // Por defecto
-    return 'Lengua EspaÃ±ola';
+    return 'Lengua Española';
 }
 
 // Calcular resumen de asistencia
