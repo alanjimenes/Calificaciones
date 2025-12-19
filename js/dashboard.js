@@ -9,16 +9,16 @@ window.addEventListener('userReady', (e) => {
     const { role, email } = e.detail;
     // Aseguramos que el DOM esté listo antes de pintar
     if (document.readyState === 'interactive' || document.readyState === 'complete') {
-         loadDashboard(role === 'admin', email);
+        loadDashboard(role === 'admin', email);
     } else {
         document.addEventListener('DOMContentLoaded', () => {
             loadDashboard(role === 'admin', email);
         });
     }
 });
-
+//hola
 document.addEventListener('DOMContentLoaded', () => {
-    
+
     window.toggleModal = (modalID) => {
         const modal = document.getElementById(modalID);
         if (modal) {
@@ -32,17 +32,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (formCurso) {
         formCurso.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             // Verificación simple de admin (idealmente backend rules)
-            if (auth.currentUser.email !== 'admin@mail.com') { 
+            if (auth.currentUser.email !== 'admin@mail.com') {
                 alert("Solo los administradores pueden gestionar cursos.");
                 return;
             }
 
             const nombreCurso = document.getElementById('course-name').value;
-            const idCurso = document.getElementById('course-id').value.trim(); 
+            const idCurso = document.getElementById('course-id').value.trim();
             const emailDocente = document.getElementById('course-teacher-email').value.trim();
-            
+
             try {
                 await setDoc(doc(db, "cursos_globales", idCurso), {
                     nombre: nombreCurso,
@@ -68,16 +68,16 @@ document.addEventListener('DOMContentLoaded', () => {
 async function loadDashboard(isAdmin, userEmail) {
     const listContainer = document.getElementById('dashboard-courses-list');
     const courseSelect = document.getElementById('quick-task-course');
-    
-    if (!listContainer) return; 
+
+    if (!listContainer) return;
 
     try {
         const q = query(collection(db, "cursos_globales"));
         const snapshot = await getDocs(q);
-        
+
         allCoursesCache = [];
         listContainer.innerHTML = '';
-        if(courseSelect) courseSelect.innerHTML = '<option value="" disabled selected>Selecciona un curso...</option>';
+        if (courseSelect) courseSelect.innerHTML = '<option value="" disabled selected>Selecciona un curso...</option>';
 
         if (snapshot.empty) {
             listContainer.innerHTML = '<p class="text-text-secondary col-span-full text-center py-10">No hay cursos disponibles.</p>';
@@ -86,11 +86,11 @@ async function loadDashboard(isAdmin, userEmail) {
 
         snapshot.forEach(docSnap => {
             const course = docSnap.data();
-            course.id = docSnap.id; 
-            
+            course.id = docSnap.id;
+
             // Filtro: Mostrar si es Admin o es el Titular
             const isTitular = (course.titular_email === userEmail);
-            
+
             if (isAdmin || isTitular) {
                 allCoursesCache.push(course);
 
@@ -98,7 +98,7 @@ async function loadDashboard(isAdmin, userEmail) {
                 const card = document.createElement('a');
                 card.href = `calificaciones.html?curso=${course.id}`;
                 card.className = "group bg-surface-dark border border-surface-border p-5 rounded-2xl hover:border-primary/50 transition-all hover:-translate-y-1 hover:shadow-lg flex flex-col justify-between h-40";
-                
+
                 const initial = course.nombre ? course.nombre.charAt(0).toUpperCase() : 'C';
                 const subjectCount = (course.materias || []).length;
                 const studentCount = (course.estudiantes || []).length;
@@ -118,7 +118,7 @@ async function loadDashboard(isAdmin, userEmail) {
                 listContainer.appendChild(card);
 
                 // B. Llenar Select de Tarea Rápida
-                if(courseSelect) {
+                if (courseSelect) {
                     const option = document.createElement('option');
                     option.value = course.id;
                     option.textContent = course.nombre;
@@ -149,9 +149,9 @@ if (courseSelect) {
     courseSelect.addEventListener('change', (e) => {
         const courseId = e.target.value;
         const selectedCourse = allCoursesCache.find(c => c.id === courseId);
-        
+
         subjectSelect.innerHTML = '<option value="" disabled selected>Selecciona materia...</option>';
-        
+
         if (selectedCourse && selectedCourse.materias && selectedCourse.materias.length > 0) {
             selectedCourse.materias.forEach(materia => {
                 const opt = document.createElement('option');
@@ -160,31 +160,31 @@ if (courseSelect) {
                 subjectSelect.appendChild(opt);
             });
             subjectContainer.classList.remove('hidden');
-            if(statusMsg) statusMsg.classList.add('hidden');
+            if (statusMsg) statusMsg.classList.add('hidden');
         } else {
             subjectContainer.classList.add('hidden');
             detailsContainer.classList.add('hidden');
-            if(window.showToast) window.showToast("Este curso no tiene materias registradas.", "error");
+            if (window.showToast) window.showToast("Este curso no tiene materias registradas.", "error");
         }
     });
 
-    if(subjectSelect) {
+    if (subjectSelect) {
         subjectSelect.addEventListener('change', () => {
-            if(subjectSelect.value) detailsContainer.classList.remove('hidden');
+            if (subjectSelect.value) detailsContainer.classList.remove('hidden');
         });
     }
 
-    if(quickForm) {
+    if (quickForm) {
         quickForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const courseId = courseSelect.value;
             const subject = subjectSelect.value;
             const name = document.getElementById('quick-task-name').value.trim();
             const value = document.getElementById('quick-task-value').value;
             const period = document.getElementById('quick-task-period').value;
 
-            if(!courseId || !subject || !name || !value) return;
+            if (!courseId || !subject || !name || !value) return;
 
             const btn = quickForm.querySelector('button[type="submit"]');
             const originalText = btn.innerHTML;
@@ -194,13 +194,13 @@ if (courseSelect) {
             try {
                 const courseRef = doc(db, "cursos_globales", courseId);
                 const courseDoc = await getDoc(courseRef);
-                
-                if(courseDoc.exists()) {
+
+                if (courseDoc.exists()) {
                     const data = courseDoc.data();
                     let actividades = data.actividades || {};
-                    
+
                     if (!actividades[subject]) actividades[subject] = [];
-                    
+
                     actividades[subject].push({
                         nombre: name,
                         valor: parseFloat(value),
@@ -208,10 +208,10 @@ if (courseSelect) {
                     });
 
                     await updateDoc(courseRef, { actividades: actividades });
-                    
-                    if(window.showToast) window.showToast("Tarea creada exitosamente", "success");
+
+                    if (window.showToast) window.showToast("Tarea creada exitosamente", "success");
                     else alert("Tarea creada");
-                    
+
                     document.getElementById('quick-task-name').value = '';
                     document.getElementById('quick-task-value').value = '';
                 }
