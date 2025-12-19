@@ -23,6 +23,7 @@ function renderSidebar() {
     const links = [
         { href: 'index.html', icon: 'dashboard', text: 'Inicio' },
         { href: 'calificaciones.html', icon: 'edit_note', text: 'Registro Notas' },
+        { href: 'boletin.html', icon: 'description', text: 'Boletines' }, // <--- AGREGADO BOLETINES
         { href: 'cursos.html', icon: 'library_books', text: 'Cursos' }
     ];
 
@@ -33,7 +34,7 @@ function renderSidebar() {
 
     // Construcción del HTML
     const sidebarHTML = `
-    <aside class="hidden lg:flex w-72 flex-col border-r border-surface-border bg-background-dark p-6 z-30 shrink-0 h-full fixed lg:static top-0 left-0">
+    <aside class="hidden lg:flex w-72 flex-col border-r border-surface-border bg-background-dark p-6 z-30 shrink-0 h-full fixed lg:static top-0 left-0 print:hidden"> <!-- Added print:hidden -->
         <div class="mb-10 flex items-center gap-4">
             <div id="layout-user-img" class="size-12 rounded-full bg-cover bg-center ring-2 ring-primary/20 bg-surface-border animate-pulse" 
                  style='background-image: url("");'></div>
@@ -73,29 +74,46 @@ function renderSidebar() {
     // Inyectar al principio del body
     const body = document.getElementById('main-body');
     if (body) {
+        // Buscar si ya existe un aside para no duplicar (en caso de recargas raras)
+        const existingAside = body.querySelector('aside');
+        if (existingAside && existingAside.parentNode === body) {
+            existingAside.remove();
+        }
+        
         body.insertAdjacentHTML('afterbegin', sidebarHTML);
         
         // Asignar evento logout
-        document.getElementById('layout-logout-btn').addEventListener('click', async () => {
-            try {
-                await signOut(auth);
-                localStorage.removeItem('edusys_user_data');
-                window.location.href = 'login.html';
-            } catch (error) {
-                console.error("Error logout:", error);
-            }
-        });
+        const logoutBtn = document.getElementById('layout-logout-btn');
+        if(logoutBtn) {
+            logoutBtn.addEventListener('click', async () => {
+                try {
+                    await signOut(auth);
+                    localStorage.removeItem('edusys_user_data');
+                    window.location.href = 'login.html';
+                } catch (error) {
+                    console.error("Error logout:", error);
+                }
+            });
+        }
     }
 }
 
 function createLinkHTML(link, currentPath, isAdmin = false) {
-    const isActive = currentPath.includes(link.href);
+    // Lógica mejorada de detección de ruta activa
+    let isActive = false;
+    const pageName = currentPath.split('/').pop() || 'index.html';
+    
+    if (link.href === 'index.html' && (pageName === '' || pageName === 'index.html')) {
+        isActive = true;
+    } else if (pageName === link.href) {
+        isActive = true;
+    }
     
     let classes = "flex items-center gap-4 rounded-xl px-4 py-3.5 transition-all ";
     
     if (isActive) {
         if (isAdmin) classes += "bg-admin/10 text-admin border-l-4 border-admin";
-        else classes += "bg-primary/10 text-primary border-l-4 border-primary"; // Clase activa standard
+        else classes += "bg-primary/10 text-primary border-l-4 border-primary"; 
     } else {
         classes += "text-text-secondary hover:text-white hover:bg-white/5";
     }
@@ -118,7 +136,7 @@ function updateSidebarInfo(user, role) {
     if (imgEl && user.photoURL) {
         imgEl.style.backgroundImage = `url('${user.photoURL}')`;
         imgEl.classList.remove('animate-pulse');
-    } else if (imgEl) {
+    } else if (imgEl && user.email) {
          imgEl.classList.remove('animate-pulse');
          imgEl.innerText = user.email.charAt(0).toUpperCase();
          imgEl.classList.add('flex', 'items-center', 'justify-center', 'text-xl', 'font-bold', 'text-white');

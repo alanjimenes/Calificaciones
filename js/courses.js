@@ -182,7 +182,8 @@ window.openSubjectsModal = async (courseId, courseName) => {
     loadCourseSubjects(courseId);
 }
 
-async function loadCourseSubjects(courseId) {
+// Hacemos loadCourseSubjects global para que el botón Cancelar la encuentre
+window.loadCourseSubjects = async (courseId) => {
     const list = document.getElementById('subjects-list');
     const countBadge = document.getElementById('subject-count');
     if(!list) return;

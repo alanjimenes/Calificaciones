@@ -67,47 +67,12 @@
         }
     </style>
 </head>
-<body class="bg-background-dark text-white font-display min-h-screen opacity-0 transition-opacity duration-300" id="main-body">
+<body class="bg-background-dark text-white font-display min-h-screen opacity-0 transition-opacity duration-300 flex" id="main-body">
 
-    <!-- SIDEBAR (Solo visible en pantalla) -->
-    <aside class="no-print hidden lg:flex w-72 flex-col border-r border-surface-border bg-background-dark p-6 fixed h-screen z-30">
-        <div class="mb-10 flex items-center gap-4">
-            <div class="user-img-display size-12 rounded-full bg-cover bg-center ring-2 ring-primary/20" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCgqeWpJ9Gwv_HTYPLlMcGOqoeIzYcm7i1nFJLk9KXtwlJWaxLXEUhINxrmtYOrPkdKTz7lgUlhBLeCxhzjIhcqdqWI-w1_3LTV1xXixwY69IxiQIGjvzZi7chzlHSjDhsIxIX6Vvz6fP7aF8wRTp6On_XaVVafQV5dPTIgkX1VikClPR7EoI1ct_U2I1-RvAWKtJV4z5rFgrHGWcnIvmSqT-V0Oav8nbpCk_BPBEIG06A8MY4IIlNooWzn1qd9WQ9cEijg-NjaENnr");'></div>
-            <div class="flex flex-col">
-                <h1 class="text-xl font-bold text-white leading-tight">EduSys</h1>
-                <span class="user-role-badge text-[10px] font-bold px-2 py-0.5 rounded bg-gray-800 text-gray-400 w-fit mt-1">CARGANDO...</span>
-            </div>
-        </div>
-        
-        <nav class="flex flex-1 flex-col gap-2">
-            <a href="index.html" class="nav-link flex items-center gap-4 rounded-xl px-4 py-3.5 text-text-secondary hover:text-white">
-                <span class="material-symbols-outlined icon">dashboard</span>
-                <span class="font-medium">Inicio</span>
-            </a>
-            <a href="calificaciones.html" class="nav-link flex items-center gap-4 rounded-xl px-4 py-3.5 text-text-secondary hover:text-white">
-                <span class="material-symbols-outlined icon">edit_note</span>
-                <span class="font-medium">Registro Notas</span>
-            </a>
-            <a href="boletin.html" class="nav-link active flex items-center gap-4 rounded-xl px-4 py-3.5 text-text-secondary">
-                <span class="material-symbols-outlined icon">description</span>
-                <span class="font-medium">Boletines</span>
-            </a>
-            <a href="cursos.html" class="nav-link flex items-center gap-4 rounded-xl px-4 py-3.5 text-text-secondary hover:text-white">
-                <span class="material-symbols-outlined icon">library_books</span>
-                <span class="font-medium">Cursos</span>
-            </a>
-        </nav>
-        
-        <div class="mt-auto">
-            <button class="logout-btn flex w-full items-center gap-4 rounded-xl px-4 py-3.5 text-text-secondary hover:bg-danger/10 hover:text-danger transition-colors">
-                <span class="material-symbols-outlined">logout</span>
-                <span class="font-medium">Cerrar Sesión</span>
-            </button>
-        </div>
-    </aside>
+    <!-- EL SIDEBAR SE INYECTA CON JS (layout.js) -->
 
     <!-- CONTENIDO PRINCIPAL -->
-    <main class="lg:ml-72 min-h-screen relative">
+    <main class="flex-1 min-h-screen relative overflow-y-auto">
         
         <!-- Header (No imprimir) -->
         <div class="no-print bg-surface-dark border-b border-surface-border p-6 sticky top-0 z-20">
@@ -180,6 +145,7 @@
         
     </main>
 
+    <script type="module" src="js/layout.js"></script> <!-- AGREGADO LAYOUT.JS -->
     <script type="module" src="js/main.js"></script>
     <script type="module" src="js/boletin.js"></script>
 </body>
