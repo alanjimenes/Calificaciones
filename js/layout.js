@@ -23,7 +23,7 @@ function renderSidebar() {
     const links = [
         { href: 'index.html', icon: 'dashboard', text: 'Inicio' },
         { href: 'calificaciones.html', icon: 'edit_note', text: 'Registro Notas' },
-        { href: 'boletin.html', icon: 'description', text: 'Boletines' }, // <--- AGREGADO BOLETINES
+        { href: 'boletin.html', icon: 'description', text: 'Boletines' }, 
         { href: 'cursos.html', icon: 'library_books', text: 'Cursos' }
     ];
 
@@ -34,7 +34,7 @@ function renderSidebar() {
 
     // Construcción del HTML
     const sidebarHTML = `
-    <aside class="hidden lg:flex w-72 flex-col border-r border-surface-border bg-background-dark p-6 z-30 shrink-0 h-full fixed lg:static top-0 left-0 print:hidden"> <!-- Added print:hidden -->
+    <aside class="hidden lg:flex w-72 flex-col border-r border-surface-border bg-background-dark p-6 z-30 shrink-0 h-full fixed lg:static top-0 left-0 print:hidden">
         <div class="mb-10 flex items-center gap-4">
             <div id="layout-user-img" class="size-12 rounded-full bg-cover bg-center ring-2 ring-primary/20 bg-surface-border animate-pulse" 
                  style='background-image: url("");'></div>
@@ -143,8 +143,19 @@ function updateSidebarInfo(user, role) {
     }
 
     if (roleEl) {
-        roleEl.innerText = role === 'admin' ? 'ADMINISTRADOR' : 'DOCENTE';
-        roleEl.className = `text-[10px] font-bold px-2 py-0.5 rounded w-fit mt-1 ${role === 'admin' ? 'bg-admin/20 text-admin' : 'bg-primary/20 text-primary'}`;
+        let roleName = 'DOCENTE';
+        let roleClass = 'bg-primary/20 text-primary';
+        
+        if (role === 'admin') { 
+            roleName = 'ADMINISTRADOR'; 
+            roleClass = 'bg-admin/20 text-admin'; 
+        } else if (role === 'secretaria') { 
+            roleName = 'SECRETARIA'; 
+            roleClass = 'bg-purple-500/20 text-purple-400 border border-purple-500/20'; 
+        }
+
+        roleEl.innerText = roleName;
+        roleEl.className = `text-[10px] font-bold px-2 py-0.5 rounded w-fit mt-1 ${roleClass}`;
     }
 
     if (adminSection) {
