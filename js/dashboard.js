@@ -181,10 +181,19 @@ if (courseSelect) {
             const courseId = courseSelect.value;
             const subject = subjectSelect.value;
             const name = document.getElementById('quick-task-name').value.trim();
-            const value = document.getElementById('quick-task-value').value;
+            const valueInput = document.getElementById('quick-task-value');
             const period = document.getElementById('quick-task-period').value;
 
-            if (!courseId || !subject || !name || !value) return;
+            // --- CORRECCIÓN: Validación numérica ---
+            const value = parseFloat(valueInput.value);
+
+            if (!courseId || !subject || !name || isNaN(value)) return;
+
+            // 1. Validar que la nota individual no sea mayor a 100
+            if (value > 100) {
+                alert("El valor de la actividad no puede ser mayor al 100%.");
+                return;
+            }
 
             const btn = quickForm.querySelector('button[type="submit"]');
             const originalText = btn.innerHTML;
@@ -201,9 +210,24 @@ if (courseSelect) {
 
                     if (!actividades[subject]) actividades[subject] = [];
 
+                    // --- VALIDACIÓN DE SUMA ---
+                    const actividadesDelPeriodo = actividades[subject].filter(act => (act.periodo || 'p1') === period);
+                    let sumaActual = 0;
+                    actividadesDelPeriodo.forEach(act => {
+                        sumaActual += (parseFloat(act.valor) || 0);
+                    });
+
+                    const sumaTotal = sumaActual + value;
+                    if (sumaTotal > 100) {
+                        alert(`Error: La suma del periodo excedería el 100%.\n\nActual: ${sumaActual}%\nNueva: ${value}%\nTotal: ${sumaTotal}%`);
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                        return;
+                    }
+
                     actividades[subject].push({
                         nombre: name,
-                        valor: parseFloat(value),
+                        valor: value,
                         periodo: period
                     });
 

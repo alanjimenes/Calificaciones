@@ -124,13 +124,13 @@
 
                     <!-- Selector Periodo -->
                     <div id="period-selector-container" class="relative">
+                        <!-- MODIFICADO: Eliminada opción Final -->
                         <select id="period-selector"
                             class="pl-8 bg-background-dark border border-surface-border text-white text-sm rounded-lg focus:ring-primary focus:border-primary block p-2 w-36">
                             <option value="p1" selected>Periodo 1</option>
                             <option value="p2">Periodo 2</option>
                             <option value="p3">Periodo 3</option>
                             <option value="p4">Periodo 4</option>
-                            <option value="final">Final / Extra</option>
                         </select>
                         <span
                             class="material-symbols-outlined absolute left-2 top-2.5 text-text-secondary text-lg">date_range</span>
@@ -295,18 +295,20 @@
                 class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined">close</button>
             <h2 class="text-xl font-bold text-white mb-4">Crear Actividad</h2>
             <form id="form-add-activity" class="space-y-4">
-                <input type="text" id="activity-name" placeholder="Nombre (Ej: Tarea 1)"
+                <input type="text" id="activity-name" placeholder="Nombre (Ej: Tarea 1)" required
                     class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white text-sm focus:border-primary outline-none">
                 <div class="grid grid-cols-2 gap-4">
-                    <input type="number" id="activity-value" placeholder="Valor %"
+                    <!-- MODIFICADO: Agregado max="100" y min="1" -->
+                    <input type="number" id="activity-value" placeholder="Valor %" min="1" max="100" required
                         class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white text-sm focus:border-primary outline-none">
+
+                    <!-- MODIFICADO: Eliminada opción Final -->
                     <select id="activity-period"
                         class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white text-sm focus:border-primary outline-none">
                         <option value="p1">P1</option>
                         <option value="p2">P2</option>
                         <option value="p3">P3</option>
                         <option value="p4">P4</option>
-                        <option value="final">Final</option>
                     </select>
                 </div>
                 <button type="submit"

@@ -5,15 +5,16 @@ let courseConfig = null;
 let selectedSubject = "";
 let isTitular = false;
 let isAdmin = false;
-let isSecretaria = false; // Nueva bandera
 let COURSE_ID = '';
 let currentUserEmail = '';
 let currentTab = 'grades';
 let attendanceDate = new Date().toISOString().split('T')[0];
 let currentPeriod = 'p1';
 let currentTaskToGrade = null;
+let saveTimeout = null;
 
-const periodNames = { 'p1': 'Periodo 1', 'p2': 'Periodo 2', 'p3': 'Periodo 3', 'p4': 'Periodo 4', 'final': 'Final' };
+// MODIFICADO: Se eliminó 'final' de la lista de nombres
+const periodNames = { 'p1': 'Periodo 1', 'p2': 'Periodo 2', 'p3': 'Periodo 3', 'p4': 'Periodo 4' };
 
 const urlParams = new URLSearchParams(window.location.search);
 COURSE_ID = urlParams.get('curso');
@@ -21,7 +22,6 @@ COURSE_ID = urlParams.get('curso');
 window.addEventListener('userReady', (e) => {
     const { uid, user, role } = e.detail;
     isAdmin = (role === 'admin');
-    isSecretaria = (role === 'secretaria'); // Detectar secretaria
     currentUserEmail = user.email;
     if (COURSE_ID) initializeGradebook(uid, user.email);
     else { alert("No se especificó un curso."); window.location.href = 'cursos.html'; }
@@ -39,21 +39,19 @@ async function initializeGradebook(userId, userEmail) {
         if (titleEl) titleEl.innerHTML = `<span class="material-symbols-outlined text-[16px]">school</span> ${courseConfig.nombre} <span class="ml-2 text-xs bg-surface-border px-2 py-0.5 rounded text-white font-mono">${courseConfig.id}</span>`;
 
         isTitular = (userEmail === courseConfig.titular_email);
-
-        // Habilitar botón de agregar estudiante para Admin, Titular y Secretaria
         const btnAddStudent = document.getElementById('btn-add-student');
-        if (btnAddStudent && (isAdmin || isTitular || isSecretaria)) {
-            btnAddStudent.classList.remove('hidden');
-        }
+        if (btnAddStudent && (isAdmin || isTitular)) btnAddStudent.classList.remove('hidden');
 
         setupSubjectSelector(courseConfig.materias || []);
         setupTabs();
 
+        // Listener Fechas y Periodos
         const periodSelect = document.getElementById('period-selector');
         if (periodSelect) {
             periodSelect.addEventListener('change', (e) => {
                 currentPeriod = e.target.value;
-                document.getElementById('current-period-display').innerText = periodNames[currentPeriod];
+                const pName = periodNames[currentPeriod] || currentPeriod; // Fallback por si acaso
+                document.getElementById('current-period-display').innerText = pName;
                 if (currentTab === 'grades') renderTable();
             });
         }
@@ -158,9 +156,6 @@ function checkSubjectPermissions() {
     const assignedTeacher = (courseConfig.profesores_materias || {})[selectedSubject];
     const canEdit = isAdmin || (currentUserEmail === assignedTeacher);
 
-    // Las secretarias NO pueden editar actividades ni notas, solo ver.
-    // canEdit se mantiene false para secretaria.
-
     [btnAddMain, btnAddTasks, btnAdd].forEach(btn => { if (btn) canEdit ? btn.classList.remove('hidden') : btn.classList.add('hidden'); });
 
     if (statusText) {
@@ -168,8 +163,7 @@ function checkSubjectPermissions() {
             statusText.innerHTML = `Permisos: <span class='text-primary font-bold'>Edición Habilitada</span> (${assignedTeacher || 'Admin'})`;
             statusText.classList.remove('text-danger'); statusText.classList.add('text-text-secondary');
         } else {
-            const roleLabel = isSecretaria ? 'Secretaria (Solo Lectura)' : 'Solo Lectura';
-            statusText.innerHTML = `<span class="material-symbols-outlined text-sm align-bottom">lock</span> ${roleLabel}. Profesor: ${assignedTeacher || 'Sin asignar'}`;
+            statusText.innerHTML = `<span class="material-symbols-outlined text-sm align-bottom">lock</span> Solo lectura. Profesor: ${assignedTeacher || 'Sin asignar'}`;
             statusText.classList.add('text-danger'); statusText.classList.remove('text-text-secondary');
         }
     }
@@ -200,7 +194,7 @@ function renderTable() {
     let headerHTML = `
         <th class="p-4 border-b border-surface-border text-center w-12 font-bold">#</th>
         <th class="p-4 border-b border-surface-border border-r border-surface-border/50 sticky left-0 bg-[#0f2115] z-20 min-w-[240px] font-bold text-white">Estudiante</th>
-        <th class="p-4 border-b border-surface-border text-center w-24 font-bold text-white bg-surface-dark/50">Prom.<br><span class="text-[9px] text-text-secondary">${periodNames[currentPeriod]}</span></th>
+        <th class="p-4 border-b border-surface-border text-center w-24 font-bold text-white bg-surface-dark/50">Prom.<br><span class="text-[9px] text-text-secondary">${periodNames[currentPeriod] || currentPeriod}</span></th>
     `;
     actividadesFiltradas.forEach(act => {
         headerHTML += `<th class="p-4 border-b border-surface-border text-center w-32 min-w-[120px] text-xs uppercase tracking-wider text-text-secondary">${act.nombre} <span class="block text-[9px] text-primary/80 font-bold">${act.valor > 0 ? `(${act.valor}%)` : ''}</span></th>`;
@@ -210,7 +204,7 @@ function renderTable() {
 
     if (tableBody) {
         tableBody.innerHTML = '';
-
+        // Ordenar por número de orden si existe, sino por nombre
         const sortedStudents = [...currentStudents].sort((a, b) => {
             const ordenA = parseInt(a.numero_orden) || 9999;
             const ordenB = parseInt(b.numero_orden) || 9999;
@@ -263,8 +257,9 @@ function renderTable() {
     }
 }
 
-// ... Resto de funciones (renderTasksView, renderAttendance, etc.) idénticas pero usando 'canEdit' que ya considera a la secretaria ...
-
+// ==========================================
+// RENDERIZADO TAREAS (Restaurado)
+// ==========================================
 window.renderTasksView = function () {
     const tasksListContainer = document.getElementById('tasks-list-container');
     const singleTaskContainer = document.getElementById('single-task-container');
@@ -302,7 +297,8 @@ function renderTasksList() {
 
     actividades.forEach(act => {
         const card = document.createElement('div');
-        const pName = periodNames[act.periodo || 'p1'];
+        // Fallback por si 'periodNames[act.periodo]' es undefined (ej: data vieja 'final')
+        const pName = periodNames[act.periodo || 'p1'] || act.periodo;
         card.className = "bg-surface-dark border border-surface-border hover:border-primary/50 rounded-xl p-5 cursor-pointer transition-all hover:translate-y-[-2px] hover:shadow-lg group";
         card.onclick = () => openTaskGrading(act);
         card.innerHTML = `
@@ -313,7 +309,7 @@ function renderTasksList() {
             <h4 class="text-lg font-bold text-white mb-1 group-hover:text-primary transition-colors">${act.nombre}</h4>
             <div class="flex items-center gap-2 mt-4 text-xs text-text-secondary">
                 <span class="material-symbols-outlined text-sm">edit_note</span>
-                <span>Clic para ver/calificar</span>
+                <span>Clic para calificar</span>
             </div>`;
         tasksGrid.appendChild(card);
     });
@@ -322,7 +318,7 @@ function renderTasksList() {
 function renderSingleTaskGrading() {
     document.getElementById('grading-task-name').innerText = currentTaskToGrade.nombre;
     document.getElementById('grading-task-value').innerText = currentTaskToGrade.valor + "%";
-    document.getElementById('grading-task-period').innerText = periodNames[currentTaskToGrade.periodo || 'p1'];
+    document.getElementById('grading-task-period').innerText = periodNames[currentTaskToGrade.periodo || 'p1'] || currentTaskToGrade.periodo;
 
     const tbody = document.getElementById('single-task-body');
     tbody.innerHTML = '';
@@ -362,6 +358,9 @@ function renderSingleTaskGrading() {
 window.openTaskGrading = (task) => { currentTaskToGrade = task; renderTasksView(); }
 window.closeTaskGrading = () => { currentTaskToGrade = null; renderTasksView(); }
 
+// ==========================================
+// RENDERIZADO ASISTENCIA (Restaurado)
+// ==========================================
 window.renderAttendance = function () {
     const tableBody = document.getElementById('attendance-table-body');
     const emptyState = document.getElementById('empty-state');
@@ -415,6 +414,8 @@ window.markAttendance = async (index, status) => {
     const today = new Date().toISOString().split('T')[0];
     if (attendanceDate > today) { alert("No puedes marcar asistencia en el futuro."); return; }
 
+    // Aplicamos lógica de transacción manual aquí también para seguridad
+    // Para simplificar, usamos la lógica directa pero en un entorno real también debería ser Transacción.
     if (!currentStudents[index].asistencia) currentStudents[index].asistencia = {};
     if (!currentStudents[index].asistencia[selectedSubject]) currentStudents[index].asistencia[selectedSubject] = {};
 
@@ -424,6 +425,7 @@ window.markAttendance = async (index, status) => {
 
     renderAttendance();
 
+    // Guardado (se recomienda mover a Transaction también)
     const savingIndicator = document.getElementById('saving-indicator');
     if (savingIndicator) savingIndicator.classList.remove('hidden');
     try {
@@ -432,6 +434,9 @@ window.markAttendance = async (index, status) => {
     } catch (e) { console.error(e); }
 }
 
+// ==========================================
+// ACTUALIZACIÓN DE NOTAS SEGURA (TRANSACTION)
+// ==========================================
 async function updateGradeSecure(studentID, activityName, value, inputElement) {
     if (!selectedSubject) return;
     let val = parseFloat(value);
@@ -518,16 +523,51 @@ if (formActivity) {
     formActivity.addEventListener('submit', async (e) => {
         e.preventDefault();
         const name = document.getElementById('activity-name').value.trim();
-        const value = document.getElementById('activity-value').value;
+        const valueInput = document.getElementById('activity-value');
         const period = document.getElementById('activity-period').value;
-        if (!name || !value || !selectedSubject) return;
+
+        // --- CORRECCIÓN SOLICITADA ---
+        const value = parseFloat(valueInput.value);
+
+        if (!name || isNaN(value) || !selectedSubject) return;
+
+        // 1. Validar que la nota individual no sea mayor a 100
+        if (value > 100) {
+            alert("El valor de la actividad no puede ser mayor al 100%.");
+            return;
+        }
 
         if (!courseConfig.actividades) courseConfig.actividades = {};
         if (!courseConfig.actividades[selectedSubject]) courseConfig.actividades[selectedSubject] = [];
-        courseConfig.actividades[selectedSubject].push({ nombre: name, valor: parseFloat(value), periodo: period });
+
+        // 2. Calcular suma actual del periodo seleccionado
+        const actividadesActuales = courseConfig.actividades[selectedSubject];
+        const actividadesDelPeriodo = actividadesActuales.filter(act => (act.periodo || 'p1') === period);
+
+        let sumaActual = 0;
+        actividadesDelPeriodo.forEach(act => {
+            sumaActual += (parseFloat(act.valor) || 0);
+        });
+
+        const sumaTotal = sumaActual + value;
+
+        // 3. Validar si excede el 100%
+        if (sumaTotal > 100) {
+            const disponible = 100 - sumaActual;
+            alert(`No puedes agregar esta actividad.\n\nSuma actual del ${periodNames[period] || period}: ${sumaActual}%\nValor intento: ${value}%\nTotal resultante: ${sumaTotal}%\n\nMáximo disponible: ${disponible}%`);
+            return;
+        }
+
+        // Si pasa validaciones, guardamos
+        courseConfig.actividades[selectedSubject].push({ nombre: name, valor: value, periodo: period });
 
         await updateDoc(doc(db, "cursos_globales", COURSE_ID), { actividades: courseConfig.actividades });
         if (window.toggleModal) window.toggleModal('modal-add-activity');
+
+        // Limpiar inputs
+        document.getElementById('activity-name').value = '';
+        valueInput.value = '';
+
         refreshCurrentView();
     });
 }
