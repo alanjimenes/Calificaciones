@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html class="dark" lang="es">
+
 <head>
-    <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <title>EduSys - Calificaciones y Asistencia</title>
-    
-    <link rel="stylesheet" href="css/styles.css"> 
+
+    <link rel="stylesheet" href="css/styles.css">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script>
         // hola 
@@ -30,23 +31,42 @@
             },
         }
 
-    
+
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
 
     <style>
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        input[type=number] { -moz-appearance: textfield; }
-        .grade-cell-wrapper:focus-within { background-color: rgba(13, 242, 89, 0.05); }
-        .attendance-btn { @apply w-8 h-8 rounded-full flex items-center justify-center border transition-all; }
-        .attendance-btn.active { @apply ring-2 ring-white ring-offset-2 ring-offset-[#152a1d] scale-110 font-bold; }
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        .grade-cell-wrapper:focus-within {
+            background-color: rgba(13, 242, 89, 0.05);
+        }
+
+        .attendance-btn {
+            @apply w-8 h-8 rounded-full flex items-center justify-center border transition-all;
+        }
+
+        .attendance-btn.active {
+            @apply ring-2 ring-white ring-offset-2 ring-offset-[#152a1d] scale-110 font-bold;
+        }
     </style>
 </head>
-<body class="bg-background-light dark:bg-background-dark text-white antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300" id="main-body">
 
-    <!--aaaaaaa EL SIDEBAR SE INYECTA CON JS (layout.js) -->
+<body
+    class="bg-background-light dark:bg-background-dark text-white antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300"
+    id="main-body">
+
+    <!-- EL SIDEBAR SE INYECTA CON JS (layout.js) -->
 
     <!-- CONTENIDO PRINCIPAL -->
     <main class="flex-1 flex flex-col overflow-hidden relative bg-background-light dark:bg-background-dark">
@@ -66,7 +86,8 @@
                 <div>
                     <div class="flex items-center gap-2 mb-1">
                         <h2 class="text-2xl font-bold text-white">Gestión Académica</h2>
-                        <span id="saving-indicator" class="hidden text-xs font-bold text-primary animate-pulse ml-2 flex items-center gap-1">
+                        <span id="saving-indicator"
+                            class="hidden text-xs font-bold text-primary animate-pulse ml-2 flex items-center gap-1">
                             <span class="material-symbols-outlined text-sm">cloud_upload</span> GUARDANDO...
                         </span>
                     </div>
@@ -74,9 +95,10 @@
                         <span class="material-symbols-outlined text-[16px]">school</span> Cargando curso...
                     </p>
                 </div>
-                
+
                 <div class="flex items-center gap-3">
-                    <button id="btn-add-student" onclick="toggleModal('modal-add-student')" class="hidden flex items-center gap-2 px-4 py-2 rounded-full bg-surface-border hover:bg-white/10 transition-colors text-white text-sm font-bold border border-white/5 shadow-lg">
+                    <button id="btn-add-student" onclick="toggleModal('modal-add-student')"
+                        class="hidden flex items-center gap-2 px-4 py-2 rounded-full bg-surface-border hover:bg-white/10 transition-colors text-white text-sm font-bold border border-white/5 shadow-lg">
                         <span class="material-symbols-outlined text-[18px]">person_add</span>
                         Nuevo Estudiante
                     </button>
@@ -85,47 +107,56 @@
 
             <!-- Selector de Materia, Periodo y Pestañas -->
             <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mt-2">
-                
+
                 <!-- Controles de Filtro -->
-                <div class="flex flex-wrap items-center gap-3 bg-surface-dark/50 p-1.5 rounded-xl border border-surface-border/50">
+                <div
+                    class="flex flex-wrap items-center gap-3 bg-surface-dark/50 p-1.5 rounded-xl border border-surface-border/50">
                     <div class="relative">
-                        <select id="subject-selector" class="pl-8 bg-background-dark border border-surface-border text-white text-sm rounded-lg focus:ring-primary focus:border-primary block p-2 min-w-[200px]">
+                        <select id="subject-selector"
+                            class="pl-8 bg-background-dark border border-surface-border text-white text-sm rounded-lg focus:ring-primary focus:border-primary block p-2 min-w-[200px]">
                             <option value="" disabled selected>Cargando materias...</option>
                         </select>
-                        <span class="material-symbols-outlined absolute left-2 top-2.5 text-text-secondary text-lg">book</span>
+                        <span
+                            class="material-symbols-outlined absolute left-2 top-2.5 text-text-secondary text-lg">book</span>
                     </div>
 
                     <div class="h-6 w-px bg-surface-border hidden md:block"></div>
 
                     <!-- Selector Periodo -->
                     <div id="period-selector-container" class="relative">
-                        <select id="period-selector" class="pl-8 bg-background-dark border border-surface-border text-white text-sm rounded-lg focus:ring-primary focus:border-primary block p-2 w-36">
+                        <select id="period-selector"
+                            class="pl-8 bg-background-dark border border-surface-border text-white text-sm rounded-lg focus:ring-primary focus:border-primary block p-2 w-36">
                             <option value="p1" selected>Periodo 1</option>
                             <option value="p2">Periodo 2</option>
                             <option value="p3">Periodo 3</option>
                             <option value="p4">Periodo 4</option>
                             <option value="final">Final / Extra</option>
                         </select>
-                        <span class="material-symbols-outlined absolute left-2 top-2.5 text-text-secondary text-lg">date_range</span>
+                        <span
+                            class="material-symbols-outlined absolute left-2 top-2.5 text-text-secondary text-lg">date_range</span>
                     </div>
                 </div>
                 <!-- TABS NAVEGACIÓN -->
-                <div class="flex p-1 bg-surface-dark/50 rounded-xl border border-surface-border/50 gap-1 overflow-x-auto">
-                    <button id="tab-grades" class="whitespace-nowrap flex-1 flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all bg-primary text-background-dark shadow-lg">
+                <div
+                    class="flex p-1 bg-surface-dark/50 rounded-xl border border-surface-border/50 gap-1 overflow-x-auto">
+                    <button id="tab-grades"
+                        class="whitespace-nowrap flex-1 flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all bg-primary text-background-dark shadow-lg">
                         <span class="material-symbols-outlined text-[18px]">assignment</span>
                         Planilla
                     </button>
-                    <button id="tab-tasks" class="whitespace-nowrap flex-1 flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold text-text-secondary hover:text-white hover:bg-white/5 transition-all">
+                    <button id="tab-tasks"
+                        class="whitespace-nowrap flex-1 flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold text-text-secondary hover:text-white hover:bg-white/5 transition-all">
                         <span class="material-symbols-outlined text-[18px]">checklist</span>
                         Tareas
                     </button>
-                    <button id="tab-attendance" class="whitespace-nowrap flex-1 flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold text-text-secondary hover:text-white hover:bg-white/5 transition-all">
+                    <button id="tab-attendance"
+                        class="whitespace-nowrap flex-1 flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold text-text-secondary hover:text-white hover:bg-white/5 transition-all">
                         <span class="material-symbols-outlined text-[18px]">calendar_today</span>
                         Asistencia
                     </button>
                 </div>
             </div>
-            
+
             <p class="text-[10px] text-text-secondary italic px-1 pb-2" id="subject-status">Selecciona una materia.</p>
         </div>
 
@@ -138,18 +169,22 @@
             <!-- VISTA 1: PLANILLA (Grilla completa) -->
             <div id="view-grades" class="min-w-[900px] animate-fade-in">
                 <div class="flex justify-between items-center mb-4">
-                    <div class="flex items-center gap-2 px-3 py-1 rounded-lg bg-surface-border/30 border border-surface-border/50">
+                    <div
+                        class="flex items-center gap-2 px-3 py-1 rounded-lg bg-surface-border/30 border border-surface-border/50">
                         <span class="material-symbols-outlined text-sm text-primary">filter_alt</span>
-                        <span class="text-xs text-text-secondary">Mostrando: <strong class="text-white" id="current-period-display">Periodo 1</strong></span>
+                        <span class="text-xs text-text-secondary">Mostrando: <strong class="text-white"
+                                id="current-period-display">Periodo 1</strong></span>
                     </div>
-                    <button onclick="toggleModal('modal-add-activity')" id="btn-add-activity-main" class="hidden flex items-center gap-2 px-4 py-2 rounded-full bg-primary hover:bg-[#0be050] transition-colors text-background-dark text-sm font-bold shadow-lg shadow-primary/20">
+                    <button onclick="toggleModal('modal-add-activity')" id="btn-add-activity-main"
+                        class="hidden flex items-center gap-2 px-4 py-2 rounded-full bg-primary hover:bg-[#0be050] transition-colors text-background-dark text-sm font-bold shadow-lg shadow-primary/20">
                         <span class="material-symbols-outlined text-[18px]">post_add</span>
                         Nueva Actividad
                     </button>
                 </div>
                 <div class="border border-surface-border rounded-xl overflow-hidden bg-surface-dark shadow-2xl">
                     <table class="w-full text-left border-collapse">
-                        <thead class="bg-[#0f2115] sticky top-0 z-10 text-xs uppercase tracking-wider text-text-secondary">
+                        <thead
+                            class="bg-[#0f2115] sticky top-0 z-10 text-xs uppercase tracking-wider text-text-secondary">
                             <tr id="table-headers"></tr>
                         </thead>
                         <tbody id="students-table-body" class="divide-y divide-surface-border/30 text-sm"></tbody>
@@ -163,7 +198,8 @@
                 <div id="tasks-list-container">
                     <div class="flex justify-between items-center mb-6">
                         <h3 class="text-xl font-bold text-white">Todas las Actividades</h3>
-                        <button onclick="toggleModal('modal-add-activity')" id="btn-add-activity-tasks" class="hidden flex items-center gap-2 px-4 py-2 rounded-full bg-primary hover:bg-[#0be050] transition-colors text-background-dark text-sm font-bold shadow-lg shadow-primary/20">
+                        <button onclick="toggleModal('modal-add-activity')" id="btn-add-activity-tasks"
+                            class="hidden flex items-center gap-2 px-4 py-2 rounded-full bg-primary hover:bg-[#0be050] transition-colors text-background-dark text-sm font-bold shadow-lg shadow-primary/20">
                             <span class="material-symbols-outlined text-[18px]">post_add</span>
                             Crear Tarea
                         </button>
@@ -176,20 +212,23 @@
                 <!-- Calificar Tarea Individual -->
                 <div id="single-task-container" class="hidden">
                     <div class="flex items-center gap-4 mb-6">
-                        <button onclick="closeTaskGrading()" class="p-2 rounded-full bg-surface-border hover:bg-white/10 text-white transition-colors">
+                        <button onclick="closeTaskGrading()"
+                            class="p-2 rounded-full bg-surface-border hover:bg-white/10 text-white transition-colors">
                             <span class="material-symbols-outlined">arrow_back</span>
                         </button>
                         <div>
                             <h3 class="text-xl font-bold text-white flex items-center gap-2">
                                 <span id="grading-task-name">Tarea X</span>
-                                <span id="grading-task-value" class="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded border border-primary/20">20%</span>
+                                <span id="grading-task-value"
+                                    class="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded border border-primary/20">20%</span>
                             </h3>
                             <p class="text-xs text-text-secondary" id="grading-task-period">Periodo 1</p>
                         </div>
                     </div>
                     <div class="border border-surface-border rounded-xl overflow-hidden bg-surface-dark shadow-2xl">
                         <table class="w-full text-left border-collapse">
-                            <thead class="bg-[#0f2115] sticky top-0 z-10 text-xs uppercase tracking-wider text-text-secondary">
+                            <thead
+                                class="bg-[#0f2115] sticky top-0 z-10 text-xs uppercase tracking-wider text-text-secondary">
                                 <tr>
                                     <th class="p-4 border-b border-surface-border w-12 text-center">#</th>
                                     <th class="p-4 border-b border-surface-border">Estudiante</th>
@@ -204,17 +243,21 @@
 
             <!-- VISTA 3: ASISTENCIA (Restaurada) -->
             <div id="view-attendance" class="hidden min-w-[900px] animate-fade-in">
-                <div class="flex justify-between items-center mb-4 bg-surface-dark p-3 rounded-xl border border-surface-border">
+                <div
+                    class="flex justify-between items-center mb-4 bg-surface-dark p-3 rounded-xl border border-surface-border">
                     <div class="flex items-center gap-4">
                         <label class="text-xs font-bold text-text-secondary uppercase">Fecha:</label>
-                        <input type="date" id="attendance-date" class="bg-background-dark border border-surface-border text-white text-sm rounded-lg focus:ring-primary focus:border-primary block p-2">
+                        <input type="date" id="attendance-date"
+                            class="bg-background-dark border border-surface-border text-white text-sm rounded-lg focus:ring-primary focus:border-primary block p-2">
                     </div>
                     <div class="flex gap-2">
-                        <div class="flex items-center gap-2 px-3 py-1 rounded bg-background-dark border border-surface-border">
+                        <div
+                            class="flex items-center gap-2 px-3 py-1 rounded bg-background-dark border border-surface-border">
                             <span class="w-2 h-2 rounded-full bg-primary"></span>
                             <span class="text-xs text-white" id="stat-present">P: 0</span>
                         </div>
-                        <div class="flex items-center gap-2 px-3 py-1 rounded bg-background-dark border border-surface-border">
+                        <div
+                            class="flex items-center gap-2 px-3 py-1 rounded bg-background-dark border border-surface-border">
                             <span class="w-2 h-2 rounded-full bg-danger"></span>
                             <span class="text-xs text-white" id="stat-absent">A: 0</span>
                         </div>
@@ -222,7 +265,8 @@
                 </div>
                 <div class="border border-surface-border rounded-xl overflow-hidden bg-surface-dark shadow-2xl">
                     <table class="w-full text-left border-collapse">
-                        <thead class="bg-[#0f2115] sticky top-0 z-10 text-xs uppercase tracking-wider text-text-secondary">
+                        <thead
+                            class="bg-[#0f2115] sticky top-0 z-10 text-xs uppercase tracking-wider text-text-secondary">
                             <tr>
                                 <th class="p-4 border-b border-surface-border w-12 text-center">#</th>
                                 <th class="p-4 border-b border-surface-border">Estudiante</th>
@@ -244,32 +288,118 @@
     </main>
 
     <!-- MODALES -->
-    <div id="modal-add-activity" class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4">
-         <div class="bg-surface-dark border border-surface-border p-6 rounded-2xl w-full max-w-sm shadow-2xl relative">
-            <button onclick="toggleModal('modal-add-activity')" class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined">close</button>
+    <div id="modal-add-activity"
+        class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="bg-surface-dark border border-surface-border p-6 rounded-2xl w-full max-w-sm shadow-2xl relative">
+            <button onclick="toggleModal('modal-add-activity')"
+                class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined">close</button>
             <h2 class="text-xl font-bold text-white mb-4">Crear Actividad</h2>
             <form id="form-add-activity" class="space-y-4">
-                <input type="text" id="activity-name" placeholder="Nombre (Ej: Tarea 1)" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white text-sm focus:border-primary outline-none">
+                <input type="text" id="activity-name" placeholder="Nombre (Ej: Tarea 1)"
+                    class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white text-sm focus:border-primary outline-none">
                 <div class="grid grid-cols-2 gap-4">
-                    <input type="number" id="activity-value" placeholder="Valor %" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white text-sm focus:border-primary outline-none">
-                    <select id="activity-period" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white text-sm focus:border-primary outline-none">
-                        <option value="p1">P1</option><option value="p2">P2</option><option value="p3">P3</option><option value="p4">P4</option><option value="final">Final</option>
+                    <input type="number" id="activity-value" placeholder="Valor %"
+                        class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white text-sm focus:border-primary outline-none">
+                    <select id="activity-period"
+                        class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white text-sm focus:border-primary outline-none">
+                        <option value="p1">P1</option>
+                        <option value="p2">P2</option>
+                        <option value="p3">P3</option>
+                        <option value="p4">P4</option>
+                        <option value="final">Final</option>
                     </select>
                 </div>
-                <button type="submit" class="w-full py-2 rounded-xl bg-primary hover:bg-[#0be050] text-background-dark font-bold text-sm shadow-lg shadow-primary/20">Guardar</button>
+                <button type="submit"
+                    class="w-full py-2 rounded-xl bg-primary hover:bg-[#0be050] text-background-dark font-bold text-sm shadow-lg shadow-primary/20">Guardar</button>
             </form>
         </div>
     </div>
-    <div id="modal-add-student" class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4">
-        <div class="bg-surface-dark border border-surface-border p-6 rounded-2xl w-full max-w-sm shadow-2xl relative">
-           <button onclick="toggleModal('modal-add-student')" class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined">close</button>
-           <h2 class="text-xl font-bold text-white mb-4">Registrar Estudiante</h2>
-           <form id="form-add-student" class="space-y-4">
-               <input type="text" id="student-name" placeholder="Nombre Completo" required class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white text-sm focus:border-primary outline-none">
-               <input type="text" id="student-id" placeholder="Matrícula / ID" required class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white text-sm font-mono uppercase focus:border-primary outline-none">
-               <button type="submit" class="w-full py-2 rounded-xl bg-surface-border hover:bg-white/20 text-white font-bold text-sm border border-white/10 shadow-lg">Registrar</button>
-           </form>
-       </div>
+
+    <!-- MODAL REGISTRAR ESTUDIANTE (ACTUALIZADO CON TODOS LOS CAMPOS) -->
+    <div id="modal-add-student"
+        class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4 overflow-y-auto">
+        <div
+            class="bg-surface-dark border border-surface-border p-6 rounded-2xl w-full max-w-lg shadow-2xl relative my-auto">
+            <button onclick="toggleModal('modal-add-student')"
+                class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined">close</button>
+
+            <div class="flex items-center gap-3 mb-6">
+                <div class="p-3 rounded-full bg-surface-border text-white">
+                    <span class="material-symbols-outlined">person_add</span>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-white">Registrar Estudiante</h2>
+                    <p class="text-xs text-text-secondary">Complete la ficha de inscripción</p>
+                </div>
+            </div>
+
+            <form id="form-add-student" class="space-y-4">
+
+                <div class="grid grid-cols-4 gap-3">
+                    <div class="col-span-1">
+                        <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">No.
+                            Orden</label>
+                        <input type="number" id="student-num-orden" placeholder="1" required
+                            class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm text-center focus:border-primary outline-none">
+                    </div>
+                    <div class="col-span-3">
+                        <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Nombre
+                            Completo</label>
+                        <input type="text" id="student-name" placeholder="Ej: Juan Pérez" required
+                            class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white text-sm focus:border-primary outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">ID
+                            SIGERD</label>
+                        <input type="text" id="student-id" placeholder="123456" required
+                            class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white text-sm font-mono focus:border-primary outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">RNE</label>
+                        <input type="text" id="student-rne" placeholder="ABC123456"
+                            class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white text-sm font-mono uppercase focus:border-primary outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Sexo</label>
+                        <select id="student-sexo"
+                            class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white text-sm focus:border-primary outline-none appearance-none cursor-pointer">
+                            <option value="M">Masculino</option>
+                            <option value="F">Femenino</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Fecha
+                            Nacimiento</label>
+                        <input type="date" id="student-nacimiento"
+                            class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white text-sm focus:border-primary outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Condición
+                        Académica</label>
+                    <select id="student-condicion"
+                        class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white text-sm focus:border-primary outline-none appearance-none cursor-pointer">
+                        <option value="Promovido">Promovido</option>
+                        <option value="Nuevo Ingreso">Nuevo Ingreso</option>
+                        <option value="Repitente">Repitente</option>
+                        <option value="Reingreso">Reingreso</option>
+                    </select>
+                </div>
+
+                <button type="submit"
+                    class="w-full py-3 mt-2 rounded-xl bg-surface-border hover:bg-white/20 text-white font-bold text-sm border border-white/10 shadow-lg transition-all flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined">save</span>
+                    Registrar en Curso
+                </button>
+            </form>
+        </div>
     </div>
 
     <!-- SCRIPTS -->
@@ -281,8 +411,9 @@
     <script>
         function toggleModal(id) {
             const el = document.getElementById(id);
-            if(el) el.classList.toggle('hidden');
+            if (el) el.classList.toggle('hidden');
         }
     </script>
 </body>
+
 </html>

@@ -75,7 +75,9 @@ async function loadStudents(courseId) {
     selectedCourseData.estudiantes.forEach((student, index) => {
         const option = document.createElement('option');
         option.value = index;
-        option.textContent = `${student.nombre} (${student.id})`;
+        // Mostrar Numero de orden si existe
+        const prefix = student.numero_orden ? `#${student.numero_orden}. ` : '';
+        option.textContent = `${prefix}${student.nombre}`;
         selectStudent.appendChild(option);
     });
     
@@ -125,14 +127,24 @@ function createBoletinHTML(course, student, yearFrom, yearTo) {
             <!-- INFORMACIÃ“N DEL ESTUDIANTE -->
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
                 <tr>
+<<<<<<< HEAD
                     <td style="padding: 3px; font-size: 10px;"><strong>SecciÃ³n:</strong> ${course.nombre}</td>
                     <td style="padding: 3px; font-size: 10px;"><strong>NÃºmero de orden:</strong> ${student.id}</td>
+=======
+                    <td style="padding: 3px; font-size: 10px;"><strong>Sección:</strong> ${course.nombre}</td>
+                    <!-- Usamos numero_orden si existe, si no, un guion -->
+                    <td style="padding: 3px; font-size: 10px;"><strong>Número de orden:</strong> ${student.numero_orden || '-'}</td>
+>>>>>>> 83ebcb7d32dd8f8f2c6d96ddfe7c1562d2714e0c
                 </tr>
                 <tr>
                     <td colspan="2" style="padding: 3px; font-size: 10px;"><strong>Nombre(s) y Apellido(s):</strong> ${student.nombre}</td>
                 </tr>
                 <tr>
                     <td colspan="2" style="padding: 3px; font-size: 10px;"><strong>ID estudiante (SIGERD):</strong> ${student.id}</td>
+                </tr>
+                <tr>
+                    <!-- Si tenemos RNE lo mostramos, si no dejamos el espacio para el ID -->
+                    <td colspan="2" style="padding: 3px; font-size: 10px;"><strong>RNE:</strong> ${student.rne || '________________________'}</td>
                 </tr>
                 <tr>
                     <td colspan="2" style="padding: 3px; font-size: 10px;"><strong>Centro educativo:</strong> ________________________________</td>
