@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html class="dark" lang="es">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>EduSys - Boletines de Calificaciones</title>
+    
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0df259",
+                        "background-dark": "#0c1a11",
+                        "surface-dark": "#152a1d",
+                        "surface-border": "#22492f",
+                        "text-secondary": "#90cba4",
+                        "danger": "#ff6b6b",
+                    },
+                    fontFamily: { "display": ["Spline Sans", "sans-serif"] }
+                },
+            },
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    
+    <style>
+        @media print {
+            body { background: white !important; }
+            .no-print { display: none !important; }
+            .print-page { 
+                page-break-after: always;
+                width: 21cm;
+                min-height: 29.7cm;
+                padding: 1cm;
+                margin: 0;
+                background: white;
+            }
+            .boletin-container {
+                border: 2px solid #000 !important;
+                background: white !important;
+            }
+            table { page-break-inside: avoid; }
+        }
+        
+        .boletin-table td, .boletin-table th {
+            border: 1px solid #000;
+            padding: 4px 6px;
+            font-size: 11px;
+        }
+        
+        .boletin-table th {
+            background-color: #e0e0e0;
+            font-weight: bold;
+        }
+        
+        .print-preview {
+            width: 21cm;
+            min-height: 29.7cm;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body class="bg-background-dark text-white font-display min-h-screen opacity-0 transition-opacity duration-300" id="main-body">
+
+    <!-- SIDEBAR (Solo visible en pantalla) -->
+    <aside class="no-print hidden lg:flex w-72 flex-col border-r border-surface-border bg-background-dark p-6 fixed h-screen z-30">
+        <div class="mb-10 flex items-center gap-4">
+            <div class="user-img-display size-12 rounded-full bg-cover bg-center ring-2 ring-primary/20" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCgqeWpJ9Gwv_HTYPLlMcGOqoeIzYcm7i1nFJLk9KXtwlJWaxLXEUhINxrmtYOrPkdKTz7lgUlhBLeCxhzjIhcqdqWI-w1_3LTV1xXixwY69IxiQIGjvzZi7chzlHSjDhsIxIX6Vvz6fP7aF8wRTp6On_XaVVafQV5dPTIgkX1VikClPR7EoI1ct_U2I1-RvAWKtJV4z5rFgrHGWcnIvmSqT-V0Oav8nbpCk_BPBEIG06A8MY4IIlNooWzn1qd9WQ9cEijg-NjaENnr");'></div>
+            <div class="flex flex-col">
+                <h1 class="text-xl font-bold text-white leading-tight">EduSys</h1>
+                <span class="user-role-badge text-[10px] font-bold px-2 py-0.5 rounded bg-gray-800 text-gray-400 w-fit mt-1">CARGANDO...</span>
+            </div>
+        </div>
+        
+        <nav class="flex flex-1 flex-col gap-2">
+            <a href="index.html" class="nav-link flex items-center gap-4 rounded-xl px-4 py-3.5 text-text-secondary hover:text-white">
+                <span class="material-symbols-outlined icon">dashboard</span>
+                <span class="font-medium">Inicio</span>
+            </a>
+            <a href="calificaciones.html" class="nav-link flex items-center gap-4 rounded-xl px-4 py-3.5 text-text-secondary hover:text-white">
+                <span class="material-symbols-outlined icon">edit_note</span>
+                <span class="font-medium">Registro Notas</span>
+            </a>
+            <a href="boletin.html" class="nav-link active flex items-center gap-4 rounded-xl px-4 py-3.5 text-text-secondary">
+                <span class="material-symbols-outlined icon">description</span>
+                <span class="font-medium">Boletines</span>
+            </a>
+            <a href="cursos.html" class="nav-link flex items-center gap-4 rounded-xl px-4 py-3.5 text-text-secondary hover:text-white">
+                <span class="material-symbols-outlined icon">library_books</span>
+                <span class="font-medium">Cursos</span>
+            </a>
+        </nav>
+        
+        <div class="mt-auto">
+            <button class="logout-btn flex w-full items-center gap-4 rounded-xl px-4 py-3.5 text-text-secondary hover:bg-danger/10 hover:text-danger transition-colors">
+                <span class="material-symbols-outlined">logout</span>
+                <span class="font-medium">Cerrar Sesión</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="lg:ml-72 min-h-screen relative">
+        
+        <!-- Header (No imprimir) -->
+        <div class="no-print bg-surface-dark border-b border-surface-border p-6 sticky top-0 z-20">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-white">Boletines de Calificaciones</h2>
+                    <p class="text-text-secondary text-sm">Generar e imprimir boletines oficiales</p>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    <button onclick="window.print()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-[#0be050] text-background-dark font-bold transition shadow-lg shadow-primary/20">
+                        <span class="material-symbols-outlined text-lg">print</span>
+                        Imprimir Boletín
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controles de Selección (No imprimir) -->
+        <div class="no-print p-6 bg-background-dark">
+            <div class="max-w-5xl mx-auto">
+                <div class="bg-surface-dark border border-surface-border rounded-2xl p-6 mb-6">
+                    <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <span class="material-symbols-outlined">settings</span>
+                        Configuración del Boletín
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-text-secondary mb-2 uppercase">Curso</label>
+                            <select id="select-course" class="w-full bg-background-dark border border-surface-border text-white text-sm rounded-lg p-2">
+                                <option value="">Selecciona un curso...</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-bold text-text-secondary mb-2 uppercase">Estudiante</label>
+                            <select id="select-student" class="w-full bg-background-dark border border-surface-border text-white text-sm rounded-lg p-2">
+                                <option value="">Selecciona un estudiante...</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-bold text-text-secondary mb-2 uppercase">Año Escolar</label>
+                            <input type="text" id="year-from" placeholder="2024" class="w-full bg-background-dark border border-surface-border text-white text-sm rounded-lg p-2">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-bold text-text-secondary mb-2 uppercase">Año Final</label>
+                            <input type="text" id="year-to" placeholder="2025" class="w-full bg-background-dark border border-surface-border text-white text-sm rounded-lg p-2">
+                        </div>
+                    </div>
+                    
+                    <button onclick="generateBoletin()" class="mt-4 w-full md:w-auto px-6 py-3 rounded-xl bg-primary hover:bg-[#0be050] text-background-dark font-bold transition shadow-lg shadow-primary/20">
+                        Generar Vista Previa
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VISTA PREVIA DEL BOLETÍN (Para Imprimir) -->
+        <div class="print-page p-6">
+            <div id="boletin-preview" class="print-preview boletin-container border-2 border-black p-8 bg-white text-black">
+                <div class="text-center text-text-secondary py-20">
+                    <span class="material-symbols-outlined text-6xl text-surface-border mb-4 block">description</span>
+                    <p class="text-sm">Selecciona un curso y estudiante para generar el boletín</p>
+                </div>
+            </div>
+        </div>
+        
+    </main>
+
+    <script type="module" src="js/main.js"></script>
+    <script type="module" src="js/boletin.js"></script>
+</body>
+</html>
