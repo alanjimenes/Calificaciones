@@ -27,18 +27,18 @@ window.addEventListener('userReady', async (e) => {
 // Cargar cursos disponibles
 async function loadCourses(isAdmin, userEmail) {
     const selectCourse = document.getElementById('select-course');
-    
+
     try {
         const q = query(collection(db, "cursos_globales"));
         const snapshot = await getDocs(q);
-        
+
         selectCourse.innerHTML = '<option value="">Selecciona un curso...</option>';
         allCourses = [];
-        
+
         snapshot.forEach(docSnap => {
             const course = docSnap.data();
             course.id = docSnap.id;
-            
+
             // Filtrar por permisos
             const isTitular = (course.titular_email === userEmail);
             if (isAdmin || isTitular) {
@@ -49,7 +49,7 @@ async function loadCourses(isAdmin, userEmail) {
                 selectCourse.appendChild(option);
             }
         });
-        
+
         selectCourse.addEventListener('change', async (e) => {
             const courseId = e.target.value;
             if (courseId) {
@@ -57,7 +57,7 @@ async function loadCourses(isAdmin, userEmail) {
                 await loadStudents(courseId);
             }
         });
-        
+
     } catch (error) {
         console.error("Error cargando cursos:", error);
     }
@@ -67,11 +67,11 @@ async function loadCourses(isAdmin, userEmail) {
 async function loadStudents(courseId) {
     const selectStudent = document.getElementById('select-student');
     selectStudent.innerHTML = '<option value="">Selecciona un estudiante...</option>';
-    
+
     if (!selectedCourseData || !selectedCourseData.estudiantes) {
         return;
     }
-    
+
     selectedCourseData.estudiantes.forEach((student, index) => {
         const option = document.createElement('option');
         option.value = index;
@@ -80,7 +80,7 @@ async function loadStudents(courseId) {
         option.textContent = `${prefix}${student.nombre}`;
         selectStudent.appendChild(option);
     });
-    
+
     selectStudent.addEventListener('change', (e) => {
         const studentIndex = e.target.value;
         if (studentIndex !== "") {
@@ -90,15 +90,17 @@ async function loadStudents(courseId) {
 }
 
 // Generar el boletín
-window.generateBoletin = function() {
+// hola
+
+window.generateBoletin = function () {
     if (!selectedCourseData || !selectedStudentData) {
         alert("Por favor selecciona un curso y un estudiante");
         return;
     }
-    
+
     const yearFrom = document.getElementById('year-from').value || '2024';
     const yearTo = document.getElementById('year-to').value || '2025';
-    
+
     const boletinHTML = createBoletinHTML(selectedCourseData, selectedStudentData, yearFrom, yearTo);
     document.getElementById('boletin-preview').innerHTML = boletinHTML;
 }
@@ -108,7 +110,7 @@ function createBoletinHTML(course, student, yearFrom, yearTo) {
     // Calcular promedios por área
     const gradeSummary = calculateGradeSummary(course, student);
     const attendanceSummary = calculateAttendanceSummary(course, student);
-    
+
     return `
         <div style="font-family: Arial, sans-serif; font-size: 12px; color: #000;">
             
@@ -177,8 +179,8 @@ function createBoletinHTML(course, student, yearFrom, yearTo) {
                 </thead>
                 <tbody>
                     ${AREAS_CURRICULARES.map(area => {
-                        const grades = gradeSummary[area] || { p1: '', p2: '', p3: '', p4: '', promedio: '', situacion: '' };
-                        return `
+        const grades = gradeSummary[area] || { p1: '', p2: '', p3: '', p4: '', promedio: '', situacion: '' };
+        return `
                             <tr>
                                 <td style="font-weight: bold;">${area}</td>
                                 <td style="text-align: center;">${grades.p1}</td>
@@ -190,7 +192,7 @@ function createBoletinHTML(course, student, yearFrom, yearTo) {
                                 <td style="text-align: center; font-weight: bold;">${grades.situacion}</td>
                             </tr>
                         `;
-                    }).join('')}
+    }).join('')}
                 </tbody>
             </table>
 
@@ -209,8 +211,8 @@ function createBoletinHTML(course, student, yearFrom, yearTo) {
                 </thead>
                 <tbody>
                     ${['P1', 'P2', 'P3', 'P4'].map(period => {
-                        const att = attendanceSummary[period] || { asistencia: 0, ausencia: 0, porcentaje: '0%' };
-                        return `
+        const att = attendanceSummary[period] || { asistencia: 0, ausencia: 0, porcentaje: '0%' };
+        return `
                             <tr>
                                 <td style="text-align: center; font-weight: bold;">${period}</td>
                                 <td style="text-align: center;">${att.asistencia}</td>
@@ -218,7 +220,7 @@ function createBoletinHTML(course, student, yearFrom, yearTo) {
                                 <td style="text-align: center;">${att.porcentaje}</td>
                             </tr>
                         `;
-                    }).join('')}
+    }).join('')}
                 </tbody>
             </table>
 
@@ -280,19 +282,19 @@ function calculateGradeSummary(course, student) {
     const notas = student.notas || {};
     const materias = course.materias || [];
     const actividades = course.actividades || {};
-    
+
     // Mapear cada materia del curso a un área curricular
     materias.forEach(materia => {
         // Buscar área curricular correspondiente (puedes personalizar este mapeo)
         let area = matchAreaCurricular(materia);
-        
+
         if (!summary[area]) {
             summary[area] = { p1: '', p2: '', p3: '', p4: '', promedio: '', situacion: '' };
         }
-        
+
         const notasMateria = notas[materia] || {};
         const actividadesMateria = actividades[materia] || [];
-        
+
         // Calcular promedios por período
         ['p1', 'p2', 'p3', 'p4'].forEach(periodo => {
             const actPeriodo = actividadesMateria.filter(a => (a.periodo || 'p1') === periodo);
@@ -310,25 +312,25 @@ function calculateGradeSummary(course, student) {
                 }
             }
         });
-        
+
         // Calcular promedio general
         const promedios = [summary[area].p1, summary[area].p2, summary[area].p3, summary[area].p4]
             .filter(p => p !== '');
-        
+
         if (promedios.length > 0) {
             const avg = Math.round(promedios.reduce((a, b) => a + b, 0) / promedios.length);
             summary[area].promedio = avg;
             summary[area].situacion = avg >= 70 ? 'A' : 'R';
         }
     });
-    
+
     return summary;
 }
 
 // Mapear materias a áreas curriculares oficiales
 function matchAreaCurricular(materia) {
     const lower = materia.toLowerCase();
-    
+
     if (lower.includes('español') || lower.includes('lengua')) return 'Lengua Española';
     if (lower.includes('inglés') || lower.includes('ingles')) return 'Lenguas Extranjeras (inglés)';
     if (lower.includes('francés') || lower.includes('frances')) return 'Lenguas Extranjeras (Francés)';
@@ -338,7 +340,7 @@ function matchAreaCurricular(materia) {
     if (lower.includes('artística') || lower.includes('arte') || lower.includes('música')) return 'Educación Artística';
     if (lower.includes('física ed') || lower.includes('deporte')) return 'Educación Física';
     if (lower.includes('religión') || lower.includes('ética') || lower.includes('moral')) return 'Formación Integral Humana y Religiosa';
-    
+
     // Por defecto
     return 'Lengua Española';
 }
@@ -348,31 +350,31 @@ function calculateAttendanceSummary(course, student) {
     const summary = {};
     const asistencia = student.asistencia || {};
     const materias = course.materias || [];
-    
+
     // Inicializar períodos
     ['P1', 'P2', 'P3', 'P4'].forEach(p => {
         summary[p] = { asistencia: 0, ausencia: 0, porcentaje: '0%' };
     });
-    
+
     // Procesar asistencia de todas las materias
     materias.forEach(materia => {
         const asistenciaMateria = asistencia[materia] || {};
-        
+
         Object.entries(asistenciaMateria).forEach(([fecha, estado]) => {
             const mes = parseInt(fecha.split('-')[1]);
             let periodo = 'P1';
-            
+
             // Mapear mes a período (ajustar según calendario escolar)
             if (mes >= 8 && mes <= 10) periodo = 'P1';
             else if (mes >= 11 || mes <= 1) periodo = 'P2';
             else if (mes >= 2 && mes <= 3) periodo = 'P3';
             else if (mes >= 4 && mes <= 6) periodo = 'P4';
-            
+
             if (estado === 'P') summary[periodo].asistencia++;
             else if (estado === 'A') summary[periodo].ausencia++;
         });
     });
-    
+
     // Calcular porcentajes
     Object.keys(summary).forEach(periodo => {
         const total = summary[periodo].asistencia + summary[periodo].ausencia;
@@ -381,6 +383,6 @@ function calculateAttendanceSummary(course, student) {
             summary[periodo].porcentaje = pct + '%';
         }
     });
-    
+
     return summary;
 }
