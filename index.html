@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html class="dark" lang="es">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>EduSys - Inicio</title>
+    
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0df259",
+                        "background-light": "#f5f8f6",
+                        "background-dark": "#0c1a11",
+                        "surface-dark": "#152a1d",
+                        "surface-border": "#22492f",
+                        "text-secondary": "#90cba4",
+                        "danger": "#ff6b6b",
+                        "admin": "#f59e0b",
+                    },
+                    fontFamily: {
+                        "display": ["Spline Sans", "sans-serif"],
+                    }
+                },
+            },
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white antialiased h-screen flex overflow-hidden transition-opacity duration-300" id="main-body">
+
+    <!-- EL SIDEBAR SE INYECTA AQUÍ AUTOMÁTICAMENTE por js/layout.js -->
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="flex-1 flex flex-col overflow-y-auto relative bg-background-light dark:bg-background-dark p-6 md:p-8">
+        <!-- Header Móvil -->
+        <div class="lg:hidden flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-primary">school</span>
+                <span class="font-bold text-white">EduSys</span>
+            </div>
+            <button class="text-white material-symbols-outlined">menu</button>
+        </div>
+
+        <div class="max-w-7xl mx-auto w-full">
+            <header class="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h2 class="text-3xl font-bold text-white">Panel Principal</h2>
+                    <p class="text-text-secondary text-sm">Bienvenido de nuevo, gestiona tu día académico.</p>
+                </div>
+                <div id="date-display" class="text-xs font-bold text-text-secondary bg-surface-dark px-3 py-1 rounded-full border border-surface-border">
+                    <!-- Fecha JS -->
+                </div>
+            </header>
+
+            <!-- LAYOUT 2 COLUMNAS -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <!-- COLUMNA IZQUIERDA: CURSOS (Ocupa 2 espacios) -->
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                            <span class="material-symbols-outlined text-primary">library_books</span>
+                            Mis Cursos
+                        </h3>
+                        <a href="cursos.html" class="text-xs text-primary font-bold hover:underline">Ver todos</a>
+                    </div>
+
+                    <!-- Lista de Cursos -->
+                    <div id="dashboard-courses-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Skeleton Loader -->
+                        <div class="h-32 rounded-2xl bg-surface-dark animate-pulse border border-surface-border"></div>
+                        <div class="h-32 rounded-2xl bg-surface-dark animate-pulse border border-surface-border"></div>
+                    </div>
+                </div>
+
+                <!-- COLUMNA DERECHA: TAREA RÁPIDA (Ocupa 1 espacio) -->
+                <div class="space-y-6">
+                    <div class="bg-surface-dark border border-surface-border rounded-2xl p-6 sticky top-6 shadow-xl">
+                        <div class="flex items-center gap-3 mb-6 pb-4 border-b border-surface-border">
+                            <div class="p-2 rounded-lg bg-primary/10 text-primary">
+                                <span class="material-symbols-outlined">bolt</span>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-white leading-none">Tarea Rápida</h3>
+                                <p class="text-xs text-text-secondary mt-1">Crea una actividad sin ir al curso</p>
+                            </div>
+                        </div>
+
+                        <form id="form-quick-task" class="space-y-4">
+                            <!-- Selector Curso -->
+                            <div>
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">1. Seleccionar Curso</label>
+                                <select id="quick-task-course" required class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2.5 text-white text-sm focus:border-primary outline-none transition-colors">
+                                    <option value="" disabled selected>Cargando cursos...</option>
+                                </select>
+                            </div>
+
+                            <!-- Selector Materia (Dinámico) -->
+                            <div id="subject-container" class="hidden animate-fade-in">
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">2. Asignatura</label>
+                                <select id="quick-task-subject" required class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2.5 text-white text-sm focus:border-primary outline-none transition-colors">
+                                    <option value="" disabled selected>Selecciona materia...</option>
+                                </select>
+                            </div>
+
+                            <!-- Detalles Tarea -->
+                            <div id="details-container" class="hidden animate-fade-in space-y-4">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">3. Título Actividad</label>
+                                    <input type="text" id="quick-task-name" placeholder="Ej: Examen Unidad 1" required class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">Valor (%)</label>
+                                        <input type="number" id="quick-task-value" placeholder="20" min="1" max="100" required class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">Periodo</label>
+                                        <select id="quick-task-period" class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
+                                            <option value="p1">P1</option>
+                                            <option value="p2">P2</option>
+                                            <option value="p3">P3</option>
+                                            <option value="p4">P4</option>
+                                            <option value="final">Final</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="w-full py-3 rounded-xl bg-primary hover:bg-[#0be050] text-background-dark font-bold transition shadow-lg shadow-primary/20 flex items-center justify-center gap-2 mt-2">
+                                    <span class="material-symbols-outlined text-lg">add_task</span>
+                                    Crear Tarea
+                                </button>
+                            </div>
+                            
+                            <p id="quick-status" class="text-xs text-center text-text-secondary italic hidden">Selecciona un curso para empezar.</p>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- SCRIPTS -->
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/layout.js"></script>
+    <script type="module" src="js/main.js"></script>
+    <script type="module" src="js/dashboard.js"></script>
+
+    <script>
+        const dateEl = document.getElementById('date-display');
+        if(dateEl) {
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            dateEl.innerText = new Date().toLocaleDateString('es-ES', options);
+        }
+    </script>
+</body>
+</html>

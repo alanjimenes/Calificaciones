@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html class="dark" lang="es">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>EduSys - Calificaciones y Asistencia</title>
+    
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0df259",
+                        "background-light": "#f5f8f6",
+                        "background-dark": "#0c1a11",
+                        "surface-dark": "#152a1d",
+                        "surface-border": "#22492f",
+                        "text-secondary": "#90cba4",
+                        "danger": "#ff6b6b",
+                        "warning": "#f59e0b",
+                        "info": "#3b82f6",
+                        "admin": "#f59e0b",
+                    },
+                    fontFamily: { "display": ["Spline Sans", "sans-serif"] }
+                },
+            },
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+
+    <style>
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+        .grade-cell-wrapper:focus-within { background-color: rgba(13, 242, 89, 0.05); }
+        .attendance-btn { @apply w-8 h-8 rounded-full flex items-center justify-center border transition-all; }
+        .attendance-btn.active { @apply ring-2 ring-white ring-offset-2 ring-offset-[#152a1d] scale-110 font-bold; }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-white antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300" id="main-body">
+
+    <!-- EL SIDEBAR SE INYECTA CON JS (layout.js) -->
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="flex-1 flex flex-col overflow-hidden relative bg-background-light dark:bg-background-dark">
+        <!-- Header Fijo -->
+        <div class="shrink-0 px-6 pt-6 pb-2 glass z-20 flex flex-col gap-4">
+            <!-- Mobile Header -->
+            <div class="lg:hidden flex items-center justify-between mb-2">
+                <div class="flex items-center gap-3">
+                    <span class="material-symbols-outlined text-primary">school</span>
+                    <span class="font-bold text-white">EduSys</span>
+                </div>
+                <button class="text-white material-symbols-outlined">menu</button>
+            </div>
+
+            <!-- Top Bar -->
+            <div class="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-2 mb-1">
+                        <h2 class="text-2xl font-bold text-white">Gestión Académica</h2>
+                        <span id="saving-indicator" class="hidden text-xs font-bold text-primary animate-pulse ml-2 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-sm">cloud_upload</span> GUARDANDO...
+                        </span>
+                    </div>
+                    <p id="course-title-display" class="text-text-secondary text-sm flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[16px]">school</span> Cargando curso...
+                    </p>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    <button id="btn-add-student" onclick="toggleModal('modal-add-student')" class="hidden flex items-center gap-2 px-4 py-2 rounded-full bg-surface-border hover:bg-white/10 transition-colors text-white text-sm font-bold border border-white/5 shadow-lg">
+                        <span class="material-symbols-outlined text-[18px]">person_add</span>
+                        Nuevo Estudiante
+                    </button>
+                </div>
+            </div>
+
+            <!-- Selector de Materia, Periodo y Pestañas -->
+            <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mt-2">
+                
+                <!-- Controles de Filtro -->
+                <div class="flex flex-wrap items-center gap-3 bg-surface-dark/50 p-1.5 rounded-xl border border-surface-border/50">
+                    <div class="relative">
+                        <select id="subject-selector" class="pl-8 bg-background-dark border border-surface-border text-white text-sm rounded-lg focus:ring-primary focus:border-primary block p-2 min-w-[200px]">
+                            <option value="" disabled selected>Cargando materias...</option>
+                        </select>
+                        <span class="material-symbols-outlined absolute left-2 top-2.5 text-text-secondary text-lg">book</span>
+                    </div>
+
+                    <div class="h-6 w-px bg-surface-border hidden md:block"></div>
+
+                    <!-- Selector Periodo -->
+                    <div id="period-selector-container" class="relative">
+                        <select id="period-selector" class="pl-8 bg-background-dark border border-surface-border text-white text-sm rounded-lg focus:ring-primary focus:border-primary block p-2 w-36">
+                            <option value="p1" selected>Periodo 1</option>
+                            <option value="p2">Periodo 2</option>
+                            <option value="p3">Periodo 3</option>
+                            <option value="p4">Periodo 4</option>
+                            <option value="final">Final / Extra</option>
+                        </select>
+                        <span class="material-symbols-outlined absolute left-2 top-2.5 text-text-secondary text-lg">date_range</span>
+                    </div>
+                </div>
+
+                <!-- TABS NAVEGACIÓN -->
+                <div class="flex p-1 bg-surface-dark/50 rounded-xl border border-surface-border/50 gap-1 overflow-x-auto">
+                    <button id="tab-grades" class="whitespace-nowrap flex-1 flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all bg-primary text-background-dark shadow-lg">
+                        <span class="material-symbols-outlined text-[18px]">assignment</span>
+                        Planilla
+                    </button>
+                    <button id="tab-tasks" class="whitespace-nowrap flex-1 flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold text-text-secondary hover:text-white hover:bg-white/5 transition-all">
+                        <span class="material-symbols-outlined text-[18px]">checklist</span>
+                        Tareas
+                    </button>
+                    <button id="tab-attendance" class="whitespace-nowrap flex-1 flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold text-text-secondary hover:text-white hover:bg-white/5 transition-all">
+                        <span class="material-symbols-outlined text-[18px]">calendar_today</span>
+                        Asistencia
+                    </button>
+                </div>
+            </div>
+            
+            <p class="text-[10px] text-text-secondary italic px-1 pb-2" id="subject-status">Selecciona una materia.</p>
+        </div>
+
+        <!-- VISTAS (Contenedor con Scroll) -->
+        <div class="flex-1 overflow-auto p-6 bg-background-dark relative">
+            <div id="loader" class="absolute inset-0 flex items-center justify-center bg-background-dark z-50">
+                <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+            </div>
+
+            <!-- VISTA 1: PLANILLA (Grilla completa) -->
+            <div id="view-grades" class="min-w-[900px] animate-fade-in">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex items-center gap-2 px-3 py-1 rounded-lg bg-surface-border/30 border border-surface-border/50">
+                        <span class="material-symbols-outlined text-sm text-primary">filter_alt</span>
+                        <span class="text-xs text-text-secondary">Mostrando: <strong class="text-white" id="current-period-display">Periodo 1</strong></span>
+                    </div>
+                    <button onclick="toggleModal('modal-add-activity')" id="btn-add-activity-main" class="hidden flex items-center gap-2 px-4 py-2 rounded-full bg-primary hover:bg-[#0be050] transition-colors text-background-dark text-sm font-bold shadow-lg shadow-primary/20">
+                        <span class="material-symbols-outlined text-[18px]">post_add</span>
+                        Nueva Actividad
+                    </button>
+                </div>
+                <div class="border border-surface-border rounded-xl overflow-hidden bg-surface-dark shadow-2xl">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-[#0f2115] sticky top-0 z-10 text-xs uppercase tracking-wider text-text-secondary">
+                            <tr id="table-headers"></tr>
+                        </thead>
+                        <tbody id="students-table-body" class="divide-y divide-surface-border/30 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- VISTA 2: TAREAS (Restaurada) -->
+            <div id="view-tasks" class="hidden animate-fade-in max-w-5xl mx-auto">
+                <!-- Lista Tareas -->
+                <div id="tasks-list-container">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-white">Todas las Actividades</h3>
+                        <button onclick="toggleModal('modal-add-activity')" id="btn-add-activity-tasks" class="hidden flex items-center gap-2 px-4 py-2 rounded-full bg-primary hover:bg-[#0be050] transition-colors text-background-dark text-sm font-bold shadow-lg shadow-primary/20">
+                            <span class="material-symbols-outlined text-[18px]">post_add</span>
+                            Crear Tarea
+                        </button>
+                    </div>
+                    <div id="tasks-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- JS -->
+                    </div>
+                </div>
+
+                <!-- Calificar Tarea Individual -->
+                <div id="single-task-container" class="hidden">
+                    <div class="flex items-center gap-4 mb-6">
+                        <button onclick="closeTaskGrading()" class="p-2 rounded-full bg-surface-border hover:bg-white/10 text-white transition-colors">
+                            <span class="material-symbols-outlined">arrow_back</span>
+                        </button>
+                        <div>
+                            <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                                <span id="grading-task-name">Tarea X</span>
+                                <span id="grading-task-value" class="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded border border-primary/20">20%</span>
+                            </h3>
+                            <p class="text-xs text-text-secondary" id="grading-task-period">Periodo 1</p>
+                        </div>
+                    </div>
+                    <div class="border border-surface-border rounded-xl overflow-hidden bg-surface-dark shadow-2xl">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-[#0f2115] sticky top-0 z-10 text-xs uppercase tracking-wider text-text-secondary">
+                                <tr>
+                                    <th class="p-4 border-b border-surface-border w-12 text-center">#</th>
+                                    <th class="p-4 border-b border-surface-border">Estudiante</th>
+                                    <th class="p-4 border-b border-surface-border text-center w-40">Calificación</th>
+                                </tr>
+                            </thead>
+                            <tbody id="single-task-body" class="divide-y divide-surface-border/30 text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VISTA 3: ASISTENCIA (Restaurada) -->
+            <div id="view-attendance" class="hidden min-w-[900px] animate-fade-in">
+                <div class="flex justify-between items-center mb-4 bg-surface-dark p-3 rounded-xl border border-surface-border">
+                    <div class="flex items-center gap-4">
+                        <label class="text-xs font-bold text-text-secondary uppercase">Fecha:</label>
+                        <input type="date" id="attendance-date" class="bg-background-dark border border-surface-border text-white text-sm rounded-lg focus:ring-primary focus:border-primary block p-2">
+                    </div>
+                    <div class="flex gap-2">
+                        <div class="flex items-center gap-2 px-3 py-1 rounded bg-background-dark border border-surface-border">
+                            <span class="w-2 h-2 rounded-full bg-primary"></span>
+                            <span class="text-xs text-white" id="stat-present">P: 0</span>
+                        </div>
+                        <div class="flex items-center gap-2 px-3 py-1 rounded bg-background-dark border border-surface-border">
+                            <span class="w-2 h-2 rounded-full bg-danger"></span>
+                            <span class="text-xs text-white" id="stat-absent">A: 0</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="border border-surface-border rounded-xl overflow-hidden bg-surface-dark shadow-2xl">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-[#0f2115] sticky top-0 z-10 text-xs uppercase tracking-wider text-text-secondary">
+                            <tr>
+                                <th class="p-4 border-b border-surface-border w-12 text-center">#</th>
+                                <th class="p-4 border-b border-surface-border">Estudiante</th>
+                                <th class="p-4 border-b border-surface-border text-center">Estado</th>
+                                <th class="p-4 border-b border-surface-border w-24 text-center">Resumen Mes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendance-table-body" class="divide-y divide-surface-border/30 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Estado Vacío -->
+            <div id="empty-state" class="hidden flex flex-col items-center justify-center p-12 text-center">
+                <span class="material-symbols-outlined text-4xl text-surface-border mb-2">assignment_late</span>
+                <p class="text-text-secondary">No hay estudiantes o no has seleccionado una materia.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- MODALES -->
+    <div id="modal-add-activity" class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4">
+         <div class="bg-surface-dark border border-surface-border p-6 rounded-2xl w-full max-w-sm shadow-2xl relative">
+            <button onclick="toggleModal('modal-add-activity')" class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined">close</button>
+            <h2 class="text-xl font-bold text-white mb-4">Crear Actividad</h2>
+            <form id="form-add-activity" class="space-y-4">
+                <input type="text" id="activity-name" placeholder="Nombre (Ej: Tarea 1)" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white text-sm focus:border-primary outline-none">
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="number" id="activity-value" placeholder="Valor %" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white text-sm focus:border-primary outline-none">
+                    <select id="activity-period" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white text-sm focus:border-primary outline-none">
+                        <option value="p1">P1</option><option value="p2">P2</option><option value="p3">P3</option><option value="p4">P4</option><option value="final">Final</option>
+                    </select>
+                </div>
+                <button type="submit" class="w-full py-2 rounded-xl bg-primary hover:bg-[#0be050] text-background-dark font-bold text-sm shadow-lg shadow-primary/20">Guardar</button>
+            </form>
+        </div>
+    </div>
+    <div id="modal-add-student" class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="bg-surface-dark border border-surface-border p-6 rounded-2xl w-full max-w-sm shadow-2xl relative">
+           <button onclick="toggleModal('modal-add-student')" class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined">close</button>
+           <h2 class="text-xl font-bold text-white mb-4">Registrar Estudiante</h2>
+           <form id="form-add-student" class="space-y-4">
+               <input type="text" id="student-name" placeholder="Nombre Completo" required class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white text-sm focus:border-primary outline-none">
+               <input type="text" id="student-id" placeholder="Matrícula / ID" required class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white text-sm font-mono uppercase focus:border-primary outline-none">
+               <button type="submit" class="w-full py-2 rounded-xl bg-surface-border hover:bg-white/20 text-white font-bold text-sm border border-white/10 shadow-lg">Registrar</button>
+           </form>
+       </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/layout.js"></script>
+    <script type="module" src="js/main.js"></script>
+    <script type="module" src="js/gradebook.js"></script>
+
+    <script>
+        function toggleModal(id) {
+            const el = document.getElementById(id);
+            if(el) el.classList.toggle('hidden');
+        }
+    </script>
+</body>
+</html>

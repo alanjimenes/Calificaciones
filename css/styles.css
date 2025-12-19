@@ -1,0 +1,119 @@
+/* =========================================
+   EduSys - Estilos Globales Mejorados
+   ========================================= */
+@import url('https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&family=Noto+Sans:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
+body {
+    font-family: 'Spline Sans', sans-serif;
+    overflow-x: hidden;
+}
+
+.material-symbols-outlined {
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Scrollbar Sutil */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #0c1a11;
+}
+::-webkit-scrollbar-thumb {
+    background: #22492f;
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #0df259;
+}
+
+/* Efectos de Glassmorphism */
+.glass {
+    background: rgba(21, 42, 29, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Inputs de Tabla Mejorados */
+.grade-input {
+    background: transparent;
+    border: none;
+    text-align: center;
+    width: 100%;
+    height: 100%;
+    color: inherit;
+    font-weight: 500;
+    outline: none;
+    transition: all 0.2s;
+    font-family: 'Spline Sans', sans-serif; /* Asegura fuente correcta en inputs */
+}
+.grade-input:focus {
+    background: rgba(13, 242, 89, 0.1);
+    box-shadow: inset 0 0 0 2px #0df259;
+}
+.grade-input.is-saved {
+    animation: flashGreen 0.5s ease-out;
+}
+@keyframes flashGreen {
+    0% { background-color: rgba(13, 242, 89, 0.4); }
+    100% { background-color: transparent; }
+}
+
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+    -webkit-appearance: none; 
+    margin: 0; 
+}
+
+/* Navegación */
+.nav-link {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.nav-link:hover, .nav-link.active {
+    background-color: rgba(13, 242, 89, 0.1);
+    color: #0df259 !important;
+    border-left: 3px solid #0df259;
+}
+.nav-link:hover .icon, .nav-link.active .icon {
+    color: #0df259 !important;
+}
+
+/* TOAST Notification */
+.toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: #152a1d;
+    border: 1px solid #22492f;
+    color: white;
+    padding: 1rem 1.5rem;
+    border-radius: 1rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+    z-index: 100;
+}
+.toast.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+.toast.success .icon { color: #0df259; }
+.toast.error .icon { color: #ff6b6b; }
+
+/* Loader */
+.loader {
+    border: 3px solid rgba(13, 242, 89, 0.1);
+    border-left-color: #0df259;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }

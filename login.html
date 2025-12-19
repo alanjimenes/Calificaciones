@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html class="dark" lang="es">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>EduSys - Iniciar Sesión</title>
+    
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0df259",
+                        "background-dark": "#0c1a11",
+                        "surface-dark": "#152a1d",
+                        "surface-border": "#22492f",
+                        "text-secondary": "#90cba4",
+                    },
+                    fontFamily: { "display": ["Spline Sans", "sans-serif"] }
+                },
+            },
+        }
+    </script>
+    <!-- Iconos -->
+    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+</head>
+<body class="bg-background-dark text-white font-display h-screen flex items-center justify-center p-4 relative overflow-hidden">
+    
+    <!-- Fondo decorativo -->
+    <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+        <div class="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[100px]"></div>
+        <div class="absolute bottom-[10%] right-[10%] w-[30%] h-[30%] bg-primary/5 rounded-full blur-[80px]"></div>
+    </div>
+
+    <!-- Tarjeta de Login -->
+    <div class="w-full max-w-md bg-surface-dark border border-surface-border p-8 rounded-2xl shadow-2xl z-10 relative">
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-4 ring-1 ring-primary/30">
+                <span class="material-symbols-outlined text-3xl">school</span>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight">Bienvenido a EduSys</h1>
+            <p class="text-text-secondary text-sm mt-2">Ingresa tus credenciales para continuar</p>
+        </div>
+
+        <!-- Formulario Email -->
+        <form id="login-form" class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-text-secondary mb-1 ml-1">CORREO ELECTRÓNICO</label>
+                <div class="relative">
+                    <span class="material-symbols-outlined absolute left-3 top-3 text-text-secondary text-[20px]">mail</span>
+                    <input type="email" id="email" placeholder="profesor@edusys.com" class="w-full bg-background-dark border border-surface-border rounded-xl py-2.5 pl-10 pr-4 text-white placeholder-text-secondary/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-text-secondary mb-1 ml-1">CONTRASEÑA</label>
+                <div class="relative">
+                    <span class="material-symbols-outlined absolute left-3 top-3 text-text-secondary text-[20px]">lock</span>
+                    <input type="password" id="password" placeholder="••••••••" class="w-full bg-background-dark border border-surface-border rounded-xl py-2.5 pl-10 pr-4 text-white placeholder-text-secondary/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all">
+                </div>
+            </div>
+            
+            <p id="error-msg" class="text-red-400 text-sm text-center hidden"></p>
+
+            <button type="submit" class="w-full bg-primary text-background-dark font-bold py-3 rounded-xl hover:bg-[#0be050] transition-transform active:scale-95 shadow-lg shadow-primary/20">
+                Iniciar Sesión
+            </button>
+        </form>
+    </div>
+
+    <!-- Lógica de Login -->
+    <script type="module">
+        import { auth, signInWithEmailAndPassword, onAuthStateChanged } from './js/firebase-config.js';
+
+        // 1. Si ya hay usuario, redirigir al Dashboard
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                window.location.href = 'index.html';
+            }
+        });
+
+        // 2. Login con Email
+        const loginForm = document.getElementById('login-form');
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                // La redirección ocurre automáticamente gracias al onAuthStateChanged
+            } catch (error) {
+                console.error("Error Email:", error);
+                
+                let message = "Error al iniciar sesión.";
+                // Mensajes de error amigables
+                if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    message = "Correo o contraseña incorrectos.";
+                } else if (error.code === 'auth/invalid-email') {
+                    message = "El formato del correo no es válido.";
+                } else if (error.code === 'auth/too-many-requests') {
+                    message = "Demasiados intentos. Intenta más tarde.";
+                }
+
+                showError(message);
+            }
+        });
+
+        function showError(msg) {
+            const errorEl = document.getElementById('error-msg');
+            errorEl.textContent = msg;
+            errorEl.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

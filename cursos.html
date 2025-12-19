@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html class="dark" lang="es">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>EduSys - Cursos</title>
+    
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0df259",
+                        "background-light": "#f5f8f6",
+                        "background-dark": "#0c1a11",
+                        "surface-dark": "#152a1d",
+                        "surface-border": "#22492f",
+                        "text-secondary": "#90cba4",
+                        "danger": "#ff6b6b",
+                        "admin": "#f59e0b",
+                    },
+                    fontFamily: {
+                        "display": ["Spline Sans", "sans-serif"],
+                    }
+                },
+            },
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300" id="main-body">
+
+    <!-- EL SIDEBAR SE INYECTA CON JS (layout.js) -->
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="flex-1 flex flex-col overflow-y-auto relative bg-background-light dark:bg-background-dark p-6 md:p-10">
+        <!-- Header Móvil -->
+        <div class="lg:hidden flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-primary">school</span>
+                <span class="font-bold text-white">EduSys</span>
+            </div>
+            <button class="text-white material-symbols-outlined">menu</button>
+        </div>
+
+        <div class="max-w-7xl mx-auto flex flex-col gap-8 w-full">
+            
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 class="text-3xl font-bold text-white">Mis Cursos</h2>
+                    <p class="text-text-secondary text-sm">Gestiona tus clases y asignaciones.</p>
+                </div>
+                <!-- Botones de Acción Global (Solo Admin) -->
+                <div class="admin-only hidden flex gap-3">
+                    <button onclick="toggleModal('modal-global-catalog')" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-dark border border-surface-border text-white font-bold hover:bg-surface-border transition shadow-lg">
+                        <span class="material-symbols-outlined text-lg">category</span>
+                        Catálogo Asignaturas
+                    </button>
+                    <button onclick="toggleModal('modal-create-course')" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-admin text-background-dark font-bold hover:brightness-110 transition shadow-lg shadow-admin/20">
+                        <span class="material-symbols-outlined text-lg">add</span>
+                        Nuevo Curso
+                    </button>
+                </div>
+            </div>
+
+            <!-- Grid de Cursos -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6" id="courses-grid">
+                <!-- Se carga con courses.js -->
+            </div>
+        </div>
+    </main>
+
+    <!-- MODAL: CREAR/EDITAR CURSO -->
+    <div id="modal-create-course" class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4 transition-all duration-300">
+        <div class="bg-surface-dark border border-surface-border p-8 rounded-2xl w-full max-w-md shadow-2xl relative transform transition-all duration-300 scale-100 max-h-[90vh] overflow-y-auto">
+            <button onclick="toggleModal('modal-create-course')" class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined">close</button>
+            <div class="flex items-center gap-3 mb-6">
+                <div class="p-3 rounded-full bg-admin/10 text-admin">
+                    <span class="material-symbols-outlined">library_add</span>
+                </div>
+                <h2 class="text-xl font-bold text-white">Gestión de Curso</h2>
+            </div>
+            
+            <form id="form-create-course" class="space-y-5">
+                <div>
+                    <label class="block text-xs font-bold text-text-secondary mb-1.5 ml-1">NOMBRE DEL CURSO</label>
+                    <input type="text" id="course-name" placeholder="Ej: Matemáticas IV" required class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white focus:border-admin outline-none transition-colors">
+                </div>
+                <div class="grid grid-cols-1 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-text-secondary mb-1.5 ml-1">ID ÚNICO (Slug)</label>
+                        <input type="text" id="course-id" placeholder="matematicas-iv" required class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white focus:border-admin outline-none transition-colors text-sm font-mono">
+                        <p class="text-[9px] text-text-secondary mt-1 ml-1">Identificador único (sin espacios).</p>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-text-secondary mb-1.5 ml-1">ASIGNAR TITULAR (Email)</label>
+                    <select id="course-teacher-email" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white focus:border-admin outline-none transition-colors appearance-none cursor-pointer">
+                        <option value="" disabled selected>Cargando profesores...</option>
+                    </select>
+                </div>
+                <div class="flex gap-3 mt-8">
+                    <button type="button" onclick="toggleModal('modal-create-course')" class="flex-1 py-3 rounded-xl border border-surface-border text-text-secondary hover:text-white transition font-medium">Cancelar</button>
+                    <button type="submit" class="flex-1 py-3 rounded-xl bg-admin text-background-dark font-bold hover:brightness-110 transition shadow-lg shadow-admin/20">Guardar Curso</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: GESTIONAR MATERIAS DEL CURSO -->
+    <div id="modal-manage-subjects" class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4 transition-all duration-300">
+        <div class="bg-surface-dark border border-surface-border p-6 rounded-2xl w-full max-w-md shadow-2xl relative transform transition-all duration-300 scale-100 max-h-[90vh] overflow-y-auto">
+            <button onclick="toggleModal('modal-manage-subjects')" class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined">close</button>
+            
+            <div class="flex items-center gap-3 mb-6">
+                <div class="p-3 rounded-full bg-primary/10 text-primary">
+                    <span class="material-symbols-outlined">view_list</span>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-white">Materias del Curso</h2>
+                    <p id="modal-course-title" class="text-xs text-text-secondary">Gestionando asignaturas...</p>
+                </div>
+            </div>
+
+            <!-- Selector de Materia Global -->
+            <div class="flex flex-col gap-3 mb-4 p-4 bg-background-dark/50 rounded-xl border border-surface-border">
+                <label class="text-[10px] font-bold text-text-secondary uppercase ml-1">Agregar Asignatura del Catálogo</label>
+                
+                <div class="flex gap-2">
+                    <select id="select-global-subject" class="flex-1 bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white focus:border-primary outline-none transition-colors text-sm appearance-none cursor-pointer">
+                        <option value="" disabled selected>Selecciona asignatura...</option>
+                        <!-- Se llena con JS desde el catálogo global -->
+                    </select>
+                </div>
+
+                <label class="text-[10px] font-bold text-text-secondary uppercase ml-1 mt-2">Asignar Docente</label>
+                <div class="flex gap-2">
+                    <select id="new-subject-teacher" class="flex-1 bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white focus:border-primary outline-none transition-colors text-sm appearance-none cursor-pointer">
+                        <option value="" disabled selected>Cargando docentes...</option>
+                    </select>
+                    <button onclick="addSubjectToCourse()" class="bg-primary hover:bg-[#0be050] text-background-dark font-bold px-4 py-2 rounded-xl transition-colors shadow-lg shadow-primary/20 flex items-center justify-center w-12 shrink-0">
+                        <span class="material-symbols-outlined text-lg">add</span>
+                    </button>
+                </div>
+                <p class="text-[9px] text-text-secondary italic mt-1">* Si la materia no aparece, agrégala en "Catálogo Asignaturas".</p>
+            </div>
+
+            <!-- Lista de materias del curso -->
+            <div class="bg-background-dark/30 rounded-xl border border-surface-border overflow-hidden">
+                <div class="p-3 text-[10px] font-bold text-text-secondary uppercase bg-surface-border/20 flex justify-between items-center border-b border-surface-border/50">
+                    <span>Asignaturas Asignadas</span>
+                    <span id="subject-count" class="text-white bg-surface-border px-2 py-0.5 rounded text-[9px]">0</span>
+                </div>
+                <div id="subjects-list" class="max-h-60 overflow-y-auto p-2 space-y-2 min-h-[100px]">
+                    <!-- Se llena con JS -->
+                </div>
+            </div>
+            
+            <div class="mt-6 flex justify-end">
+                <button onclick="toggleModal('modal-manage-subjects')" class="px-6 py-2 rounded-xl bg-surface-border text-white hover:bg-surface-border/80 transition text-sm font-bold">Terminar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CATÁLOGO GLOBAL DE ASIGNATURAS -->
+    <div id="modal-global-catalog" class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4 transition-all duration-300">
+        <div class="bg-surface-dark border border-surface-border p-6 rounded-2xl w-full max-w-md shadow-2xl relative transform transition-all duration-300 scale-100 max-h-[90vh] overflow-y-auto">
+            <button onclick="toggleModal('modal-global-catalog')" class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined">close</button>
+            
+            <div class="flex items-center gap-3 mb-6">
+                <div class="p-3 rounded-full bg-surface-border text-white">
+                    <span class="material-symbols-outlined">category</span>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-white">Catálogo Global</h2>
+                    <p class="text-xs text-text-secondary">Define las asignaturas disponibles.</p>
+                </div>
+            </div>
+
+            <!-- Crear Nueva Global -->
+            <div class="flex gap-2 mb-6">
+                <input type="text" id="new-global-subject-name" placeholder="Nueva Asignatura (Ej: Biología)" class="flex-1 bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white focus:border-primary outline-none transition-colors text-sm">
+                <button onclick="addGlobalSubject()" class="bg-primary hover:bg-[#0be050] text-background-dark font-bold px-4 py-2 rounded-xl transition-colors shadow-lg shadow-primary/20 whitespace-nowrap text-sm">
+                    Crear
+                </button>
+            </div>
+
+            <!-- Lista Global -->
+            <div class="bg-background-dark/30 rounded-xl border border-surface-border overflow-hidden">
+                <div class="p-3 text-[10px] font-bold text-text-secondary uppercase bg-surface-border/20 border-b border-surface-border/50">
+                    Listado General
+                </div>
+                <div id="global-catalog-list" class="max-h-60 overflow-y-auto p-2 space-y-2 min-h-[150px]">
+                    <!-- Se llena con JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- SCRIPTS -->
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/layout.js"></script>
+    <script type="module" src="js/main.js"></script>
+    <script type="module" src="js/dashboard.js"></script>
+    <script type="module" src="js/courses.js"></script>
+
+    <script>
+        function toggleModal(id) {
+            const el = document.getElementById(id);
+            if(el) {
+                el.classList.toggle('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
