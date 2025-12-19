@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html class="dark" lang="es">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>EduSys - Catálogo de Asignaturas</title>
+    
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0df259",
+                        "background-light": "#f5f8f6",
+                        "background-dark": "#0c1a11",
+                        "surface-dark": "#152a1d",
+                        "surface-border": "#22492f",
+                        "text-secondary": "#90cba4",
+                        "danger": "#ff6b6b",
+                        "admin": "#f59e0b",
+                    },
+                    fontFamily: { "display": ["Spline Sans", "sans-serif"] }
+                },
+            },
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300" id="main-body">
+
+    <!-- Auth Guard (Solo Admin) -->
+    <script type="module">
+        import { auth, onAuthStateChanged, doc, getDoc, db } from './js/firebase-config.js';
+        const body = document.getElementById('main-body');
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // Verificar si es admin
+                const userDoc = await getDoc(doc(db, "usuarios", user.uid));
+                const isAdmin = (user.email === 'admin@mail.com') || (userDoc.exists() && userDoc.data().rol === 'admin');
+                
+                if (isAdmin) {
+                    body.classList.remove('opacity-0');
+                    window.dispatchEvent(new CustomEvent('adminReady'));
+                } else {
+                    alert("Acceso denegado. Sección solo para administradores.");
+                    window.location.href = 'index.html';
+                }
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+    </script>
+
+    <!-- EL SIDEBAR SE INYECTA CON JS (layout.js) -->
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="flex-1 flex flex-col overflow-hidden relative bg-background-light dark:bg-background-dark">
+        <!-- Header -->
+        <div class="shrink-0 px-6 py-6 flex flex-col md:flex-row md:items-center justify-between border-b border-surface-border bg-background-dark z-20 gap-4">
+            <div>
+                <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                    <span class="material-symbols-outlined text-admin">category</span>
+                    Catálogo de Asignaturas
+                </h2>
+                <p class="text-text-secondary text-sm">Gestiona la lista maestra de materias y sus coordinadores.</p>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <!-- Buscador -->
+                <div class="relative group">
+                    <span class="material-symbols-outlined absolute left-3 top-2.5 text-text-secondary group-focus-within:text-primary transition-colors">search</span>
+                    <input type="text" id="search-input" placeholder="Buscar asignatura..." 
+                           class="bg-surface-dark border border-surface-border text-white text-sm rounded-xl pl-10 pr-4 py-2 focus:ring-primary focus:border-primary outline-none w-full md:w-64 transition-all">
+                </div>
+
+                <button onclick="window.prepareCreate()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-admin text-background-dark font-bold hover:brightness-110 transition shadow-lg shadow-admin/20 whitespace-nowrap">
+                    <span class="material-symbols-outlined text-lg">add</span>
+                    Nueva
+                </button>
+            </div>
+        </div>
+
+        <!-- Contenido -->
+        <div class="flex-1 overflow-auto p-6 relative flex flex-col">
+            
+            <div id="loader" class="absolute inset-0 flex items-center justify-center bg-background-dark z-50">
+                <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-admin"></div>
+            </div>
+
+            <!-- Grid de Asignaturas -->
+            <div id="subjects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <!-- Se llena con JS -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="empty-state" class="hidden flex-col items-center justify-center p-12 text-center mt-10">
+                <div class="w-20 h-20 bg-surface-dark rounded-full flex items-center justify-center mb-4 border border-surface-border">
+                    <span class="material-symbols-outlined text-4xl text-surface-border">auto_stories</span>
+                </div>
+                <h3 class="text-lg font-bold text-white">Catálogo vacío</h3>
+                <p class="text-text-secondary text-sm max-w-xs mx-auto mt-2">No hay asignaturas registradas. Agrega una nueva y asigna un profesor.</p>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- MODAL: CREAR / EDITAR -->
+    <div id="modal-manage-subject" class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4 transition-all duration-300">
+        <div class="bg-surface-dark border border-surface-border p-6 rounded-2xl w-full max-w-md shadow-2xl relative transform transition-all duration-300 scale-100">
+            <button onclick="toggleModal('modal-manage-subject')" class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined">close</button>
+            
+            <div class="flex items-center gap-3 mb-6">
+                <div class="p-3 rounded-full bg-admin/10 text-admin">
+                    <span class="material-symbols-outlined" id="modal-icon">add</span>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-white" id="modal-title">Nueva Asignatura</h2>
+                    <p class="text-xs text-text-secondary">Información básica y asignación</p>
+                </div>
+            </div>
+
+            <form id="form-subject" class="space-y-4">
+                <input type="hidden" id="edit-id" value=""> 
+
+                <div>
+                    <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Nombre de la Asignatura</label>
+                    <input type="text" id="subject-name" placeholder="Ej: Matemáticas Avanzadas" required 
+                        class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white focus:border-admin outline-none transition-colors">
+                </div>
+
+                <!-- NUEVO CAMPO: PROFESOR -->
+                <div>
+                    <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Profesor Asignado</label>
+                    <div class="relative">
+                        <select id="subject-teacher" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white focus:border-admin outline-none transition-colors appearance-none cursor-pointer">
+                            <option value="" selected>Sin asignar</option>
+                            <option value="" disabled>Cargando lista...</option>
+                        </select>
+                        <span class="material-symbols-outlined absolute right-4 top-3 text-text-secondary pointer-events-none">arrow_drop_down</span>
+                    </div>
+                    <p class="text-[10px] text-text-secondary mt-1 ml-1">Este profesor será el coordinador por defecto.</p>
+                </div>
+
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="toggleModal('modal-manage-subject')" class="flex-1 py-3 rounded-xl border border-surface-border text-text-secondary hover:text-white transition font-bold text-sm">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="flex-1 py-3 rounded-xl bg-admin text-background-dark font-bold hover:brightness-110 transition shadow-lg shadow-admin/20 text-sm flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-lg">save</span>
+                        Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+
+    <!-- SCRIPTS -->
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/layout.js"></script>
+    <script type="module" src="js/asignaturas.js"></script>
+
+    <script>
+        function toggleModal(id) {
+            const el = document.getElementById(id);
+            if(el) el.classList.toggle('hidden');
+        }
+
+        // Función auxiliar para preparar el modal de creación
+        window.prepareCreate = () => {
+            document.getElementById('form-subject').reset();
+            document.getElementById('edit-id').value = '';
+            document.getElementById('modal-title').innerText = 'Nueva Asignatura';
+            document.getElementById('modal-icon').innerText = 'add';
+            
+            // Intenta cargar profesores si el select parece vacío o incorrecto
+            const select = document.getElementById('subject-teacher');
+            if(select && select.options.length <= 2 && window.loadTeachers) {
+                console.log("Intentando recargar profesores...");
+                window.loadTeachers(); 
+            }
+            
+            toggleModal('modal-manage-subject');
+        }
+    </script>
+</body>
+</html>

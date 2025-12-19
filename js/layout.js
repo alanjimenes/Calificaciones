@@ -19,7 +19,7 @@ window.addEventListener('userReady', (e) => {
 function renderSidebar() {
     const currentPath = window.location.pathname;
     
-    // Definición de enlaces
+    // Definición de enlaces principales (Visibles para todos)
     const links = [
         { href: 'index.html', icon: 'dashboard', text: 'Inicio' },
         { href: 'calificaciones.html', icon: 'edit_note', text: 'Registro Notas' },
@@ -27,8 +27,11 @@ function renderSidebar() {
         { href: 'cursos.html', icon: 'library_books', text: 'Cursos' }
     ];
 
+    // Definición de enlaces de Administrador
+    // AQUÍ AGREGAMOS "ASIGNATURAS" PARA QUE SALGA EN LA BARRA IZQUIERDA
     const adminLinks = [
         { href: 'usuarios.html', icon: 'group', text: 'Gestión Usuarios' },
+        { href: 'asignaturas.html', icon: 'category', text: 'Asignaturas' }, // <--- Nuevo apartado en el menú
         { href: 'registro_usuario.html', icon: 'person_add', text: 'Registrar Usuario' }
     ];
 
@@ -47,7 +50,7 @@ function renderSidebar() {
         <nav class="flex flex-1 flex-col gap-2">
             ${links.map(link => createLinkHTML(link, currentPath)).join('')}
 
-            <!-- SECCIÓN ADMIN (Oculta por defecto) -->
+            <!-- SECCIÓN ADMIN (Oculta por defecto, se muestra si es admin) -->
             <div id="layout-admin-section" class="hidden mt-4 animate-fade-in">
                 <div class="my-2 h-px bg-admin/20 mx-4"></div>
                 <p class="px-4 text-[10px] font-bold text-admin uppercase tracking-wider mb-2">Panel Admin</p>
@@ -103,9 +106,12 @@ function createLinkHTML(link, currentPath, isAdmin = false) {
     let isActive = false;
     const pageName = currentPath.split('/').pop() || 'index.html';
     
-    if (link.href === 'index.html' && (pageName === '' || pageName === 'index.html')) {
+    // Ajuste para query params si es necesario, aunque split lo maneja básico
+    const cleanPageName = pageName.split('?')[0];
+
+    if (link.href === 'index.html' && (cleanPageName === '' || cleanPageName === 'index.html')) {
         isActive = true;
-    } else if (pageName === link.href) {
+    } else if (cleanPageName === link.href) {
         isActive = true;
     }
     
