@@ -82,7 +82,7 @@
             <!-- CONTENEDOR PRINCIPAL -->
             <div class="bg-surface-dark border border-surface-border rounded-2xl overflow-hidden shadow-2xl">
                 
-                <!-- SECCIÓN 1: EDITAR PERFIL (Unificada) -->
+                <!-- SECCIÓN 1: EDITAR PERFIL -->
                 <div class="p-8 border-b border-surface-border/50">
                     <div class="flex items-center gap-3 mb-6">
                         <div class="p-2 rounded-lg bg-primary/10 text-primary">
@@ -141,7 +141,31 @@
                     </div>
                 </div>
 
-                <!-- SECCIÓN 2: CERRAR SESIÓN -->
+                <!-- SECCIÓN 2: COPIAS DE SEGURIDAD (SOLO ADMIN) -->
+                <div id="section-backup" class="hidden p-8 border-b border-surface-border/50 bg-admin/5">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="p-2 rounded-lg bg-admin/20 text-admin border border-admin/20">
+                            <span class="material-symbols-outlined">backup</span>
+                        </div>
+                        <h3 class="text-lg font-bold text-white uppercase tracking-wider">Copias de Seguridad</h3>
+                    </div>
+                    
+                    <div class="flex flex-col md:flex-row items-center justify-between gap-6 bg-background-dark border border-surface-border rounded-xl p-5">
+                        <div>
+                            <p class="text-sm text-white font-bold mb-1">Exportar Base de Datos</p>
+                            <p class="text-xs text-text-secondary leading-relaxed max-w-lg">
+                                Descarga un archivo JSON con toda la información del sistema (usuarios, cursos, notas y logs). 
+                                Útil para auditorías o respaldos locales.
+                            </p>
+                        </div>
+                        <button id="btn-download-backup" class="px-5 py-3 rounded-xl bg-admin text-white hover:bg-yellow-500 font-bold transition-all shadow-lg shadow-admin/20 text-sm flex items-center gap-2 whitespace-nowrap">
+                            <span class="material-symbols-outlined">download</span>
+                            Descargar Copia
+                        </button>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN 3: CERRAR SESIÓN -->
                 <div class="p-6 bg-red-500/5 flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div>
                         <h4 class="text-sm font-bold text-danger flex items-center gap-2">

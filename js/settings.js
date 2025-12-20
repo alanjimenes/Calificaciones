@@ -1,10 +1,16 @@
-import { auth, db, doc, updateDoc, setDoc, signOut, onAuthStateChanged } from './firebase-config.js';
+import { auth, db, doc, updateDoc, setDoc, signOut, collection, getDocs } from './firebase-config.js';
 import { updateProfile, updateEmail, updatePassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 // Esperar a que main.js cargue el usuario
 window.addEventListener('userReady', (e) => {
     const { user, role } = e.detail;
     loadUserData(user, role);
+    
+    // Mostrar sección de backup si es admin
+    if (role === 'admin') {
+        const backupSection = document.getElementById('section-backup');
+        if (backupSection) backupSection.classList.remove('hidden');
+    }
 });
 
 function loadUserData(user, role) {
@@ -20,7 +26,7 @@ function loadUserData(user, role) {
     // 2. Cargar Inputs
     const nameInput = document.getElementById('settings-name');
     const roleInput = document.getElementById('settings-role');
-    const emailDisplay = document.getElementById('settings-email-current'); // Ahora es un span o input
+    const emailDisplay = document.getElementById('settings-email-current'); 
 
     if (nameInput) nameInput.value = user.displayName || '';
     if (roleInput) roleInput.value = role || 'Docente';
@@ -30,6 +36,72 @@ function loadUserData(user, role) {
         if(emailDisplay.tagName === 'INPUT') emailDisplay.value = user.email || '';
         else emailDisplay.innerText = user.email || '';
     }
+}
+
+// --- COPIAS DE SEGURIDAD (EXPORTAR JSON) ---
+const btnBackup = document.getElementById('btn-download-backup');
+if (btnBackup) {
+    btnBackup.addEventListener('click', async () => {
+        if (!confirm("Se generará un archivo con toda la base de datos.\n¿Deseas continuar?")) return;
+
+        const originalText = btnBackup.innerHTML;
+        btnBackup.innerHTML = '<span class="material-symbols-outlined animate-spin">refresh</span> Generando...';
+        btnBackup.disabled = true;
+
+        try {
+            // Recolectar datos de las colecciones principales
+            const data = {
+                metadata: {
+                    fecha_exportacion: new Date().toISOString(),
+                    generado_por: auth.currentUser.email,
+                    version_sistema: "1.0"
+                },
+                usuarios: [],
+                cursos_globales: [],
+                asignaturas_catalogo: [],
+                registros_auditoria: []
+            };
+
+            // 1. Usuarios
+            const usersSnap = await getDocs(collection(db, "usuarios"));
+            usersSnap.forEach(doc => data.usuarios.push({ id: doc.id, ...doc.data() }));
+
+            // 2. Cursos Globales (Incluye estudiantes y notas)
+            const coursesSnap = await getDocs(collection(db, "cursos_globales"));
+            coursesSnap.forEach(doc => data.cursos_globales.push({ id: doc.id, ...doc.data() }));
+
+            // 3. Catálogo Asignaturas
+            const subjectsSnap = await getDocs(collection(db, "asignaturas_catalogo"));
+            subjectsSnap.forEach(doc => data.asignaturas_catalogo.push({ id: doc.id, ...doc.data() }));
+
+            // 4. Auditoría (Opcional, puede ser grande)
+            const auditSnap = await getDocs(collection(db, "registros_auditoria"));
+            auditSnap.forEach(doc => data.registros_auditoria.push({ id: doc.id, ...doc.data() }));
+
+            // Generar Blob y descargar
+            const jsonString = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonString], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            const dateStr = new Date().toISOString().slice(0, 10);
+            a.href = url;
+            a.download = `edusys_backup_${dateStr}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            if (window.showToast) window.showToast("Copia de seguridad descargada", "success");
+
+        } catch (error) {
+            console.error("Error en backup:", error);
+            if (window.showToast) window.showToast("Error al generar copia: " + error.message, "error");
+        } finally {
+            btnBackup.innerHTML = originalText;
+            btnBackup.disabled = false;
+        }
+    });
 }
 
 // --- ACTUALIZAR PERFIL (NOMBRE) ---
@@ -47,15 +119,11 @@ if (formProfile) {
         btn.innerHTML = '...';
 
         try {
-            // 1. Actualizar en Auth
             await updateProfile(auth.currentUser, { displayName: newName });
             
-            // 2. Actualizar en Firestore
             try {
                 await setDoc(doc(db, "usuarios", auth.currentUser.uid), { nombre: newName }, { merge: true });
-            } catch (err) {
-                console.warn("Error actualizando doc por UID:", err);
-            }
+            } catch (err) { console.warn("Error actualizando doc por UID:", err); }
 
             if (auth.currentUser.email) {
                 try {
