@@ -79,6 +79,41 @@ async function initializeGradebook(userId, userEmail) {
             });
         }
 
+        // Listener Formulario Observaciones
+        const formObs = document.getElementById('form-observations');
+        if (formObs) {
+            formObs.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const studentId = document.getElementById('obs-student-id').value;
+                const text = document.getElementById('observation-text').value;
+                const btn = formObs.querySelector('button[type="submit"]');
+
+                const originalContent = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<span class="material-symbols-outlined animate-spin">refresh</span> Guardando...';
+
+                try {
+                    // Actualizar array local
+                    const index = currentStudents.findIndex(s => s.id === studentId);
+                    if (index !== -1) {
+                        currentStudents[index].observacion = text;
+
+                        // Guardar en Firestore
+                        await updateDoc(doc(db, "cursos_globales", COURSE_ID), { estudiantes: currentStudents });
+
+                        if (window.showToast) window.showToast("Observación guardada", "success");
+                        if (window.toggleModal) window.toggleModal('modal-observations');
+                    }
+                } catch (error) {
+                    console.error(error);
+                    alert("Error al guardar: " + error.message);
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = originalContent;
+                }
+            });
+        }
+
         // --- CAMBIO CLAVE: NO SELECCIONAR MATERIA AUTOMÁTICAMENTE ---
         // Renderizamos el dashboard primero
         renderSubjectsDashboard();
@@ -354,7 +389,10 @@ function renderTable() {
                 rowHTML += `
                     <td class="p-0 text-center">
                         <div class="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onclick="editStudent('${student.id}')" class="p-1.5 rounded text-text-secondary hover:text-white hover:bg-surface-border transition-colors" title="Editar">
+                            <button onclick="openObservations('${student.id}')" class="p-1.5 rounded text-text-secondary hover:text-warning hover:bg-warning/10 transition-colors" title="Observaciones / Bitácora">
+                                <span class="material-symbols-outlined text-[18px]">rate_review</span>
+                            </button>
+                            <button onclick="editStudent('${student.id}')" class="p-1.5 rounded text-text-secondary hover:text-white hover:bg-surface-border transition-colors" title="Editar Info">
                                 <span class="material-symbols-outlined text-[16px]">edit</span>
                             </button>
                             <button onclick="deleteStudent('${student.id}')" class="p-1.5 rounded text-text-secondary hover:text-danger hover:bg-danger/10 transition-colors" title="Eliminar">
@@ -411,6 +449,17 @@ window.editStudent = (studentId) => {
     document.getElementById('btn-submit-student').innerHTML = '<span class="material-symbols-outlined">save_as</span> Actualizar Datos';
 
     if (window.toggleModal) window.toggleModal('modal-add-student');
+};
+
+window.openObservations = (studentId) => {
+    const student = currentStudents.find(s => s.id === studentId);
+    if (!student) return;
+
+    document.getElementById('obs-student-name').innerText = `Estudiante: ${student.nombre}`;
+    document.getElementById('obs-student-id').value = student.id;
+    document.getElementById('observation-text').value = student.observacion || '';
+
+    if (window.toggleModal) window.toggleModal('modal-observations');
 };
 
 window.deleteStudent = async (studentId) => {
@@ -488,11 +537,13 @@ if (formStudent) {
             if (index !== -1) {
                 studentData.notas = currentStudents[index].notas || {};
                 studentData.asistencia = currentStudents[index].asistencia || {};
+                studentData.observacion = currentStudents[index].observacion || ""; // Mantener observación
                 currentStudents[index] = studentData;
             }
         } else {
             studentData.notas = {};
             studentData.asistencia = {};
+            studentData.observacion = "";
             currentStudents.push(studentData);
         }
 

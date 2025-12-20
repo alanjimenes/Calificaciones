@@ -22,8 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (periodSelect) {
         periodSelect.addEventListener('change', (e) => {
             currentPeriod = e.target.value;
-            // Recalcular y renderizar (porque los promedios cambian por periodo)
-            loadGlobalStudents(false); // false = no fetch again, just recalculate (implementación simplificada: reload all por ahora para asegurar datos frescos)
+            // Recalcular y renderizar
+            loadGlobalStudents(false);
         });
     }
 });
@@ -38,7 +38,6 @@ window.loadGlobalStudents = async (forceFetch = true) => {
 
     try {
         // 1. Obtener todos los cursos
-        // Nota: Traemos todos los cursos porque los estudiantes están anidados dentro.
         const q = query(collection(db, "cursos_globales"), orderBy("nombre"));
         const snapshot = await getDocs(q);
 
@@ -52,17 +51,18 @@ window.loadGlobalStudents = async (forceFetch = true) => {
 
             // 2. Procesar cada estudiante dentro del curso
             students.forEach(student => {
-                // Calcular promedios de todas las materias para este estudiante
+                // Calcular promedios
                 const averages = calculateSubjectAverages(student, materias, actividades, currentPeriod);
 
-                // Aplanar objeto para la tabla
+                // Aplanar objeto para la tabla, INCLUYENDO LA OBSERVACIÓN
                 allStudentsCache.push({
                     id: student.id,
                     nombre: student.nombre,
                     numero_orden: student.numero_orden || '-',
                     cursoNombre: courseData.nombre,
                     cursoId: doc.id,
-                    promedios: averages // Objeto { materia: nota, ... }
+                    promedios: averages,
+                    observacion: student.observacion || "" // <--- Nuevo campo
                 });
             });
         });
@@ -89,21 +89,15 @@ function calculateSubjectAverages(student, materias, actividadesConfig, periodo)
     const notasAlumno = student.notas || {};
 
     materias.forEach(materia => {
-        // Obtener actividades configuradas para esta materia y periodo
         const actsMateria = (actividadesConfig[materia] || [])
             .filter(act => (act.periodo || 'p1') === periodo);
 
-        // Obtener notas del alumno en esta materia
         const notasMateria = notasAlumno[materia] || {};
-
         let promedio = 0;
 
         if (actsMateria.length > 0) {
-            // Verificar si hay pesos
             const hasWeights = actsMateria.some(a => a.valor > 0);
-
             if (hasWeights) {
-                // Promedio Ponderado
                 let sum = 0;
                 actsMateria.forEach(act => {
                     const grade = parseFloat(notasMateria[act.nombre] || 0);
@@ -112,7 +106,6 @@ function calculateSubjectAverages(student, materias, actividadesConfig, periodo)
                 });
                 promedio = Math.round(sum);
             } else {
-                // Promedio Simple
                 let sum = 0;
                 let count = 0;
                 actsMateria.forEach(act => {
@@ -124,15 +117,11 @@ function calculateSubjectAverages(student, materias, actividadesConfig, periodo)
                 });
                 promedio = count > 0 ? Math.round(sum / count) : 0;
             }
-        } else {
-            // Sin actividades configuradas
-            promedio = 0;
         }
-
         results.push({
             materia: materia,
             nota: promedio,
-            hasData: actsMateria.length > 0 // Para saber si mostrar 0 o N/A
+            hasData: actsMateria.length > 0
         });
     });
 
@@ -180,6 +169,15 @@ function filterAndRender(searchTerm) {
         });
         subjectsHTML += `</div>`;
 
+        // Lógica para el botón de observación
+        const hasObservation = student.observacion && student.observacion.trim().length > 0;
+        const obsButtonClass = hasObservation
+            ? "text-warning bg-warning/10 border-warning/20 hover:bg-warning hover:text-white"
+            : "text-text-secondary/30 bg-surface-border/5 border-transparent hover:bg-surface-border hover:text-text-secondary";
+
+        const obsTooltip = hasObservation ? "Ver Observación" : "Sin observaciones";
+        const obsIcon = hasObservation ? "rate_review" : "chat_bubble_outline"; // Icono lleno vs contorno
+
         row.innerHTML = `
             <td class="px-6 py-4 whitespace-nowrap text-text-secondary/50 font-mono text-xs">
                 ${student.numero_orden}
@@ -190,7 +188,10 @@ function filterAndRender(searchTerm) {
                         ${getInitials(student.nombre)}
                     </div>
                     <div>
-                        <p class="font-bold text-white text-sm">${student.nombre}</p>
+                        <div class="flex items-center gap-2">
+                            <p class="font-bold text-white text-sm">${student.nombre}</p>
+                            ${hasObservation ? '<span class="w-2 h-2 rounded-full bg-warning animate-pulse" title="Tiene observación"></span>' : ''}
+                        </div>
                         <p class="text-[10px] text-text-secondary uppercase tracking-wider font-mono bg-surface-border/30 px-1 rounded w-fit">${student.id}</p>
                     </div>
                 </div>
@@ -204,14 +205,40 @@ function filterAndRender(searchTerm) {
                 ${subjectsHTML}
             </td>
             <td class="px-6 py-4 text-right">
-                <a href="calificaciones.html?curso=${student.cursoId}" class="p-2 rounded-lg text-text-secondary hover:text-white hover:bg-surface-border transition-colors inline-flex items-center justify-center bg-surface-border/10" title="Ver Planilla Completa">
-                    <span class="material-symbols-outlined text-lg">visibility</span>
-                </a>
+                <div class="flex justify-end gap-2">
+                    <button onclick="viewObservation('${student.id}')" class="p-2 rounded-lg border transition-colors inline-flex items-center justify-center ${obsButtonClass}" title="${obsTooltip}">
+                        <span class="material-symbols-outlined text-lg">${obsIcon}</span>
+                    </button>
+                    <a href="calificaciones.html?curso=${student.cursoId}" class="p-2 rounded-lg text-text-secondary hover:text-white hover:bg-surface-border transition-colors inline-flex items-center justify-center bg-surface-border/10 border border-surface-border/20" title="Ver Planilla Completa">
+                        <span class="material-symbols-outlined text-lg">visibility</span>
+                    </a>
+                </div>
             </td>
         `;
         tbody.appendChild(row);
     });
 }
+
+// --- ABRIR MODAL DE OBSERVACIÓN ---
+window.viewObservation = (studentId) => {
+    const student = allStudentsCache.find(s => s.id === studentId);
+    if (!student) return;
+
+    const modalTitle = document.getElementById('obs-modal-student');
+    const modalText = document.getElementById('obs-modal-text');
+    const modalCourse = document.getElementById('obs-modal-course');
+
+    if (modalTitle) modalTitle.innerText = student.nombre;
+    if (modalCourse) modalCourse.innerText = student.cursoNombre;
+
+    if (modalText) {
+        modalText.value = (student.observacion && student.observacion.trim().length > 0)
+            ? student.observacion
+            : "No hay observaciones registradas para este estudiante.";
+    }
+
+    if (window.toggleModal) window.toggleModal('modal-view-observation');
+};
 
 function getGradeColor(nota) {
     if (nota >= 90) return "text-green-400 bg-green-400/10";
