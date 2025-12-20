@@ -8,7 +8,7 @@
 
     <link rel="stylesheet" href="css/styles.css">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    
+
     <!-- CONFIGURACIÓN DE TEMA (Idéntica al Login) -->
     <script>
         tailwind.config = {
@@ -35,26 +35,33 @@
             },
         }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
 </head>
 
-<body class="bg-background-dark text-white font-display antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300" id="main-body">
+<body
+    class="bg-background-dark text-white font-display antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300"
+    id="main-body">
 
     <!-- EL SIDEBAR SE INYECTA CON JS (layout.js) -->
     <!-- Nota: layout.js usará las clases definidas arriba, así que se adaptará automáticamente al tema oscuro -->
 
     <!-- CONTENIDO PRINCIPAL -->
-    <main class="flex-1 flex flex-col overflow-y-auto relative bg-background-dark p-6 md:p-8 scroll-smooth transition-all duration-300" id="main-content">
-        
+    <main
+        class="flex-1 flex flex-col overflow-y-auto relative bg-background-dark p-6 md:p-8 scroll-smooth transition-all duration-300"
+        id="main-content">
+
         <!-- Decoración de fondo (Igual al Login) -->
         <div class="fixed top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-            <div class="absolute top-[10%] right-[20%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px]"></div>
-            <div class="absolute bottom-[10%] left-[10%] w-[300px] h-[300px] bg-blue-500/5 rounded-full blur-[100px]"></div>
+            <div class="absolute top-[10%] right-[20%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px]">
+            </div>
+            <div class="absolute bottom-[10%] left-[10%] w-[300px] h-[300px] bg-blue-500/5 rounded-full blur-[100px]">
+            </div>
         </div>
 
         <div class="relative z-10 max-w-7xl mx-auto w-full">
-            
+
             <!-- Header Móvil -->
             <div class="lg:hidden flex items-center justify-between mb-6">
                 <div class="flex items-center gap-3">
@@ -64,14 +71,17 @@
                     <span class="font-bold text-white text-lg">EduSys</span>
                 </div>
                 <!-- Botón Menú Móvil con ID -->
-                <button id="mobile-menu-btn" class="text-white material-symbols-outlined p-2 hover:bg-surface-dark rounded-lg transition-colors">menu</button>
+                <button id="mobile-menu-btn"
+                    class="text-white material-symbols-outlined p-2 hover:bg-surface-dark rounded-lg transition-colors">menu</button>
             </div>
 
             <!-- Header Principal -->
             <header class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div class="flex items-center gap-4">
                     <!-- Botón Toggle Escritorio (Nuevo) -->
-                    <button id="desktop-sidebar-toggle" class="hidden lg:flex p-2 rounded-xl text-text-secondary hover:text-white hover:bg-surface-dark transition-colors" title="Ocultar/Mostrar Menú">
+                    <button id="desktop-sidebar-toggle"
+                        class="hidden lg:flex p-2 rounded-xl text-text-secondary hover:text-white hover:bg-surface-dark transition-colors"
+                        title="Ocultar/Mostrar Menú">
                         <span class="material-symbols-outlined">menu_open</span>
                     </button>
 
@@ -80,9 +90,10 @@
                         <p class="text-text-secondary text-sm mt-1">Resumen general de tu actividad académica.</p>
                     </div>
                 </div>
-                
+
                 <div class="flex items-center gap-3">
-                    <div id="date-display" class="text-xs font-bold text-blue-200 bg-primary/10 border border-primary/20 px-4 py-2 rounded-xl backdrop-blur-sm">
+                    <div id="date-display"
+                        class="text-xs font-bold text-blue-200 bg-primary/10 border border-primary/20 px-4 py-2 rounded-xl backdrop-blur-sm">
                         <!-- Fecha JS -->
                         Cargando fecha...
                     </div>
@@ -99,21 +110,25 @@
                             <span class="material-symbols-outlined text-primary">auto_stories</span>
                             Mis Cursos
                         </h3>
-                        <a href="cursos.html" class="text-xs font-bold text-text-secondary hover:text-white transition-colors flex items-center gap-1 group">
-                            Ver todos 
-                            <span class="material-symbols-outlined text-[14px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                        <a href="cursos.html"
+                            class="text-xs font-bold text-text-secondary hover:text-white transition-colors flex items-center gap-1 group">
+                            Ver todos
+                            <span
+                                class="material-symbols-outlined text-[14px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
                         </a>
                     </div>
 
                     <!-- Lista de Cursos -->
                     <div id="dashboard-courses-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <!-- Skeleton Loader (Estilizado oscuro) -->
-                        <div class="h-40 rounded-2xl bg-surface-dark border border-surface-border animate-pulse flex flex-col p-5 gap-3">
+                        <div
+                            class="h-40 rounded-2xl bg-surface-dark border border-surface-border animate-pulse flex flex-col p-5 gap-3">
                             <div class="h-10 w-10 bg-surface-border rounded-lg"></div>
                             <div class="h-4 w-3/4 bg-surface-border rounded"></div>
                             <div class="h-3 w-1/2 bg-surface-border/50 rounded mt-auto"></div>
                         </div>
-                        <div class="h-40 rounded-2xl bg-surface-dark border border-surface-border animate-pulse flex flex-col p-5 gap-3">
+                        <div
+                            class="h-40 rounded-2xl bg-surface-dark border border-surface-border animate-pulse flex flex-col p-5 gap-3">
                             <div class="h-10 w-10 bg-surface-border rounded-lg"></div>
                             <div class="h-4 w-3/4 bg-surface-border rounded"></div>
                             <div class="h-3 w-1/2 bg-surface-border/50 rounded mt-auto"></div>
@@ -123,11 +138,13 @@
 
                 <!-- COLUMNA DERECHA: WIDGETS (Ocupa 1 espacio) -->
                 <div class="space-y-6">
-                    
+
                     <!-- Widget: Tarea Rápida -->
-                    <div class="bg-surface-dark border border-surface-border rounded-2xl p-6 sticky top-6 shadow-xl backdrop-blur-sm">
+                    <div
+                        class="bg-surface-dark border border-surface-border rounded-2xl p-6 sticky top-6 shadow-xl backdrop-blur-sm">
                         <div class="flex items-center gap-3 mb-6 pb-4 border-b border-surface-border/50">
-                            <div class="p-2.5 rounded-xl bg-gradient-to-br from-primary to-primary-dark text-white shadow-lg shadow-primary/20">
+                            <div
+                                class="p-2.5 rounded-xl bg-gradient-to-br from-primary to-primary-dark text-white shadow-lg shadow-primary/20">
                                 <span class="material-symbols-outlined text-xl">bolt</span>
                             </div>
                             <div>
@@ -139,7 +156,8 @@
                         <form id="form-quick-task" class="space-y-4">
                             <!-- Selector Curso -->
                             <div>
-                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1 tracking-wider">
+                                <label
+                                    class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1 tracking-wider">
                                     1. Curso Destino
                                 </label>
                                 <div class="relative">
@@ -147,13 +165,15 @@
                                         class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all appearance-none cursor-pointer">
                                         <option value="" disabled selected>Cargando cursos...</option>
                                     </select>
-                                    <span class="material-symbols-outlined absolute right-3 top-3 text-text-secondary pointer-events-none">expand_more</span>
+                                    <span
+                                        class="material-symbols-outlined absolute right-3 top-3 text-text-secondary pointer-events-none">expand_more</span>
                                 </div>
                             </div>
 
                             <!-- Selector Materia (Dinámico) -->
                             <div id="subject-container" class="hidden animate-fade-in">
-                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1 tracking-wider">
+                                <label
+                                    class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1 tracking-wider">
                                     2. Asignatura
                                 </label>
                                 <div class="relative">
@@ -161,30 +181,35 @@
                                         class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all appearance-none cursor-pointer">
                                         <option value="" disabled selected>Selecciona materia...</option>
                                     </select>
-                                    <span class="material-symbols-outlined absolute right-3 top-3 text-text-secondary pointer-events-none">expand_more</span>
+                                    <span
+                                        class="material-symbols-outlined absolute right-3 top-3 text-text-secondary pointer-events-none">expand_more</span>
                                 </div>
                             </div>
 
                             <!-- Detalles Tarea -->
                             <div id="details-container" class="hidden animate-fade-in space-y-4">
                                 <div>
-                                    <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1 tracking-wider">
+                                    <label
+                                        class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1 tracking-wider">
                                         3. Título Actividad
                                     </label>
                                     <input type="text" id="quick-task-name" placeholder="Ej: Examen Unidad 1" required
                                         class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm placeholder-text-secondary/40 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all">
                                 </div>
-                                
+
                                 <div class="grid grid-cols-2 gap-3">
                                     <div>
-                                        <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1 tracking-wider">
+                                        <label
+                                            class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1 tracking-wider">
                                             Valor (%)
                                         </label>
-                                        <input type="number" id="quick-task-value" placeholder="20" min="1" max="100" required
+                                        <input type="number" id="quick-task-value" placeholder="20" min="1" max="100"
+                                            required
                                             class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm placeholder-text-secondary/40 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all">
                                     </div>
                                     <div>
-                                        <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1 tracking-wider">
+                                        <label
+                                            class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1 tracking-wider">
                                             Periodo
                                         </label>
                                         <div class="relative">
@@ -195,7 +220,8 @@
                                                 <option value="p3">P3</option>
                                                 <option value="p4">P4</option>
                                             </select>
-                                            <span class="material-symbols-outlined absolute right-3 top-3 text-text-secondary pointer-events-none text-lg">expand_more</span>
+                                            <span
+                                                class="material-symbols-outlined absolute right-3 top-3 text-text-secondary pointer-events-none text-lg">expand_more</span>
                                         </div>
                                     </div>
                                 </div>
@@ -203,7 +229,8 @@
                                 <button type="submit"
                                     class="w-full py-3.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 mt-2 group">
                                     <span>Crear Tarea</span>
-                                    <span class="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform">add_task</span>
+                                    <span
+                                        class="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform">add_task</span>
                                 </button>
                             </div>
 
@@ -220,11 +247,13 @@
                             Estado del Sistema
                         </h3>
                         <div class="space-y-3">
-                            <div class="flex items-center justify-between text-xs p-2 rounded-lg bg-background-dark/50 border border-surface-border/50">
+                            <div
+                                class="flex items-center justify-between text-xs p-2 rounded-lg bg-background-dark/50 border border-surface-border/50">
                                 <span class="text-text-secondary">Servidor Base de Datos</span>
                                 <span class="text-green-400 font-bold">Conectado</span>
                             </div>
-                            <div class="flex items-center justify-between text-xs p-2 rounded-lg bg-background-dark/50 border border-surface-border/50">
+                            <div
+                                class="flex items-center justify-between text-xs p-2 rounded-lg bg-background-dark/50 border border-surface-border/50">
                                 <span class="text-text-secondary">Sincronización</span>
                                 <span class="text-blue-400 font-bold">Automática</span>
                             </div>
@@ -260,7 +289,7 @@
                 const sidebar = document.querySelector('aside');
                 const mobileBtn = document.getElementById('mobile-menu-btn');
                 const desktopBtn = document.getElementById('desktop-sidebar-toggle');
-                
+
                 if (sidebar) {
                     // Configuración Inicial para Móvil (asegurar estilos fijos)
                     if (window.innerWidth < 1024) {
@@ -293,7 +322,7 @@
                             // En escritorio está 'lg:flex'.
                             // Para ocultarlo, forzamos 'lg:hidden'.
                             sidebar.classList.toggle('lg:hidden');
-                            
+
                             // Ajustar icono
                             const icon = desktopBtn.querySelector('.material-symbols-outlined');
                             if (sidebar.classList.contains('lg:hidden')) {
@@ -306,11 +335,11 @@
 
                     // Cerrar al hacer click fuera (Móvil)
                     document.addEventListener('click', (e) => {
-                        if (window.innerWidth < 1024 && 
-                            !sidebar.contains(e.target) && 
-                            mobileBtn && !mobileBtn.contains(e.target) && 
+                        if (window.innerWidth < 1024 &&
+                            !sidebar.contains(e.target) &&
+                            mobileBtn && !mobileBtn.contains(e.target) &&
                             !sidebar.classList.contains('hidden')) {
-                            
+
                             sidebar.classList.add('hidden');
                             sidebar.classList.remove('flex');
                         }

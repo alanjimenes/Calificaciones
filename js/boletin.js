@@ -1,8 +1,7 @@
-// boletin.js - Sistema de generación de boletines oficiales
+// js/boletin.js - Generador de Boletines (Detallado + Recuperación)
 import { db, collection, getDocs, doc, getDoc, query } from './firebase-config.js';
 
 // --- CONFIGURACIÓN DEL CENTRO EDUCATIVO ---
-// Estos datos aparecerán en el encabezado oficial
 const SCHOOL_INFO = {
     nombre: "CENTRO EDUCATIVO EJEMPLO",
     codigo: "12345",
@@ -11,10 +10,7 @@ const SCHOOL_INFO = {
     regional: "10"
 };
 
-let allCourses = [];
-let selectedCourseData = null;
-let selectedStudentData = null;
-
+// Áreas Oficiales del Currículo Dominicano
 const AREAS_CURRICULARES = [
     'Lengua Española',
     'Lenguas Extranjeras (Inglés)',
@@ -28,12 +24,19 @@ const AREAS_CURRICULARES = [
     'Salidas Optativas / Tecnología'
 ];
 
+const COMPETENCIAS = ['c1', 'c2', 'c3', 'c4'];
+
+let allCourses = [];
+let selectedCourseData = null;
+let selectedStudentData = null;
+
 // Esperar a que el usuario esté listo
 window.addEventListener('userReady', async (e) => {
     const { role, email } = e.detail;
     const body = document.getElementById('main-body');
     if (body) body.classList.remove('opacity-0');
 
+    // Verificar contenedor de notificaciones
     if (!document.getElementById('toast-container')) {
         const container = document.createElement('div');
         container.id = 'toast-container';
@@ -144,7 +147,7 @@ window.generateBoletin = function () {
     const yearFrom = document.getElementById('year-from').value || '2024';
     const yearTo = document.getElementById('year-to').value || '2025';
 
-    if (window.showToast) window.showToast("Generando documento...", "info");
+    if (window.showToast) window.showToast("Generando boletín detallado...", "info");
 
     const boletinHTML = createBoletinHTML(selectedCourseData, selectedStudentData, yearFrom, yearTo);
     const container = document.getElementById('boletin-preview');
@@ -157,352 +160,290 @@ window.generateBoletin = function () {
     }, 400);
 }
 
-// --- FUNCIÓN DE RENDERIZADO DEL BOLETÍN (ENCABEZADO OFICIAL + TABLA COMPLETA) ---
-function createBoletinHTML(course, student, yearFrom, yearTo) {
-    const gradeSummary = calculateGradeSummary(course, student);
-    const attendanceSummary = calculateAttendanceSummary(course, student);
-    const fechaImpresion = new Date().toLocaleDateString('es-DO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+// --- LÓGICA DE CÁLCULO DETALLADO (C1-C4) ---
+/**
+ * Retorna objeto con detalle: { c1, c2, c3, c4, promedio, hasData }
+ */
+function getPeriodDetails(course, student, subjectName, period) {
+    const actividadesConfig = course.actividades || {};
+    const actividadesMateria = actividadesConfig[subjectName] || [];
+    const notasEstudiante = (student.notas && student.notas[subjectName]) ? student.notas[subjectName] : {};
 
-    // Logos oficiales (URLs públicas)
-    const logoEscudo = "https://upload.wikimedia.org/wikipedia/commons/2/26/Coat_of_arms_of_the_Dominican_Republic.svg";
-    const logoMinerd = "https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Emblema_del_Ministerio_de_Educaci%C3%B3n_de_la_Rep%C3%BAblica_Dominicana.png/240px-Emblema_del_Ministerio_de_Educaci%C3%B3n_de_la_Rep%C3%BAblica_Dominicana.png";
+    // Filtrar actividades del periodo
+    const actsPeriodo = actividadesMateria.filter(act => (act.periodo || 'p1') === period);
 
-    // Lista de Competencias Fundamentales
-    const competenciasFundamentales = [
-        "• Comunicativa",
-        "• Pensamiento Lógico, Creativo y Crítico",
-        "• Resolución de Problemas",
-        "• Científica y Tecnológica",
-        "• Ambiental y de la Salud",
-        "• Ética y Ciudadana",
-        "• Desarrollo Personal y Espiritual"
-    ];
+    if (actsPeriodo.length === 0) {
+        return { c1: null, c2: null, c3: null, c4: null, promedio: null, hasData: false };
+    }
 
-    return `
-    <div style="width: 270mm; margin: 0 auto; background: white; padding: 15px; font-family: 'Times New Roman', Times, serif; color: black; box-sizing: border-box;">
-        
-        <!-- ENCABEZADO INSTITUCIONAL OFICIAL -->
-        <table style="width: 100%; border-bottom: 2px solid #000; margin-bottom: 10px;">
-            <tr>
-                <td style="width: 10%; text-align: center; vertical-align: top; padding-bottom: 5px;">
-                     <img src="${logoEscudo}" style="width: 60px; height: auto;">
-                </td>
-                <td style="width: 80%; text-align: center; vertical-align: top;">
-                    <h2 style="margin: 0; font-size: 14pt; font-weight: bold; text-transform: uppercase;">República Dominicana</h2>
-                    <h3 style="margin: 0; font-size: 12pt; font-weight: bold; text-transform: uppercase;">Ministerio de Educación</h3>
-                    <p style="margin: 2px 0 0 0; font-size: 9pt;">Viceministerio de Servicios Técnicos y Pedagógicos</p>
-                    <p style="margin: 0; font-size: 9pt;">Dirección General de Educación Secundaria</p>
-                    
-                    <div style="margin-top: 8px; font-weight: bold; font-size: 11pt; border: 1px solid black; display: inline-block; padding: 3px 20px; background: #e0e0e0; text-transform: uppercase;">
-                        Informe de Evaluación del Aprendizaje
-                    </div>
-                </td>
-                <td style="width: 10%; text-align: center; vertical-align: top; padding-bottom: 5px;">
-                     <img src="${logoMinerd}" style="width: 70px; height: auto;">
-                </td>
-            </tr>
-        </table>
+    // Acumuladores
+    const comps = {
+        c1: { sum: 0 },
+        c2: { sum: 0 },
+        c3: { sum: 0 },
+        c4: { sum: 0 }
+    };
 
-        <!-- DATOS DEL CENTRO Y ESTUDIANTE (GRID TIPO FICHA) -->
-        <table style="width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 15px;">
-            <!-- Fila 1 -->
-            <tr>
-                <td class="cell-head" style="width: 8%;">Regional:</td>
-                <td class="cell-data center" style="width: 8%;">${SCHOOL_INFO.regional}</td>
-                <td class="cell-head" style="width: 8%;">Distrito:</td>
-                <td class="cell-data center" style="width: 8%;">${SCHOOL_INFO.distrito}</td>
-                <td class="cell-head" style="width: 12%;">Centro Educativo:</td>
-                <td class="cell-data" colspan="3">${SCHOOL_INFO.nombre}</td>
-                <td class="cell-head" style="width: 8%;">Código:</td>
-                <td class="cell-data center" style="width: 10%;">${SCHOOL_INFO.codigo}</td>
-                <td class="cell-head" style="width: 10%;">Año Escolar:</td>
-                <td class="cell-data center" style="width: 10%;">${yearFrom}-${yearTo}</td>
-            </tr>
-            <!-- Fila 2 -->
-            <tr>
-                <td class="cell-head">Estudiante:</td>
-                <td class="cell-data" colspan="7" style="font-weight: bold; text-transform: uppercase;">${student.nombre}</td>
-                <td class="cell-head">ID:</td>
-                <td class="cell-data center">${student.id}</td>
-                <td class="cell-head">RNE:</td>
-                <td class="cell-data center">${student.rne || ''}</td>
-            </tr>
-            <!-- Fila 3 -->
-            <tr>
-                <td class="cell-head">Grado:</td>
-                <td class="cell-data" colspan="3">${course.nombre}</td>
-                <td class="cell-head">Sección:</td>
-                <td class="cell-data center">A</td>
-                <td class="cell-head">Tanda:</td>
-                <td class="cell-data center">${SCHOOL_INFO.tanda}</td>
-                <td class="cell-head" colspan="2" style="text-align: right; padding-right: 5px;">Número de Orden:</td>
-                <td class="cell-data center" colspan="2" style="font-weight: bold;">${student.numero_orden || ''}</td>
-            </tr>
-        </table>
+    // Procesar notas
+    actsPeriodo.forEach(act => {
+        const compId = act.competencia || 'c1';
+        const val = parseFloat(notasEstudiante[act.nombre] || 0);
+        const weight = parseFloat(act.valor || 0);
 
-        <!-- TABLA COMPLETA DE CALIFICACIONES (Parte final "perfecta") -->
-        <table style="width: 100%; border-collapse: collapse; font-size: 8pt; border: 1px solid black;">
-            <thead>
-                <tr>
-                    <!-- Columna 1: Competencias y Asignaturas -->
-                    <th rowspan="3" style="border: 1px solid black; background: white; width: 18%; vertical-align: top; padding: 5px; text-align: left;">
-                        <div style="font-weight: bold; font-size: 9pt; margin-bottom: 5px; border-bottom: 1px solid #ccc; padding-bottom: 2px;">ÁREAS / ASIGNATURAS</div>
-                        <div style="font-weight: bold; font-size: 7pt; color: #333; margin-bottom: 3px;">COMPETENCIAS FUNDAMENTALES:</div>
-                        <div style="font-size: 7pt; color: #444; line-height: 1.3;">
-                            ${competenciasFundamentales.join('<br>')}
-                        </div>
-                    </th>
-                    
-                    <!-- Columna 2: Promedios P1-P4 -->
-                    <th colspan="4" style="border: 1px solid black; background: #e6e6e6; text-align: center; font-weight: bold;">
-                        PROMEDIO GRUPO DE<br>COMPETENCIAS ESPECÍFICAS
-                    </th>
-                    
-                    <!-- Columna 3: Calificación Final -->
-                    <th rowspan="3" style="border: 1px solid black; background: #e6e6e6; width: 5%; text-align: center; vertical-align: middle;">
-                        CALIFICACIÓN<br>FINAL DEL<br>ÁREA
-                    </th>
-
-                    <!-- Columna 4: Asistencia -->
-                    <th rowspan="3" style="border: 1px solid black; background: #e6e6e6; width: 4%; text-align: center; vertical-align: middle;">
-                        %<br>ASIST.
-                    </th>
-
-                    <!-- Columna 5: Completiva -->
-                    <th colspan="3" style="border: 1px solid black; background: #e6e6e6; text-align: center;">
-                        CALIFICACIÓN<br>COMPLETIVA
-                    </th>
-
-                    <!-- Columna 6: Extraordinaria -->
-                    <th colspan="3" style="border: 1px solid black; background: #e6e6e6; text-align: center;">
-                        CALIFICACIÓN<br>EXTRAORDINARIA
-                    </th>
-
-                    <!-- Columna 7: Especial -->
-                    <th rowspan="3" style="border: 1px solid black; background: #e6e6e6; width: 5%; text-align: center; vertical-align: middle;">
-                        EVALUACIÓN<br>ESPECIAL
-                    </th>
-
-                    <!-- Columna 8: Situación -->
-                    <th rowspan="3" style="border: 1px solid black; background: #e6e6e6; width: 8%; text-align: center; vertical-align: middle;">
-                        SITUACIÓN<br>FINAL EN LA<br>ASIGNATURA
-                    </th>
-                </tr>
-                
-                <!-- Sub-Encabezados Fila 2 -->
-                <tr>
-                    <th style="border: 1px solid black; background: #f2f2f2; width: 4%;">P1</th>
-                    <th style="border: 1px solid black; background: #f2f2f2; width: 4%;">P2</th>
-                    <th style="border: 1px solid black; background: #f2f2f2; width: 4%;">P3</th>
-                    <th style="border: 1px solid black; background: #f2f2f2; width: 4%;">P4</th>
-                    
-                    <!-- Completiva Sub -->
-                    <th style="border: 1px solid black; background: #f2f2f2; width: 4%; font-size: 7pt;">C.P.C.<br>(50%)</th>
-                    <th style="border: 1px solid black; background: #f2f2f2; width: 4%; font-size: 7pt;">P.C.<br>(50%)</th>
-                    <th style="border: 1px solid black; background: #f2f2f2; width: 4%; font-size: 7pt;">C.C.</th>
-
-                    <!-- Extraordinaria Sub -->
-                    <th style="border: 1px solid black; background: #f2f2f2; width: 4%; font-size: 7pt;">C.P.Ex<br>(30%)</th>
-                    <th style="border: 1px solid black; background: #f2f2f2; width: 4%; font-size: 7pt;">P.Ex<br>(70%)</th>
-                    <th style="border: 1px solid black; background: #f2f2f2; width: 4%; font-size: 7pt;">C.Ex</th>
-                </tr>
-
-                <!-- Fila 3 (Separador) -->
-                <tr style="height: 5px;">
-                    <th colspan="4" style="border: 1px solid black; background: #fff;"></th>
-                    <th colspan="3" style="border: 1px solid black; background: #fff;"></th>
-                    <th colspan="3" style="border: 1px solid black; background: #fff;"></th>
-                </tr>
-            </thead>
-            <tbody>
-                ${generateRows(gradeSummary, attendanceSummary)}
-            </tbody>
-        </table>
-
-        <!-- PIE DE PÁGINA (LEYENDA Y FIRMAS) -->
-        <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: flex-start; font-size: 8pt;">
-            <div style="border: 1px solid black; padding: 5px; width: 60%;">
-                <strong>LEYENDA:</strong><br>
-                <span>P1-P4: Periodos</span> &nbsp;|&nbsp; 
-                <span>C.F.: Calificación Final</span> &nbsp;|&nbsp;
-                <span>C.P.C: Calificación Parcial Completiva</span> &nbsp;|&nbsp;
-                <span>P.C.: Prueba Completiva</span><br>
-                <span>C.C.: Calificación Completiva</span> &nbsp;|&nbsp;
-                <span>C.P.Ex: Calificación Parcial Extraordinaria</span> &nbsp;|&nbsp;
-                <span>C.Ex: Calificación Extraordinaria</span>
-            </div>
-            <div style="width: 38%; text-align: center; border: 1px solid black; padding: 5px;">
-                <strong>ESTADO FINAL DEL ESTUDIANTE</strong>
-                <div style="font-size: 11pt; font-weight: bold; margin-top: 5px; text-transform: uppercase;">
-                    ${calculateCondicionFinal(gradeSummary)}
-                </div>
-            </div>
-        </div>
-
-        <table style="width: 100%; margin-top: 40px; font-size: 9pt;">
-            <tr>
-                <td style="text-align: center; width: 40%;">
-                    <div style="border-top: 1px solid black; margin: 0 20px; padding-top: 5px;">
-                        <strong>Director(a) del Centro</strong>
-                    </div>
-                </td>
-                <td style="width: 20%;"></td>
-                <td style="text-align: center; width: 40%;">
-                    <div style="border-top: 1px solid black; margin: 0 20px; padding-top: 5px;">
-                        <strong>Titular de Curso / Encargado(a)</strong>
-                    </div>
-                </td>
-            </tr>
-        </table>
-        
-        <div style="text-align: right; font-size: 7pt; margin-top: 10px; color: #666;">
-            Impreso el: ${fechaImpresion}
-        </div>
-
-        <style>
-            .cell-head { border: 1px solid black; background: #f2f2f2; font-weight: bold; padding: 3px 5px; }
-            .cell-data { border: 1px solid black; padding: 3px 5px; }
-            .center { text-align: center; }
-        </style>
-    </div>
-    `;
-}
-
-function generateRows(gradeSummary, attendanceSummary) {
-    const asistTotal = calculateTotalAttendancePercent(attendanceSummary);
-
-    return AREAS_CURRICULARES.map((area) => {
-        const grades = gradeSummary[area] || { p1: '', p2: '', p3: '', p4: '', promedio: '', situacion: '' };
-
-        return `
-        <tr style="height: 22px;">
-            <td style="border: 1px solid black; padding: 2px 5px; font-weight: bold;">${area}</td>
-            
-            <!-- P1-P4 -->
-            <td style="border: 1px solid black; text-align: center;">${grades.p1 || ''}</td>
-            <td style="border: 1px solid black; text-align: center;">${grades.p2 || ''}</td>
-            <td style="border: 1px solid black; text-align: center;">${grades.p3 || ''}</td>
-            <td style="border: 1px solid black; text-align: center;">${grades.p4 || ''}</td>
-            
-            <!-- Calificación Final -->
-            <td style="border: 1px solid black; text-align: center; font-weight: bold; background: #f9f9f9;">${grades.promedio || ''}</td>
-            
-            <!-- Asistencia -->
-            <td style="border: 1px solid black; text-align: center;">${asistTotal}</td>
-            
-            <!-- Completiva (Vacío por ahora) -->
-            <td style="border: 1px solid black; text-align: center;">-</td>
-            <td style="border: 1px solid black; text-align: center;">-</td>
-            <td style="border: 1px solid black; text-align: center;">-</td>
-            
-            <!-- Extraordinaria (Vacío por ahora) -->
-            <td style="border: 1px solid black; text-align: center;">-</td>
-            <td style="border: 1px solid black; text-align: center;">-</td>
-            <td style="border: 1px solid black; text-align: center;">-</td>
-            
-            <!-- Especial (Vacío) -->
-            <td style="border: 1px solid black; text-align: center;">-</td>
-            
-            <!-- Situación -->
-            <td style="border: 1px solid black; text-align: center; font-size: 7pt; font-weight: bold;">${grades.situacion}</td>
-        </tr>
-        `;
-    }).join('');
-}
-
-// --- LÓGICA DE CÁLCULO ---
-
-function calculateCondicionFinal(summary) {
-    let reprobadas = 0;
-    let completas = 0;
-    const areas = Object.values(summary);
-
-    areas.forEach(a => {
-        if (a.situacion === 'R') reprobadas++;
-        if (a.promedio) completas++;
-    });
-
-    if (completas < AREAS_CURRICULARES.length) return "EN PROCESO";
-    return reprobadas > 0 ? "APLAZADO" : "PROMOVIDO";
-}
-
-function calculateGradeSummary(course, student) {
-    const summary = {};
-    const notas = student.notas || {};
-    const actividades = course.actividades || {};
-
-    course.materias.forEach(materia => {
-        let area = matchAreaCurricular(materia);
-        if (!summary[area]) {
-            summary[area] = { p1: '', p2: '', p3: '', p4: '', promedio: '', situacion: '' };
-        }
-
-        const notasMateria = notas[materia] || {};
-        const actividadesMateria = actividades[materia] || [];
-
-        ['p1', 'p2', 'p3', 'p4'].forEach(periodo => {
-            const actPeriodo = actividadesMateria.filter(a => (a.periodo || 'p1') === periodo);
-            if (actPeriodo.length > 0) {
-                let sum = 0;
-                let hasWeights = actPeriodo.some(a => a.valor > 0);
-                let count = 0;
-
-                actPeriodo.forEach(act => {
-                    const val = parseFloat(notasMateria[act.nombre] || 0);
-                    if (hasWeights) {
-                        sum += (val * parseFloat(act.valor)) / 100;
-                    } else {
-                        if (notasMateria[act.nombre]) {
-                            sum += val;
-                            count++;
-                        }
-                    }
-                });
-
-                if (hasWeights) summary[area][periodo] = Math.round(sum);
-                else summary[area][periodo] = count > 0 ? Math.round(sum / count) : 0;
-            }
-        });
-
-        const pvals = [summary[area].p1, summary[area].p2, summary[area].p3, summary[area].p4].filter(v => v !== '' && v !== 0);
-        if (pvals.length > 0) {
-            const avg = Math.round(pvals.reduce((a, b) => a + b, 0) / pvals.length);
-            summary[area].promedio = avg;
-            summary[area].situacion = avg >= 70 ? 'A' : 'R';
+        if (weight > 0) {
+            comps[compId].sum += (val * weight) / 100;
+        } else {
+            // Si no hubiera pesos (caso raro), asumimos suma directa temporalmente
+            // o 0. Para este sistema usamos pesos estrictos.
         }
     });
 
-    return summary;
+    // Resultados
+    let compScores = {};
+    let scoresList = [];
+
+    COMPETENCIAS.forEach(k => {
+        let score = Math.round(comps[k].sum);
+        compScores[k] = score;
+        scoresList.push(score);
+    });
+
+    // Promedio final del periodo (Promedio de las 4 competencias)
+    const totalPeriodo = scoresList.reduce((a, b) => a + b, 0);
+    const promedioPeriodo = Math.round(totalPeriodo / 4);
+
+    return {
+        c1: compScores.c1,
+        c2: compScores.c2,
+        c3: compScores.c3,
+        c4: compScores.c4,
+        promedio: promedioPeriodo,
+        hasData: true
+    };
 }
 
-function matchAreaCurricular(materia) {
-    const lower = materia.toLowerCase();
-    if (lower.includes('español') || lower.includes('lengua')) return 'Lengua Española';
-    if (lower.includes('inglés')) return 'Lenguas Extranjeras (Inglés)';
-    if (lower.includes('francés')) return 'Lenguas Extranjeras (Francés)';
-    if (lower.includes('matemática')) return 'Matemática';
-    if (lower.includes('social')) return 'Ciencias Sociales';
-    if (lower.includes('naturaleza') || lower.includes('biología') || lower.includes('química')) return 'Ciencias de la Naturaleza';
-    if (lower.includes('artística')) return 'Educación Artística';
-    if (lower.includes('física') && !lower.includes('matemática')) return 'Educación Física';
-    if (lower.includes('religión') || lower.includes('formación')) return 'Formación Integral Humana y Religiosa';
-    return 'Salidas Optativas / Tecnología';
-}
-
-function calculateAttendanceSummary(course, student) {
-    let p = 0, a = 0;
+function calculateAttendancePercent(course, student) {
+    let p = 0, total = 0;
     const asistencia = student.asistencia || {};
     Object.values(asistencia).forEach(materiaAsist => {
         Object.values(materiaAsist).forEach(status => {
             if (status === 'P') p++;
-            if (status === 'A') a++;
+            total++;
         });
     });
-    return { present: p, absent: a };
+    if (total === 0) return 100;
+    return Math.round((p / total) * 100);
 }
 
-function calculateTotalAttendancePercent(summary) {
-    const total = summary.present + summary.absent;
-    if (total === 0) return '100%';
-    return Math.round((summary.present / total) * 100) + '%';
+// --- RENDERIZADO DEL BOLETÍN (TABLA DETALLADA + RECUPERACIÓN) ---
+function createBoletinHTML(course, student, yearFrom, yearTo) {
+    const fechaImpresion = new Date().toLocaleDateString('es-DO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const asistenciaPorcentaje = calculateAttendancePercent(course, student);
+    const logoEscudo = "https://upload.wikimedia.org/wikipedia/commons/2/26/Coat_of_arms_of_the_Dominican_Republic.svg";
+    const logoMinerd = "https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Emblema_del_Ministerio_de_Educaci%C3%B3n_de_la_Rep%C3%BAblica_Dominicana.png/240px-Emblema_del_Ministerio_de_Educaci%C3%B3n_de_la_Rep%C3%BAblica_Dominicana.png";
+
+    let rowsHTML = '';
+    let materiasPromedioSum = 0;
+    let materiasCount = 0;
+    let asignaturasReprobadas = 0;
+    let hasP4Data = false;
+
+    // Unimos materias (Oficiales + Propias del curso)
+    const todasMaterias = [...new Set([...AREAS_CURRICULARES, ...(course.materias || [])])];
+
+    todasMaterias.forEach(materia => {
+        // Solo mostramos si es oficial o existe en el curso
+        const esOficial = course.materias.includes(materia) || AREAS_CURRICULARES.includes(materia);
+        if (!esOficial) return;
+
+        const p1 = getPeriodDetails(course, student, materia, 'p1');
+        const p2 = getPeriodDetails(course, student, materia, 'p2');
+        const p3 = getPeriodDetails(course, student, materia, 'p3');
+        const p4 = getPeriodDetails(course, student, materia, 'p4');
+
+        if (p4.hasData) hasP4Data = true;
+
+        // Calcular CF (Promedio de los promedios de periodo existentes)
+        const periodos = [p1, p2, p3, p4];
+        const periodosConData = periodos.filter(p => p.hasData);
+
+        let cf = null;
+        if (periodosConData.length > 0) {
+            const sumaPromedios = periodosConData.reduce((acc, curr) => acc + curr.promedio, 0);
+            cf = Math.round(sumaPromedios / periodosConData.length);
+            materiasPromedioSum += cf;
+            materiasCount++;
+            if (cf < 70) asignaturasReprobadas++;
+        }
+
+        const f = (val) => (val !== null && val !== undefined) ? val : '-';
+        const styleCF = cf && cf < 70 ? 'color: red; font-weight: bold;' : 'font-weight: bold;';
+        const bgProm = "background-color: #f0f0f0; font-weight: bold;";
+
+        // Generar fila DETALLADA
+        rowsHTML += `
+        <tr>
+            <td style="text-align: left; padding-left: 5px; font-weight: bold;">${materia}</td>
+            
+            <!-- P1 -->
+            <td>${f(p1.c1)}</td><td>${f(p1.c2)}</td><td>${f(p1.c3)}</td><td>${f(p1.c4)}</td>
+            <td style="${bgProm}">${f(p1.promedio)}</td>
+            
+            <!-- P2 -->
+            <td>${f(p2.c1)}</td><td>${f(p2.c2)}</td><td>${f(p2.c3)}</td><td>${f(p2.c4)}</td>
+            <td style="${bgProm}">${f(p2.promedio)}</td>
+            
+            <!-- P3 -->
+            <td>${f(p3.c1)}</td><td>${f(p3.c2)}</td><td>${f(p3.c3)}</td><td>${f(p3.c4)}</td>
+            <td style="${bgProm}">${f(p3.promedio)}</td>
+            
+            <!-- P4 -->
+            <td>${f(p4.c1)}</td><td>${f(p4.c2)}</td><td>${f(p4.c3)}</td><td>${f(p4.c4)}</td>
+            <td style="${bgProm}">${f(p4.promedio)}</td>
+            
+            <!-- FINAL -->
+            <td style="${styleCF} font-size: 10px; background-color: #e6e6e6;">${f(cf)}</td>
+            <td style="font-size: 8px;">${cf !== null && cf < 70 ? 'CP' : ''}</td>
+        </tr>
+        `;
+    });
+
+    // Estado Final
+    let situacionFinal = "EN PROCESO";
+    if (materiasCount > 0 && hasP4Data) {
+        situacionFinal = asignaturasReprobadas > 0 ? "APLAZADO" : "PROMOVIDO";
+    }
+    const promedioGeneral = materiasCount > 0 ? Math.round(materiasPromedioSum / materiasCount) : 0;
+
+    // LAYOUT HORIZONTAL (LANDSCAPE)
+    return `
+    <div style="width: 279mm; min-height: 215mm; padding: 10mm; background: white; color: black; font-family: 'Arial Narrow', sans-serif; box-sizing: border-box; margin: 0 auto;">
+        
+        <!-- ENCABEZADO -->
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 10px;">
+            <img src="${logoEscudo}" style="height: 50px;">
+            <div style="text-align: center;">
+                <h1 style="font-size: 18px; font-weight: bold; margin: 0;">REPÚBLICA DOMINICANA</h1>
+                <h2 style="font-size: 14px; font-weight: bold; margin: 0;">MINISTERIO DE EDUCACIÓN</h2>
+                <p style="font-size: 12px; margin: 0;">INFORME DE EVALUACIÓN DE LOS APRENDIZAJES - NIVEL SECUNDARIO</p>
+            </div>
+            <img src="${logoMinerd}" style="height: 50px;">
+        </div>
+
+        <!-- INFO GRID -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; border: 1px solid #000; padding: 8px; font-size: 11px; margin-bottom: 10px; background: #fdfdfd;">
+            <div><strong>REGIONAL:</strong> ${SCHOOL_INFO.regional} / ${SCHOOL_INFO.distrito}</div>
+            <div><strong>CENTRO EDUCATIVO:</strong> ${SCHOOL_INFO.nombre}</div>
+            <div><strong>CÓDIGO:</strong> ${SCHOOL_INFO.codigo}</div>
+            
+            <div><strong>ESTUDIANTE:</strong> ${student.nombre.toUpperCase()}</div>
+            <div><strong>ID/RNE:</strong> ${student.rne || student.id}</div>
+            <div><strong>NO. ORDEN:</strong> ${student.numero_orden || '-'}</div>
+
+            <div><strong>GRADO:</strong> ${course.nombre}</div>
+            <div><strong>AÑO ESCOLAR:</strong> ${yearFrom}-${yearTo}</div>
+            <div><strong>TANDA:</strong> ${SCHOOL_INFO.tanda}</div>
+        </div>
+
+        <!-- TABLA DETALLADA (C1-C4) -->
+        <table style="width: 100%; border-collapse: collapse; font-size: 9px; text-align: center; border: 1px solid #000;">
+            <thead>
+                <tr style="background-color: #333; color: white;">
+                    <th rowspan="2" style="width: 15%; border: 1px solid #555; padding: 4px;">ÁREAS CURRICULARES</th>
+                    <th colspan="5" style="border: 1px solid #555;">PERIODO 1 (Sept-Oct)</th>
+                    <th colspan="5" style="border: 1px solid #555;">PERIODO 2 (Nov-Ene)</th>
+                    <th colspan="5" style="border: 1px solid #555;">PERIODO 3 (Feb-Abr)</th>
+                    <th colspan="5" style="border: 1px solid #555;">PERIODO 4 (May-Jun)</th>
+                    <th rowspan="2" style="width: 4%; border: 1px solid #555; background-color: #444;">C.F.</th>
+                    <th rowspan="2" style="width: 3%; border: 1px solid #555;">Sit.</th>
+                </tr>
+                <tr style="background-color: #eee; color: #000;">
+                    <!-- P1 -->
+                    <th style="border: 1px solid #ccc; width: 3%;">C1</th>
+                    <th style="border: 1px solid #ccc; width: 3%;">C2</th>
+                    <th style="border: 1px solid #ccc; width: 3%;">C3</th>
+                    <th style="border: 1px solid #ccc; width: 3%;">C4</th>
+                    <th style="border: 1px solid #ccc; width: 3%; font-weight:bold; background: #ddd;">PC</th>
+                    
+                    <!-- P2 -->
+                    <th style="border: 1px solid #ccc; width: 3%;">C1</th>
+                    <th style="border: 1px solid #ccc; width: 3%;">C2</th>
+                    <th style="border: 1px solid #ccc; width: 3%;">C3</th>
+                    <th style="border: 1px solid #ccc; width: 3%;">C4</th>
+                    <th style="border: 1px solid #ccc; width: 3%; font-weight:bold; background: #ddd;">PC</th>
+                    
+                    <!-- P3 -->
+                    <th style="border: 1px solid #ccc; width: 3%;">C1</th>
+                    <th style="border: 1px solid #ccc; width: 3%;">C2</th>
+                    <th style="border: 1px solid #ccc; width: 3%;">C3</th>
+                    <th style="border: 1px solid #ccc; width: 3%;">C4</th>
+                    <th style="border: 1px solid #ccc; width: 3%; font-weight:bold; background: #ddd;">PC</th>
+                    
+                    <!-- P4 -->
+                    <th style="border: 1px solid #ccc; width: 3%;">C1</th>
+                    <th style="border: 1px solid #ccc; width: 3%;">C2</th>
+                    <th style="border: 1px solid #ccc; width: 3%;">C3</th>
+                    <th style="border: 1px solid #ccc; width: 3%;">C4</th>
+                    <th style="border: 1px solid #ccc; width: 3%; font-weight:bold; background: #ddd;">PC</th>
+                </tr>
+            </thead>
+            <tbody style="border: 1px solid #000;">
+                <style>
+                    td { border: 1px solid #ccc; padding: 3px 1px; height: 18px; }
+                    tr:nth-child(even) { background-color: #fcfcfc; }
+                </style>
+                ${rowsHTML}
+            </tbody>
+        </table>
+
+        <!-- SECCIÓN DE RECUPERACIÓN PEDAGÓGICA (INTEGRADA) -->
+        <table style="width: 100%; border-collapse: collapse; font-size: 8pt; border: 1px solid black; margin-top: 10px;">
+            <thead>
+                <tr style="background-color: #ddd;">
+                    <th colspan="4" style="border: 1px solid black; padding: 3px; text-align: center; font-weight: bold; text-transform: uppercase; font-size: 9px;">
+                        Programa de Recuperación Pedagógica / Clases Particulares
+                    </th>
+                </tr>
+                <tr style="background-color: #f2f2f2;">
+                    <th style="border: 1px solid black; padding: 2px; width: 20%;">ASIGNATURA</th>
+                    <th style="border: 1px solid black; padding: 2px; width: 40%;">CONTENIDOS / COMPETENCIAS A REFORZAR</th>
+                    <th style="border: 1px solid black; padding: 2px; width: 20%;">HORARIO ASIGNADO</th>
+                    <th style="border: 1px solid black; padding: 2px; width: 20%;">OBSERVACIÓN</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="height: 25px;">
+                    <td style="border: 1px solid black;"></td><td style="border: 1px solid black;"></td><td style="border: 1px solid black;"></td><td style="border: 1px solid black;"></td>
+                </tr>
+                <tr style="height: 25px;">
+                    <td style="border: 1px solid black;"></td><td style="border: 1px solid black;"></td><td style="border: 1px solid black;"></td><td style="border: 1px solid black;"></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- FOOTER INFO -->
+        <div style="margin-top: 10px; display: flex; gap: 15px; font-size: 10px;">
+            <div style="flex: 2; border: 1px solid #000; padding: 5px;">
+                <strong>LEYENDA:</strong><br>
+                C1-C4: Competencias Específicas | PC: Promedio de Competencias<br>
+                C.F.: Calificación Final | Sit.: Situación Final (CP: Completivo)
+            </div>
+            <div style="flex: 1; border: 1px solid #000; padding: 5px; text-align: center; background: #f9f9f9;">
+                <strong>ESTADO FINAL</strong><br>
+                <span style="font-size: 12px; font-weight: bold;">${situacionFinal}</span><br>
+                Prom. General: <strong>${promedioGeneral}</strong> | Asist: <strong>${asistenciaPorcentaje}%</strong>
+            </div>
+        </div>
+
+        <!-- FIRMAS -->
+        <div style="margin-top: 30px; display: flex; justify-content: space-around; text-align: center; font-size: 10px;">
+            <div style="border-top: 1px solid #000; padding-top: 5px; width: 200px;">Director(a) del Centro</div>
+            <div style="border-top: 1px solid #000; padding-top: 5px; width: 200px;">Titular del Curso</div>
+        </div>
+
+        <div style="position: absolute; bottom: 5px; right: 10px; font-size: 8px; color: #999;">
+            Generado: ${fechaImpresion}
+        </div>
+    </div>
+    `;
 }
