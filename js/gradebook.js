@@ -186,7 +186,7 @@ function renderTable() {
 
     const canEdit = checkSubjectPermissions();
     // Para borrar/editar alumnos usamos permiso de Admin o Titular del curso
-    const canManageStudents = isAdmin || isTitular; 
+    const canManageStudents = isAdmin || isTitular;
 
     const rawActividades = (courseConfig.actividades || {})[selectedSubject] || [];
     const actividadesFiltradas = rawActividades
@@ -260,7 +260,7 @@ function renderTable() {
                         </div>
                     </td>`;
             } else {
-                 rowHTML += `<td class="p-0 text-center text-text-secondary/20"><span class="material-symbols-outlined text-[16px]">lock</span></td>`;
+                rowHTML += `<td class="p-0 text-center text-text-secondary/20"><span class="material-symbols-outlined text-[16px]">lock</span></td>`;
             }
 
             row.innerHTML = rowHTML;
@@ -280,7 +280,7 @@ function renderTable() {
 // ----------------------------------------------------
 window.editStudent = (studentId) => {
     const student = currentStudents.find(s => s.id === studentId);
-    if(!student) return;
+    if (!student) return;
 
     // Llenar el formulario con los datos
     document.getElementById('student-num-orden').value = student.numero_orden || '';
@@ -290,7 +290,7 @@ window.editStudent = (studentId) => {
     document.getElementById('student-sexo').value = student.sexo || 'M';
     document.getElementById('student-nacimiento').value = student.fecha_nacimiento || '';
     document.getElementById('student-condicion').value = student.condicion_academica || 'Promovido';
-    
+
     // Familia y Contacto
     document.getElementById('student-madre').value = student.nombre_madre || '';
     document.getElementById('student-padre').value = student.nombre_padre || '';
@@ -311,18 +311,18 @@ window.editStudent = (studentId) => {
     document.getElementById('modal-student-icon').innerText = "edit";
     document.getElementById('btn-submit-student').innerHTML = '<span class="material-symbols-outlined">save_as</span> Actualizar Datos';
 
-    if(window.toggleModal) window.toggleModal('modal-add-student');
+    if (window.toggleModal) window.toggleModal('modal-add-student');
 };
 
 window.deleteStudent = async (studentId) => {
-    if(!confirm("¿Estás seguro de eliminar a este estudiante?\n\nSe perderán todas sus calificaciones y registros de asistencia.")) return;
+    if (!confirm("¿Estás seguro de eliminar a este estudiante?\n\nSe perderán todas sus calificaciones y registros de asistencia.")) return;
 
     // Filtrar array local
     currentStudents = currentStudents.filter(s => s.id !== studentId);
 
     try {
         await updateDoc(doc(db, "cursos_globales", COURSE_ID), { estudiantes: currentStudents });
-        if(window.showToast) window.showToast("Estudiante eliminado", "info");
+        if (window.showToast) window.showToast("Estudiante eliminado", "info");
         refreshCurrentView();
     } catch (e) {
         console.error(e);
@@ -344,7 +344,7 @@ if (formStudent) {
         // Obtener datos del formulario
         const numOrden = document.getElementById('student-num-orden').value.trim();
         const name = document.getElementById('student-name').value.trim();
-        const id = document.getElementById('student-id').value.trim().toUpperCase(); 
+        const id = document.getElementById('student-id').value.trim().toUpperCase();
         const rne = document.getElementById('student-rne').value.trim().toUpperCase();
         const sexo = document.getElementById('student-sexo').value;
         const nacimiento = document.getElementById('student-nacimiento').value;
@@ -372,8 +372,8 @@ if (formStudent) {
             return;
         }
         if (editingId && editingId !== id && currentStudents.some(s => s.id === id)) {
-             alert("Error: Ya existe OTRO estudiante con ese ID SIGERD.");
-             return;
+            alert("Error: Ya existe OTRO estudiante con ese ID SIGERD.");
+            return;
         }
 
         // Preparar objeto de datos
@@ -385,7 +385,7 @@ if (formStudent) {
             sexo: sexo,
             fecha_nacimiento: nacimiento,
             condicion_academica: condicion,
-            
+
             // Familia
             nombre_madre: madre,
             nombre_padre: padre,
@@ -423,14 +423,14 @@ if (formStudent) {
 
         try {
             await updateDoc(doc(db, "cursos_globales", COURSE_ID), { estudiantes: currentStudents });
-            
+
             formStudent.reset();
             if (window.toggleModal) window.toggleModal('modal-add-student');
             refreshCurrentView();
-            
+
             const msg = editingId ? "Datos actualizados" : "Estudiante registrado";
-            if(window.showToast) window.showToast(msg, "success");
-            
+            if (window.showToast) window.showToast(msg, "success");
+
         } catch (error) {
             console.error(error);
             alert("Error al guardar: " + error.message);
