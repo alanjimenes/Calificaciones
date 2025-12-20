@@ -124,7 +124,7 @@
 
                     <div class="h-6 w-px bg-surface-border hidden md:block"></div>
 
-                    <!-- Selector Periodo -->
+                    <!-- Selector Periodo (MODIFICADO: Sin FINAL) -->
                     <div id="period-selector-container" class="relative">
                         <select id="period-selector"
                             class="pl-8 bg-background-dark border border-surface-border text-white text-sm rounded-lg focus:ring-primary focus:border-primary block p-2 w-36">
@@ -132,7 +132,6 @@
                             <option value="p2">Periodo 2</option>
                             <option value="p3">Periodo 3</option>
                             <option value="p4">Periodo 4</option>
-                            <option value="final">Final / Extra</option>
                         </select>
                         <span
                             class="material-symbols-outlined absolute left-2 top-2.5 text-text-secondary text-lg">date_range</span>
@@ -302,13 +301,14 @@
                 <div class="grid grid-cols-2 gap-4">
                     <input type="number" id="activity-value" placeholder="Valor %"
                         class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white text-sm focus:border-primary outline-none">
+
+                    <!-- SELECTOR PERIODO (MODIFICADO: Sin FINAL) -->
                     <select id="activity-period"
                         class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white text-sm focus:border-primary outline-none">
                         <option value="p1">P1</option>
                         <option value="p2">P2</option>
                         <option value="p3">P3</option>
                         <option value="p4">P4</option>
-                        <option value="final">Final</option>
                     </select>
                 </div>
                 <button type="submit"

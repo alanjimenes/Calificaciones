@@ -14,7 +14,8 @@ let currentPeriod = 'p1';
 let currentTaskToGrade = null;
 let saveTimeout = null;
 
-const periodNames = { 'p1': 'Periodo 1', 'p2': 'Periodo 2', 'p3': 'Periodo 3', 'p4': 'Periodo 4', 'final': 'Final' };
+// MODIFICADO: Eliminado 'final'
+const periodNames = { 'p1': 'Periodo 1', 'p2': 'Periodo 2', 'p3': 'Periodo 3', 'p4': 'Periodo 4' };
 
 const urlParams = new URLSearchParams(window.location.search);
 COURSE_ID = urlParams.get('curso');
@@ -185,7 +186,6 @@ function renderTable() {
     if (emptyState) emptyState.classList.add('hidden');
 
     const canEdit = checkSubjectPermissions();
-    // Para borrar/editar alumnos usamos permiso de Admin o Titular del curso
     const canManageStudents = isAdmin || isTitular;
 
     const rawActividades = (courseConfig.actividades || {})[selectedSubject] || [];
@@ -282,7 +282,6 @@ window.editStudent = (studentId) => {
     const student = currentStudents.find(s => s.id === studentId);
     if (!student) return;
 
-    // Llenar el formulario con los datos
     document.getElementById('student-num-orden').value = student.numero_orden || '';
     document.getElementById('student-name').value = student.nombre || '';
     document.getElementById('student-id').value = student.id || '';
@@ -291,13 +290,11 @@ window.editStudent = (studentId) => {
     document.getElementById('student-nacimiento').value = student.fecha_nacimiento || '';
     document.getElementById('student-condicion').value = student.condicion_academica || 'Promovido';
 
-    // Familia y Contacto
     document.getElementById('student-madre').value = student.nombre_madre || '';
     document.getElementById('student-padre').value = student.nombre_padre || '';
     document.getElementById('student-tutor').value = student.nombre_tutor || '';
     document.getElementById('student-telefono').value = student.telefono_contacto || '';
 
-    // Datos Adicionales y Médicos (NUEVO)
     document.getElementById('student-lugar-nac').value = student.lugar_nacimiento || '';
     document.getElementById('student-nacionalidad').value = student.nacionalidad || '';
     document.getElementById('student-direccion').value = student.direccion || '';
@@ -305,8 +302,7 @@ window.editStudent = (studentId) => {
     document.getElementById('student-emergencia').value = student.telefono_emergencia || '';
     document.getElementById('student-medica').value = student.info_medica || '';
 
-    // Configurar estado de "Edición"
-    document.getElementById('edit-student-original-id').value = student.id; // Clave para saber que editamos
+    document.getElementById('edit-student-original-id').value = student.id;
     document.getElementById('modal-student-title').innerText = "Editar Estudiante";
     document.getElementById('modal-student-icon').innerText = "edit";
     document.getElementById('btn-submit-student').innerHTML = '<span class="material-symbols-outlined">save_as</span> Actualizar Datos';
@@ -316,10 +312,7 @@ window.editStudent = (studentId) => {
 
 window.deleteStudent = async (studentId) => {
     if (!confirm("¿Estás seguro de eliminar a este estudiante?\n\nSe perderán todas sus calificaciones y registros de asistencia.")) return;
-
-    // Filtrar array local
     currentStudents = currentStudents.filter(s => s.id !== studentId);
-
     try {
         await updateDoc(doc(db, "cursos_globales", COURSE_ID), { estudiantes: currentStudents });
         if (window.showToast) window.showToast("Estudiante eliminado", "info");
@@ -330,18 +323,12 @@ window.deleteStudent = async (studentId) => {
     }
 };
 
-
-// ----------------------------------------------------
-// MANEJO FORMULARIO ESTUDIANTE (Crear o Editar)
-// ----------------------------------------------------
 const formStudent = document.getElementById('form-add-student');
 if (formStudent) {
     formStudent.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const editingId = document.getElementById('edit-student-original-id').value; // ID Original si editamos
-
-        // Obtener datos del formulario
+        const editingId = document.getElementById('edit-student-original-id').value;
         const numOrden = document.getElementById('student-num-orden').value.trim();
         const name = document.getElementById('student-name').value.trim();
         const id = document.getElementById('student-id').value.trim().toUpperCase();
@@ -355,7 +342,6 @@ if (formStudent) {
         const tutor = document.getElementById('student-tutor').value.trim();
         const telefono = document.getElementById('student-telefono').value.trim();
 
-        // Datos Adicionales (NUEVO)
         const lugarNac = document.getElementById('student-lugar-nac').value.trim();
         const nacionalidad = document.getElementById('student-nacionalidad').value.trim();
         const direccion = document.getElementById('student-direccion').value.trim();
@@ -365,8 +351,6 @@ if (formStudent) {
 
         if (!name || !id) return;
 
-        // Si creamos nuevo, validamos ID duplicado
-        // Si editamos, validamos duplicado SOLO si el ID cambió
         if (!editingId && currentStudents.some(s => s.id === id)) {
             alert("Error: Ya existe un estudiante con ese ID SIGERD.");
             return;
@@ -376,7 +360,6 @@ if (formStudent) {
             return;
         }
 
-        // Preparar objeto de datos
         const studentData = {
             id: id,
             numero_orden: numOrden,
@@ -385,14 +368,10 @@ if (formStudent) {
             sexo: sexo,
             fecha_nacimiento: nacimiento,
             condicion_academica: condicion,
-
-            // Familia
             nombre_madre: madre,
             nombre_padre: padre,
             nombre_tutor: tutor,
             telefono_contacto: telefono,
-
-            // Adicionales
             lugar_nacimiento: lugarNac,
             nacionalidad: nacionalidad,
             direccion: direccion,
@@ -402,23 +381,18 @@ if (formStudent) {
         };
 
         if (editingId) {
-            // --- MODO EDICIÓN ---
             const index = currentStudents.findIndex(s => s.id === editingId);
             if (index !== -1) {
-                // Preservar notas y asistencia
                 studentData.notas = currentStudents[index].notas || {};
                 studentData.asistencia = currentStudents[index].asistencia || {};
-                // Actualizar array
                 currentStudents[index] = studentData;
             }
         } else {
-            // --- MODO CREACIÓN ---
             studentData.notas = {};
             studentData.asistencia = {};
             currentStudents.push(studentData);
         }
 
-        // Ordenar siempre
         currentStudents.sort((a, b) => (parseInt(a.numero_orden) || 999) - (parseInt(b.numero_orden) || 999));
 
         try {
@@ -438,8 +412,6 @@ if (formStudent) {
     });
 }
 
-
-// --- RESTO DE FUNCIONES (Render Tasks, Attendance, etc.) ---
 window.renderTasksView = function () {
     const tasksListContainer = document.getElementById('tasks-list-container');
     const singleTaskContainer = document.getElementById('single-task-container');
@@ -537,9 +509,6 @@ function renderSingleTaskGrading() {
 window.openTaskGrading = (task) => { currentTaskToGrade = task; renderTasksView(); }
 window.closeTaskGrading = () => { currentTaskToGrade = null; renderTasksView(); }
 
-// ==========================================
-// RENDERIZADO ASISTENCIA (Restaurado)
-// ==========================================
 window.renderAttendance = function () {
     const tableBody = document.getElementById('attendance-table-body');
     const emptyState = document.getElementById('empty-state');
@@ -690,22 +659,51 @@ function getPromedioColor(prom) {
 }
 function getInitials(name) { return name ? name.split(' ').map(n => n[0]).join('').substring(0, 2) : '??'; }
 
-// Manejo de Modales (Add Activity / Student)
 const formActivity = document.getElementById('form-add-activity');
 if (formActivity) {
     formActivity.addEventListener('submit', async (e) => {
         e.preventDefault();
         const name = document.getElementById('activity-name').value.trim();
-        const value = document.getElementById('activity-value').value;
+        const valueInput = document.getElementById('activity-value');
+        const value = parseFloat(valueInput.value);
         const period = document.getElementById('activity-period').value;
-        if (!name || !value || !selectedSubject) return;
+
+        if (!name || isNaN(value) || !selectedSubject) return;
+
+        // --- VALIDACIÓN 1: Valor individual máximo 100 ---
+        if (value > 100) {
+            alert("Error: El valor de la actividad no puede ser mayor al 100%.");
+            return;
+        }
 
         if (!courseConfig.actividades) courseConfig.actividades = {};
         if (!courseConfig.actividades[selectedSubject]) courseConfig.actividades[selectedSubject] = [];
-        courseConfig.actividades[selectedSubject].push({ nombre: name, valor: parseFloat(value), periodo: period });
+
+        // --- VALIDACIÓN 2: Suma Total del Periodo ---
+        // Filtrar actividades existentes del mismo periodo
+        const actividadesDelPeriodo = courseConfig.actividades[selectedSubject].filter(act => (act.periodo || 'p1') === period);
+
+        let sumaActual = 0;
+        actividadesDelPeriodo.forEach(act => {
+            sumaActual += (parseFloat(act.valor) || 0);
+        });
+
+        const sumaTotal = sumaActual + value;
+
+        if (sumaTotal > 100) {
+            alert(`Error: No puedes agregar esta actividad.\n\nEl total excedería el 100% para el ${periodNames[period]}.\n\n• Acumulado actual: ${sumaActual}%\n• Nueva actividad: ${value}%\n• Total resultante: ${sumaTotal}%`);
+            return;
+        }
+
+        // Si pasa validaciones, guardar
+        courseConfig.actividades[selectedSubject].push({ nombre: name, valor: value, periodo: period });
 
         await updateDoc(doc(db, "cursos_globales", COURSE_ID), { actividades: courseConfig.actividades });
         if (window.toggleModal) window.toggleModal('modal-add-activity');
         refreshCurrentView();
+
+        // Limpiar formulario
+        document.getElementById('activity-name').value = '';
+        valueInput.value = '';
     });
 }
