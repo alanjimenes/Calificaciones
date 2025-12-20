@@ -31,7 +31,18 @@ const AREAS_CURRICULARES = [
 // Esperar a que el usuario esté listo
 window.addEventListener('userReady', async (e) => {
     const { role, email } = e.detail;
-    document.getElementById('main-body').classList.remove('opacity-0');
+    const body = document.getElementById('main-body');
+    if(body) body.classList.remove('opacity-0');
+    
+    // CORRECCIÓN: Asegurar que existe el contenedor de notificaciones
+    if (!document.getElementById('toast-container')) {
+        const container = document.createElement('div');
+        container.id = 'toast-container';
+        // Estilos para posicionar el contenedor si no están en CSS
+        container.style.cssText = "position: fixed; bottom: 20px; right: 20px; z-index: 9999;";
+        document.body.appendChild(container);
+    }
+
     // Secretarias y Admins ven todo
     await loadCourses(role === 'admin' || role === 'secretaria', email);
 });
@@ -39,6 +50,7 @@ window.addEventListener('userReady', async (e) => {
 // Cargar cursos disponibles
 async function loadCourses(isAdminOrSecretaria, userEmail) {
     const selectCourse = document.getElementById('select-course');
+    const selectStudent = document.getElementById('select-student');
 
     try {
         const q = query(collection(db, "cursos_globales"));
@@ -67,53 +79,97 @@ async function loadCourses(isAdminOrSecretaria, userEmail) {
             const courseId = e.target.value;
             if (courseId) {
                 selectedCourseData = allCourses.find(c => c.id === courseId);
+                if(window.showToast) window.showToast("Cargando estudiantes...", "info");
                 await loadStudents(courseId);
+            } else {
+                // Si deselecciona, bloquear estudiante
+                selectedCourseData = null;
+                selectedStudentData = null;
+                selectStudent.innerHTML = '<option value="">Primero elige un curso</option>';
+                selectStudent.disabled = true;
             }
         });
 
     } catch (error) {
         console.error("Error cargando cursos:", error);
+        if(window.showToast) window.showToast("Error al cargar cursos", "error");
     }
 }
 
 // Cargar estudiantes del curso
 async function loadStudents(courseId) {
     const selectStudent = document.getElementById('select-student');
+    
+    // Limpiar y HABILITAR el select
+    selectStudent.disabled = false; 
     selectStudent.innerHTML = '<option value="">Selecciona un estudiante...</option>';
 
     if (!selectedCourseData || !selectedCourseData.estudiantes) {
+        selectStudent.innerHTML = '<option value="">Sin estudiantes registrados</option>';
+        if(window.showToast) window.showToast("Este curso no tiene estudiantes", "warning");
         return;
     }
 
-    selectedCourseData.estudiantes.forEach((student, index) => {
+    // Ordenar estudiantes alfabéticamente o por número de orden
+    const sortedStudents = [...selectedCourseData.estudiantes].sort((a, b) => {
+        const ordenA = parseInt(a.numero_orden) || 999;
+        const ordenB = parseInt(b.numero_orden) || 999;
+        return ordenA - ordenB;
+    });
+
+    sortedStudents.forEach((student, index) => {
         const option = document.createElement('option');
-        option.value = index;
-        // Mostrar Numero de orden si existe
+        // Usamos el índice original del array principal para referencia correcta luego, 
+        // o mejor, buscamos por ID al seleccionar
+        option.value = student.id; 
+        
         const prefix = student.numero_orden ? `#${student.numero_orden}. ` : '';
         option.textContent = `${prefix}${student.nombre}`;
         selectStudent.appendChild(option);
     });
 
-    selectStudent.addEventListener('change', (e) => {
-        const studentIndex = e.target.value;
-        if (studentIndex !== "") {
-            selectedStudentData = selectedCourseData.estudiantes[studentIndex];
+    // Remover listener anterior para evitar duplicados
+    selectStudent.onchange = (e) => {
+        const studentId = e.target.value;
+        if (studentId !== "") {
+            selectedStudentData = selectedCourseData.estudiantes.find(s => s.id === studentId);
+        } else {
+            selectedStudentData = null;
         }
-    });
+    };
 }
 
 // Generar el boletín
 window.generateBoletin = function () {
-    if (!selectedCourseData || !selectedStudentData) {
-        alert("Por favor selecciona un curso y un estudiante");
+    // Validación más elegante con Toasts
+    if (!selectedCourseData) {
+        if(window.showToast) window.showToast("⚠️ Debes seleccionar un curso primero", "error");
+        else alert("Selecciona un curso.");
+        return;
+    }
+    
+    if (!selectedStudentData) {
+        if(window.showToast) window.showToast("⚠️ Debes seleccionar un estudiante", "error");
+        else alert("Selecciona un estudiante.");
         return;
     }
 
     const yearFrom = document.getElementById('year-from').value || '2024';
     const yearTo = document.getElementById('year-to').value || '2025';
 
+    // Feedback visual de proceso
+    if(window.showToast) window.showToast("Generando documento...", "info");
+
     const boletinHTML = createBoletinHTML(selectedCourseData, selectedStudentData, yearFrom, yearTo);
-    document.getElementById('boletin-preview').innerHTML = boletinHTML;
+    const container = document.getElementById('boletin-preview');
+    
+    // Efecto visual de carga en el contenedor
+    container.style.opacity = '0.5';
+    setTimeout(() => {
+        container.innerHTML = boletinHTML;
+        container.style.opacity = '1';
+        if(window.showToast) window.showToast("Boletín generado correctamente", "success");
+    }, 400);
 }
 
 // Crear HTML del boletín oficial
@@ -132,8 +188,6 @@ function createBoletinHTML(course, student, yearFrom, yearTo) {
                     <strong>Dirección General de Educación Secundaria</strong>
                 </div>
                 <div style="display: flex; justify-content: center; align-items: center; gap: 15px;">
-                     <!-- Placeholder para escudo nacional si se desea -->
-                     <!-- <img src="ruta/escudo.png" style="height: 40px;"> -->
                      <h1 style="font-size: 18px; margin: 10px 0; font-weight: bold;">BOLETÍN DE CALIFICACIONES</h1>
                 </div>
                 <div style="font-size: 11px;">
@@ -145,7 +199,6 @@ function createBoletinHTML(course, student, yearFrom, yearTo) {
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
                 <tr>
                     <td style="padding: 3px; font-size: 10px;"><strong>Sección:</strong> ${course.nombre}</td>
-                    <!-- Usamos numero_orden si existe, si no, un guion -->
                     <td style="padding: 3px; font-size: 10px;"><strong>Número de orden:</strong> ${student.numero_orden || '-'}</td>
                 </tr>
                 <tr>
@@ -155,7 +208,6 @@ function createBoletinHTML(course, student, yearFrom, yearTo) {
                     <td colspan="2" style="padding: 3px; font-size: 10px;"><strong>ID estudiante (SIGERD):</strong> ${student.id}</td>
                 </tr>
                 <tr>
-                    <!-- Si tenemos RNE lo mostramos, si no dejamos el espacio para el ID -->
                     <td colspan="2" style="padding: 3px; font-size: 10px;"><strong>RNE:</strong> ${student.rne || '________________________'}</td>
                 </tr>
                 <tr>
@@ -252,35 +304,19 @@ function createBoletinHTML(course, student, yearFrom, yearTo) {
                 </div>
             </div>
 
-            <!-- OBSERVACIONES -->
-            <div style="border: 1px solid #000; padding: 10px; min-height: 80px; margin-bottom: 15px;">
-                <strong style="font-size: 11px;">Observaciones:</strong>
-                <div style="margin-top: 5px; line-height: 1.6;">
-                    _________________________________________________________________<br>
-                    _________________________________________________________________<br>
-                    _________________________________________________________________
-                </div>
-            </div>
-
             <!-- PIE DE PÁGINA -->
             <div style="margin-top: 30px;">
                 <table style="width: 100%; font-size: 10px;">
                     <tr>
-                        <td style="text-align: center; border-top: 1px solid #000; padding-top: 5px;">
+                        <td style="text-align: center; border-top: 1px solid #000; padding-top: 5px; width: 40%;">
                             Maestro(a) Encargado(a) del Grado
                         </td>
-                        <td style="width: 50px;"></td>
-                        <td style="text-align: center; border-top: 1px solid #000; padding-top: 5px;">
+                        <td style="width: 20%;"></td>
+                        <td style="text-align: center; border-top: 1px solid #000; padding-top: 5px; width: 40%;">
                             Director(a) del Centro Educativo
                         </td>
                     </tr>
                 </table>
-                
-                <div style="margin-top: 20px; text-align: center;">
-                    <div style="border-top: 1px solid #000; display: inline-block; width: 40%; padding-top: 5px;">
-                        FIRMA DEL PADRE, MADRE O TUTOR
-                    </div>
-                </div>
             </div>
             
             <div style="margin-top: 20px; text-align: center; font-size: 9px; color: #666;">
@@ -300,7 +336,6 @@ function calculateGradeSummary(course, student) {
 
     // Mapear cada materia del curso a un área curricular
     materias.forEach(materia => {
-        // Buscar área curricular correspondiente (puedes personalizar este mapeo)
         let area = matchAreaCurricular(materia);
 
         if (!summary[area]) {
@@ -315,22 +350,41 @@ function calculateGradeSummary(course, student) {
             const actPeriodo = actividadesMateria.filter(a => (a.periodo || 'p1') === periodo);
             if (actPeriodo.length > 0) {
                 let sum = 0, count = 0;
-                actPeriodo.forEach(act => {
-                    const nota = notasMateria[act.nombre];
-                    if (nota !== undefined && nota !== '') {
-                        sum += parseFloat(nota);
-                        count++;
+                let totalWeight = 0;
+                
+                // Verificar si hay pesos
+                const hasWeights = actPeriodo.some(a => a.valor > 0);
+
+                if (hasWeights) {
+                    actPeriodo.forEach(act => {
+                        const nota = parseFloat(notasMateria[act.nombre] || 0);
+                        const peso = parseFloat(act.valor || 0);
+                        if (!isNaN(nota)) {
+                            sum += (nota * peso) / 100;
+                            totalWeight += peso;
+                        }
+                    });
+                    // Si la suma de pesos del periodo es aprox 100 (o lo que se haya definido)
+                    summary[area][periodo] = Math.round(sum);
+                } else {
+                    // Promedio simple (fallback)
+                    actPeriodo.forEach(act => {
+                        const nota = notasMateria[act.nombre];
+                        if (nota !== undefined && nota !== '') {
+                            sum += parseFloat(nota);
+                            count++;
+                        }
+                    });
+                    if (count > 0) {
+                        summary[area][periodo] = Math.round(sum / count);
                     }
-                });
-                if (count > 0) {
-                    summary[area][periodo] = Math.round(sum / count);
                 }
             }
         });
 
         // Calcular promedio general
         const promedios = [summary[area].p1, summary[area].p2, summary[area].p3, summary[area].p4]
-            .filter(p => p !== '');
+            .filter(p => p !== '' && p !== 0);
 
         if (promedios.length > 0) {
             const avg = Math.round(promedios.reduce((a, b) => a + b, 0) / promedios.length);
@@ -346,20 +400,18 @@ function calculateGradeSummary(course, student) {
 function matchAreaCurricular(materia) {
     const lower = materia.toLowerCase();
 
-    // Mapeo ampliado y robusto
     if (lower.includes('español') || lower.includes('lengua') || lower.includes('literatura')) return 'Lengua Española';
     if (lower.includes('inglés') || lower.includes('ingles')) return 'Lenguas Extranjeras (inglés)';
     if (lower.includes('francés') || lower.includes('frances')) return 'Lenguas Extranjeras (Francés)';
-    if (lower.includes('matemática') || lower.includes('calculo') || lower.includes('álgebra') || lower.includes('algebra')) return 'Matemática';
-    if (lower.includes('social') || lower.includes('historia') || lower.includes('geografía') || lower.includes('cívica') || lower.includes('ciudadanía')) return 'Ciencias Sociales';
-    if (lower.includes('naturaleza') || lower.includes('biología') || lower.includes('física') || lower.includes('química') || lower.includes('naturales')) return 'Ciencias de la Naturaleza';
-    if (lower.includes('artística') || lower.includes('arte') || lower.includes('música') || lower.includes('dibujo')) return 'Educación Artística';
+    if (lower.includes('matemática') || lower.includes('calculo') || lower.includes('álgebra')) return 'Matemática';
+    if (lower.includes('social') || lower.includes('historia') || lower.includes('geografía') || lower.includes('cívica')) return 'Ciencias Sociales';
+    if (lower.includes('naturaleza') || lower.includes('biología') || lower.includes('física') || lower.includes('química')) return 'Ciencias de la Naturaleza';
+    if (lower.includes('artística') || lower.includes('arte') || lower.includes('música')) return 'Educación Artística';
     if (lower.includes('física ed') || lower.includes('deporte') || lower.includes('gimnasia')) return 'Educación Física';
-    if (lower.includes('religión') || lower.includes('ética') || lower.includes('moral') || lower.includes('humana')) return 'Formación Integral Humana y Religiosa';
-    if (lower.includes('informática') || lower.includes('tecnología') || lower.includes('computación') || lower.includes('taller')) return 'Salidas Optativas / Tecnología';
+    if (lower.includes('religión') || lower.includes('ética') || lower.includes('moral')) return 'Formación Integral Humana y Religiosa';
+    if (lower.includes('informática') || lower.includes('tecnología') || lower.includes('computación')) return 'Salidas Optativas / Tecnología';
 
-    // Por defecto
-    return 'Lengua Española';
+    return 'Lengua Española'; // Default
 }
 
 // Calcular resumen de asistencia
@@ -368,20 +420,16 @@ function calculateAttendanceSummary(course, student) {
     const asistencia = student.asistencia || {};
     const materias = course.materias || [];
 
-    // Inicializar períodos
     ['P1', 'P2', 'P3', 'P4'].forEach(p => {
         summary[p] = { asistencia: 0, ausencia: 0, porcentaje: '0%' };
     });
 
-    // Procesar asistencia de todas las materias
     materias.forEach(materia => {
         const asistenciaMateria = asistencia[materia] || {};
-
         Object.entries(asistenciaMateria).forEach(([fecha, estado]) => {
+            // Lógica simple de asignación de periodo por mes
             const mes = parseInt(fecha.split('-')[1]);
             let periodo = 'P1';
-
-            // Mapear mes a período (ajustar según calendario escolar)
             if (mes >= 8 && mes <= 10) periodo = 'P1';
             else if (mes >= 11 || mes <= 1) periodo = 'P2';
             else if (mes >= 2 && mes <= 3) periodo = 'P3';
@@ -392,7 +440,6 @@ function calculateAttendanceSummary(course, student) {
         });
     });
 
-    // Calcular porcentajes
     Object.keys(summary).forEach(periodo => {
         const total = summary[periodo].asistencia + summary[periodo].ausencia;
         if (total > 0) {

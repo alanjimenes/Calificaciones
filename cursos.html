@@ -4,129 +4,160 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>EduSys - Cursos</title>
+    <title>EduSys - Mis Cursos</title>
 
     <link rel="stylesheet" href="css/styles.css">
-
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <!-- CONFIGURACIÓN DE TEMA BLANCO Y AZUL -->
+    
+    <!-- CONFIGURACIÓN DE TEMA (Consistente con Index y Login) -->
     <script>
         tailwind.config = {
             darkMode: "class",
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#2563eb", 
+                        "primary": "#2563eb",
+                        "primary-dark": "#1d4ed8",
                         "background-light": "#f8fafc",
-                        "background-dark": "#ffffff",
-                        "surface-dark": "#f1f5f9",
-                        "surface-border": "#cbd5e1",
-                        "text-secondary": "#64748b",
-                        "white": "#1e293b",
+                        "background-dark": "#0f172a", /* Fondo principal oscuro */
+                        "surface-dark": "#1e293b",     /* Fondo de tarjetas */
+                        "surface-border": "#334155",   /* Bordes sutiles */
+                        "text-secondary": "#94a3b8",
+                        "white": "#f8fafc",
                         "danger": "#ef4444",
                         "admin": "#f59e0b",
                         "warning": "#f59e0b",
                     },
-                    fontFamily: {
-                        "display": ["Spline Sans", "sans-serif"],
+                    fontFamily: { "display": ["Spline Sans", "sans-serif"] },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out',
                     }
                 },
             },
         }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
 </head>
 
-<body
-    class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300"
-    id="main-body">
+<body class="bg-background-dark text-white font-display antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300" id="main-body">
 
     <!-- EL SIDEBAR SE INYECTA CON JS (layout.js) -->
 
     <!-- CONTENIDO PRINCIPAL -->
-    <main class="flex-1 flex flex-col overflow-y-auto relative bg-background-light dark:bg-background-dark p-6 md:p-10">
-        <!-- Header Móvil -->
-        <div class="lg:hidden flex items-center justify-between mb-6">
-            <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-primary">school</span>
-                <span class="font-bold text-white">EduSys</span>
-            </div>
-            <button class="text-white material-symbols-outlined">menu</button>
+    <main class="flex-1 flex flex-col overflow-y-auto relative bg-background-dark p-6 md:p-8 scroll-smooth transition-all duration-300" id="main-content">
+        
+        <!-- Decoración de fondo -->
+        <div class="fixed top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+            <div class="absolute top-[10%] right-[20%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px]"></div>
+            <div class="absolute bottom-[10%] left-[10%] w-[300px] h-[300px] bg-blue-500/5 rounded-full blur-[100px]"></div>
         </div>
 
-        <div class="max-w-7xl mx-auto flex flex-col gap-8 w-full">
-
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h2 class="text-3xl font-bold text-white">Mis Cursos</h2>
-                    <p class="text-text-secondary text-sm">Gestiona tus clases y asignaciones.</p>
+        <div class="relative z-10 max-w-7xl mx-auto w-full">
+            
+            <!-- Header Móvil -->
+            <div class="lg:hidden flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-lg">school</span>
+                    </div>
+                    <span class="font-bold text-white text-lg">EduSys</span>
                 </div>
+                <!-- El botón del menú móvil se inyecta/controla via layout.js -->
+                <button id="mobile-menu-btn" class="text-white material-symbols-outlined p-2 hover:bg-surface-dark rounded-lg transition-colors">menu</button>
+            </div>
+
+            <!-- Header Principal -->
+            <header class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <!-- Botón Toggle Escritorio (Controlado por layout.js) -->
+                    <button id="desktop-sidebar-toggle" class="hidden lg:flex p-2 rounded-xl text-text-secondary hover:text-white hover:bg-surface-dark transition-colors" title="Ocultar/Mostrar Menú">
+                        <span class="material-symbols-outlined">menu_open</span>
+                    </button>
+
+                    <div>
+                        <h2 class="text-3xl font-bold text-white tracking-tight">Mis Cursos</h2>
+                        <p class="text-text-secondary text-sm mt-1">Gestiona tus clases, asignaturas y estudiantes.</p>
+                    </div>
+                </div>
+
                 <!-- Botones de Acción Global (Solo Admin) -->
-                <div class="admin-only hidden flex gap-3">
+                <div class="admin-only hidden flex flex-wrap gap-3">
                     <button onclick="toggleModal('modal-global-catalog')"
-                        class="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-dark border border-surface-border text-white font-bold hover:bg-surface-border transition shadow-lg">
-                        <span class="material-symbols-outlined text-lg">category</span>
+                        class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-surface-dark border border-surface-border text-white font-bold hover:bg-surface-border transition shadow-lg hover:shadow-xl text-sm">
+                        <span class="material-symbols-outlined text-lg text-admin">category</span>
                         Catálogo Asignaturas
                     </button>
                     <button onclick="toggleModal('modal-create-course')"
-                        class="flex items-center gap-2 px-4 py-2 rounded-xl bg-admin text-white font-bold hover:brightness-110 transition shadow-lg shadow-admin/20">
+                        class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-admin text-white font-bold hover:bg-yellow-500 transition shadow-lg shadow-admin/20 text-sm">
                         <span class="material-symbols-outlined text-lg">add</span>
                         Nuevo Curso
                     </button>
                 </div>
-            </div>
+            </header>
 
             <!-- Grid de Cursos -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6" id="courses-grid">
-                <!-- Se carga con courses.js -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20" id="courses-grid">
+                <!-- Skeleton Loading -->
+                <div class="h-64 rounded-2xl bg-surface-dark border border-surface-border animate-pulse"></div>
+                <div class="h-64 rounded-2xl bg-surface-dark border border-surface-border animate-pulse"></div>
+                <div class="h-64 rounded-2xl bg-surface-dark border border-surface-border animate-pulse"></div>
             </div>
         </div>
     </main>
 
+    <!-- ================= MODALES (REDISEÑADOS DARK MODE) ================= -->
+
     <!-- MODAL: CREAR/EDITAR CURSO -->
     <div id="modal-create-course"
-        class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center backdrop-blur-sm p-4 transition-all duration-300">
-        <div
-            class="bg-surface-dark border border-surface-border p-8 rounded-2xl w-full max-w-md shadow-2xl relative transform transition-all duration-300 scale-100 max-h-[90vh] overflow-y-auto">
+        class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4 transition-all duration-300">
+        <div class="bg-surface-dark border border-surface-border p-8 rounded-2xl w-full max-w-md shadow-2xl relative animate-fade-in">
             <button onclick="toggleModal('modal-create-course')"
-                class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined">close</button>
+                class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined p-1 rounded-full hover:bg-white/10 transition-colors">close</button>
+            
             <div class="flex items-center gap-3 mb-6">
-                <div class="p-3 rounded-full bg-admin/10 text-admin">
+                <div class="p-3 rounded-xl bg-admin/20 text-admin border border-admin/20">
                     <span class="material-symbols-outlined">library_add</span>
                 </div>
-                <h2 class="text-xl font-bold text-white">Gestión de Curso</h2>
+                <div>
+                    <h2 class="text-xl font-bold text-white">Gestión de Curso</h2>
+                    <p class="text-xs text-text-secondary">Crear o modificar datos del curso.</p>
+                </div>
             </div>
 
             <form id="form-create-course" class="space-y-5">
                 <div>
-                    <label class="block text-xs font-bold text-text-secondary mb-1.5 ml-1">NOMBRE DEL CURSO</label>
+                    <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">NOMBRE DEL CURSO</label>
                     <input type="text" id="course-name" placeholder="Ej: Matemáticas IV" required
-                        class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white focus:border-admin outline-none transition-colors">
+                        class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white placeholder-text-secondary/30 focus:border-admin focus:ring-1 focus:ring-admin outline-none transition-all shadow-sm text-sm">
                 </div>
                 <div class="grid grid-cols-1 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-text-secondary mb-1.5 ml-1">ID ÚNICO (Slug)</label>
+                        <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">ID ÚNICO (Slug)</label>
                         <input type="text" id="course-id" placeholder="matematicas-iv" required
-                            class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white focus:border-admin outline-none transition-colors text-sm font-mono">
-                        <p class="text-[9px] text-text-secondary mt-1 ml-1">Identificador único (sin espacios).</p>
+                            class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white placeholder-text-secondary/30 focus:border-admin focus:ring-1 focus:ring-admin outline-none transition-all shadow-sm text-sm font-mono">
+                        <p class="text-[9px] text-text-secondary mt-1.5 ml-1 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[10px]">info</span> Identificador único (sin espacios).
+                        </p>
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-text-secondary mb-1.5 ml-1">ASIGNAR TITULAR
-                        (Email)</label>
-                    <select id="course-teacher-email"
-                        class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white focus:border-admin outline-none transition-colors appearance-none cursor-pointer">
-                        <option value="" disabled selected>Cargando profesores...</option>
-                    </select>
+                    <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">ASIGNAR TITULAR</label>
+                    <div class="relative">
+                        <select id="course-teacher-email"
+                            class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white focus:border-admin focus:ring-1 focus:ring-admin outline-none transition-all shadow-sm appearance-none cursor-pointer text-sm">
+                            <option value="" disabled selected>Cargando profesores...</option>
+                        </select>
+                        <span class="material-symbols-outlined absolute right-4 top-3 text-text-secondary pointer-events-none">expand_more</span>
+                    </div>
                 </div>
-                <div class="flex gap-3 mt-8">
+                <div class="flex gap-3 mt-8 pt-4 border-t border-surface-border/50">
                     <button type="button" onclick="toggleModal('modal-create-course')"
-                        class="flex-1 py-3 rounded-xl border border-surface-border text-text-secondary hover:text-white transition font-medium">Cancelar</button>
+                        class="flex-1 py-3 rounded-xl border border-surface-border text-text-secondary hover:text-white hover:bg-surface-border transition font-medium text-sm">Cancelar</button>
                     <button type="submit"
-                        class="flex-1 py-3 rounded-xl bg-admin text-white font-bold hover:brightness-110 transition shadow-lg shadow-admin/20">Guardar
-                        Curso</button>
+                        class="flex-1 py-3 rounded-xl bg-admin text-white font-bold hover:bg-yellow-500 transition shadow-lg shadow-admin/20 text-sm flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-lg">save</span> Guardar
+                    </button>
                 </div>
             </form>
         </div>
@@ -134,14 +165,13 @@
 
     <!-- MODAL: GESTIONAR MATERIAS DEL CURSO -->
     <div id="modal-manage-subjects"
-        class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center backdrop-blur-sm p-4 transition-all duration-300">
-        <div
-            class="bg-surface-dark border border-surface-border p-6 rounded-2xl w-full max-w-md shadow-2xl relative transform transition-all duration-300 scale-100 max-h-[90vh] overflow-y-auto">
+        class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4 transition-all duration-300">
+        <div class="bg-surface-dark border border-surface-border p-6 rounded-2xl w-full max-w-md shadow-2xl relative animate-fade-in max-h-[90vh] overflow-y-auto flex flex-col">
             <button onclick="toggleModal('modal-manage-subjects')"
-                class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined">close</button>
+                class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined p-1 rounded-full hover:bg-white/10 transition-colors">close</button>
 
-            <div class="flex items-center gap-3 mb-6">
-                <div class="p-3 rounded-full bg-primary/10 text-primary">
+            <div class="flex items-center gap-3 mb-6 shrink-0">
+                <div class="p-3 rounded-xl bg-primary/20 text-primary border border-primary/20">
                     <span class="material-symbols-outlined">view_list</span>
                 </div>
                 <div>
@@ -151,87 +181,87 @@
             </div>
 
             <!-- Selector de Materia Global -->
-            <div class="flex flex-col gap-3 mb-4 p-4 bg-background-dark/50 rounded-xl border border-surface-border">
-                <label class="text-[10px] font-bold text-text-secondary uppercase ml-1">Agregar Asignatura del
-                    Catálogo</label>
+            <div class="flex flex-col gap-3 mb-4 p-4 bg-background-dark/50 rounded-xl border border-surface-border shrink-0">
+                <label class="text-[10px] font-bold text-text-secondary uppercase ml-1 tracking-wider">Agregar Asignatura del Catálogo</label>
 
-                <div class="flex gap-2">
+                <div class="relative">
                     <select id="select-global-subject"
-                        class="flex-1 bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white focus:border-primary outline-none transition-colors text-sm appearance-none cursor-pointer">
+                        class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm appearance-none cursor-pointer">
                         <option value="" disabled selected>Selecciona asignatura...</option>
                     </select>
+                    <span class="material-symbols-outlined absolute right-3 top-2.5 text-text-secondary pointer-events-none text-lg">expand_more</span>
                 </div>
 
-                <label class="text-[10px] font-bold text-text-secondary uppercase ml-1 mt-2">Asignar Docente</label>
+                <label class="text-[10px] font-bold text-text-secondary uppercase ml-1 mt-2 tracking-wider">Asignar Docente</label>
                 <div class="flex gap-2">
-                    <select id="new-subject-teacher"
-                        class="flex-1 bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white focus:border-primary outline-none transition-colors text-sm appearance-none cursor-pointer">
-                        <option value="" disabled selected>Cargando docentes...</option>
-                    </select>
+                    <div class="relative flex-1">
+                        <select id="new-subject-teacher"
+                            class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm appearance-none cursor-pointer">
+                            <option value="" disabled selected>Cargando docentes...</option>
+                        </select>
+                        <span class="material-symbols-outlined absolute right-3 top-2.5 text-text-secondary pointer-events-none text-lg">expand_more</span>
+                    </div>
                     <button onclick="addSubjectToCourse()"
-                        class="bg-primary hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl transition-colors shadow-lg shadow-primary/20 flex items-center justify-center w-12 shrink-0">
-                        <span class="material-symbols-outlined text-lg">add</span>
+                        class="bg-primary hover:bg-primary-dark text-white font-bold px-4 py-2 rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center justify-center w-12 shrink-0 group">
+                        <span class="material-symbols-outlined text-lg group-hover:scale-110 transition-transform">add</span>
                     </button>
                 </div>
-                <p class="text-[9px] text-text-secondary italic mt-1">* Si la materia no aparece, agrégala en "Catálogo
-                    Asignaturas".</p>
+                <p class="text-[9px] text-text-secondary italic mt-1 ml-1 flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[10px]">info</span> Si la materia no aparece, agrégala en "Catálogo".
+                </p>
             </div>
 
             <!-- Lista de materias del curso -->
-            <div class="bg-background-dark/30 rounded-xl border border-surface-border overflow-hidden">
-                <div
-                    class="p-3 text-[10px] font-bold text-text-secondary uppercase bg-surface-border/20 flex justify-between items-center border-b border-surface-border/50">
+            <div class="bg-background-dark border border-surface-border rounded-xl overflow-hidden flex-1 flex flex-col min-h-[150px]">
+                <div class="p-3 text-[10px] font-bold text-text-secondary uppercase bg-surface-border/10 flex justify-between items-center border-b border-surface-border/50">
                     <span>Asignaturas Asignadas</span>
-                    <span id="subject-count"
-                        class="text-white bg-surface-border px-2 py-0.5 rounded text-[9px]">0</span>
+                    <span id="subject-count" class="text-white bg-surface-border px-2 py-0.5 rounded text-[9px]">0</span>
                 </div>
-                <div id="subjects-list" class="max-h-60 overflow-y-auto p-2 space-y-2 min-h-[100px]">
+                <div id="subjects-list" class="overflow-y-auto p-2 space-y-2 flex-1 scroll-smooth">
                     <!-- Se llena con JS -->
                 </div>
             </div>
 
-            <div class="mt-6 flex justify-end">
+            <div class="mt-6 flex justify-end shrink-0">
                 <button onclick="toggleModal('modal-manage-subjects')"
-                    class="px-6 py-2 rounded-xl bg-surface-border text-white hover:bg-surface-border/80 transition text-sm font-bold">Terminar</button>
+                    class="px-6 py-2.5 rounded-xl bg-surface-border text-white hover:bg-white/10 transition text-sm font-bold border border-white/5">Terminar</button>
             </div>
         </div>
     </div>
 
     <!-- MODAL: CATÁLOGO GLOBAL DE ASIGNATURAS -->
     <div id="modal-global-catalog"
-        class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center backdrop-blur-sm p-4 transition-all duration-300">
-        <div
-            class="bg-surface-dark border border-surface-border p-6 rounded-2xl w-full max-w-md shadow-2xl relative transform transition-all duration-300 scale-100 max-h-[90vh] overflow-y-auto">
+        class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4 transition-all duration-300">
+        <div class="bg-surface-dark border border-surface-border p-6 rounded-2xl w-full max-w-md shadow-2xl relative animate-fade-in max-h-[90vh] overflow-y-auto">
             <button onclick="toggleModal('modal-global-catalog')"
-                class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined">close</button>
+                class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined p-1 rounded-full hover:bg-white/10 transition-colors">close</button>
 
             <div class="flex items-center gap-3 mb-6">
-                <div class="p-3 rounded-full bg-surface-border text-white">
+                <div class="p-3 rounded-xl bg-surface-border/50 text-white border border-surface-border">
                     <span class="material-symbols-outlined">category</span>
                 </div>
                 <div>
                     <h2 class="text-xl font-bold text-white">Catálogo Global</h2>
-                    <p class="text-xs text-text-secondary">Define las asignaturas disponibles.</p>
+                    <p class="text-xs text-text-secondary">Base de datos de asignaturas disponibles.</p>
                 </div>
             </div>
 
             <!-- Crear Nueva Global -->
             <div class="flex gap-2 mb-6">
                 <input type="text" id="new-global-subject-name" placeholder="Nueva Asignatura (Ej: Biología)"
-                    class="flex-1 bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white focus:border-primary outline-none transition-colors text-sm">
+                    class="flex-1 bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white placeholder-text-secondary/30 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm">
                 <button onclick="addGlobalSubject()"
-                    class="bg-primary hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl transition-colors shadow-lg shadow-primary/20 whitespace-nowrap text-sm">
-                    Crear
+                    class="bg-primary hover:bg-primary-dark text-white font-bold px-4 py-2 rounded-xl transition-all shadow-lg shadow-primary/20 whitespace-nowrap text-sm flex items-center gap-1">
+                    <span class="material-symbols-outlined text-lg">add</span> Crear
                 </button>
             </div>
 
             <!-- Lista Global -->
-            <div class="bg-background-dark/30 rounded-xl border border-surface-border overflow-hidden">
-                <div
-                    class="p-3 text-[10px] font-bold text-text-secondary uppercase bg-surface-border/20 border-b border-surface-border/50">
+            <div class="bg-background-dark border border-surface-border rounded-xl overflow-hidden">
+                <div class="p-3 text-[10px] font-bold text-text-secondary uppercase bg-surface-border/10 border-b border-surface-border/50">
                     Listado General
                 </div>
-                <div id="global-catalog-list" class="max-h-60 overflow-y-auto p-2 space-y-2 min-h-[150px]">
+                <div id="global-catalog-list" class="max-h-60 overflow-y-auto p-2 space-y-2 min-h-[150px] scroll-smooth">
                     <!-- Se llena con JS -->
                 </div>
             </div>
@@ -240,9 +270,8 @@
 
     <!-- MODAL: CONFLICTO DE PROFESOR -->
     <div id="modal-teacher-conflict"
-        class="hidden fixed inset-0 bg-black/60 z-[110] flex items-center justify-center backdrop-blur-sm p-4 transition-all">
-        <div
-            class="bg-surface-dark border border-warning/50 p-6 rounded-2xl w-full max-w-md shadow-2xl relative animate-fade-in ring-1 ring-warning/30">
+        class="hidden fixed inset-0 bg-black/80 z-[110] flex items-center justify-center backdrop-blur-sm p-4 transition-all">
+        <div class="bg-surface-dark border border-warning/50 p-6 rounded-2xl w-full max-w-md shadow-2xl relative animate-fade-in ring-1 ring-warning/30">
 
             <!-- PASO 1: CONFIRMACIÓN -->
             <div id="conflict-step-1">
@@ -251,15 +280,14 @@
                         <span class="material-symbols-outlined text-4xl">warning</span>
                     </div>
                     <h2 class="text-xl font-bold text-white mb-2">Profesor No Disponible</h2>
-                    <p class="text-sm text-text-secondary">
-                        <strong class="text-white" id="conflict-teacher-name">El profesor</strong> ya es titular en el
-                        curso
+                    <p class="text-sm text-text-secondary leading-relaxed">
+                        <strong class="text-white" id="conflict-teacher-name">El profesor</strong> ya es titular en el curso
                         <strong class="text-warning" id="conflict-course-name">Curso X</strong>.
                     </p>
-                    <p class="text-xs text-text-secondary mt-3 bg-black/5 p-2 rounded-lg border border-surface-border">
-                        ¿Deseas realizar una sustitución? <br>
-                        Esto moverá al profesor a tu nuevo curso y te pedirá un reemplazo para el anterior.
-                    </p>
+                    <div class="mt-4 bg-background-dark border border-surface-border p-3 rounded-xl text-xs text-text-secondary text-left flex items-start gap-2">
+                        <span class="material-symbols-outlined text-sm mt-0.5 text-primary">info</span>
+                        <p>¿Deseas realizar una sustitución? Esto moverá al profesor a tu nuevo curso y te pedirá un reemplazo para el anterior.</p>
+                    </div>
                 </div>
                 <div class="flex gap-3">
                     <button onclick="closeConflictModal()"
@@ -267,7 +295,7 @@
                         Cancelar
                     </button>
                     <button onclick="showReplacementStep()"
-                        class="flex-1 py-3 rounded-xl bg-warning text-white font-bold hover:brightness-110 transition shadow-lg text-sm">
+                        class="flex-1 py-3 rounded-xl bg-warning text-white font-bold hover:brightness-110 transition shadow-lg shadow-warning/20 text-sm">
                         Sí, sustituir
                     </button>
                 </div>
@@ -277,36 +305,33 @@
             <div id="conflict-step-2" class="hidden">
                 <div class="flex items-center gap-3 mb-6">
                     <button onclick="backToConflictStep1()"
-                        class="p-1 rounded-full hover:bg-black/5 text-text-secondary transition-colors">
+                        class="p-1.5 rounded-lg hover:bg-surface-border text-text-secondary transition-colors">
                         <span class="material-symbols-outlined text-lg">arrow_back</span>
                     </button>
                     <div>
                         <h2 class="text-lg font-bold text-white">Asignar Reemplazo</h2>
-                        <p class="text-xs text-text-secondary">Para el curso: <span id="replacement-course-target"
-                                class="text-warning font-bold">...</span></p>
+                        <p class="text-xs text-text-secondary">Para el curso: <span id="replacement-course-target" class="text-warning font-bold">...</span></p>
                     </div>
                 </div>
 
-                <div class="bg-surface-border/20 p-4 rounded-xl border border-surface-border mb-6">
-                    <p class="text-xs text-text-secondary mb-3 font-medium">
-                        Selecciona quién se quedará a cargo del curso anterior. <br>
-                        <span class="text-danger italic">* No se puede dejar el curso sin titular.</span>
+                <div class="bg-surface-border/10 p-4 rounded-xl border border-surface-border mb-6">
+                    <p class="text-xs text-text-secondary mb-3 font-medium flex items-center gap-2">
+                        <span class="material-symbols-outlined text-danger text-sm">error</span>
+                        Selecciona quién se quedará a cargo del curso anterior. No se puede dejar el curso sin titular.
                     </p>
 
-                    <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Nuevo
-                        Titular</label>
+                    <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Nuevo Titular</label>
                     <div class="relative">
                         <select id="conflict-replacement-select"
-                            class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors appearance-none cursor-pointer">
+                            class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm appearance-none cursor-pointer">
                             <option value="" disabled selected>Cargando profesores...</option>
                         </select>
-                        <span
-                            class="material-symbols-outlined absolute right-4 top-3 text-text-secondary pointer-events-none">arrow_drop_down</span>
+                        <span class="material-symbols-outlined absolute right-4 top-3 text-text-secondary pointer-events-none">expand_more</span>
                     </div>
                 </div>
 
                 <button onclick="confirmTeacherSwap()"
-                    class="w-full py-3 rounded-xl bg-primary text-white font-bold hover:bg-blue-700 transition shadow-lg shadow-primary/20 text-sm flex items-center justify-center gap-2">
+                    class="w-full py-3 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold transition shadow-lg shadow-primary/20 text-sm flex items-center justify-center gap-2">
                     <span class="material-symbols-outlined text-lg">swap_horiz</span>
                     Confirmar Cambios
                 </button>
@@ -330,6 +355,7 @@
             const el = document.getElementById(id);
             if (el) {
                 el.classList.toggle('hidden');
+                el.classList.toggle('flex');
             }
         }
     </script>

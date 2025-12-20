@@ -1,38 +1,45 @@
 <!DOCTYPE html>
 <html class="dark" lang="es">
+
 <head>
-    <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <title>EduSys - Catálogo de Asignaturas</title>
-    
+
     <link rel="stylesheet" href="css/styles.css">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <!-- CONFIGURACIÓN DE TEMA BLANCO Y AZUL -->
+    
+    <!-- CONFIGURACIÓN DE TEMA (Consistente con el resto del sistema) -->
     <script>
         tailwind.config = {
             darkMode: "class",
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#2563eb", 
+                        "primary": "#2563eb",
+                        "primary-dark": "#1d4ed8",
                         "background-light": "#f8fafc",
-                        "background-dark": "#ffffff",
-                        "surface-dark": "#f1f5f9",
-                        "surface-border": "#cbd5e1",
-                        "text-secondary": "#64748b",
-                        "white": "#1e293b",
+                        "background-dark": "#0f172a", /* Fondo principal oscuro */
+                        "surface-dark": "#1e293b",     /* Fondo de tarjetas */
+                        "surface-border": "#334155",   /* Bordes sutiles */
+                        "text-secondary": "#94a3b8",
+                        "white": "#f8fafc",
                         "danger": "#ef4444",
                         "admin": "#f59e0b",
                     },
-                    fontFamily: { "display": ["Spline Sans", "sans-serif"] }
+                    fontFamily: { "display": ["Spline Sans", "sans-serif"] },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                    }
                 },
             },
         }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
 </head>
-<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300" id="main-body">
+
+<body class="bg-background-dark text-white font-display antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300" id="main-body">
 
     <!-- Auth Guard (Solo Admin) -->
     <script type="module">
@@ -61,98 +68,129 @@
     <!-- EL SIDEBAR SE INYECTA CON JS (layout.js) -->
 
     <!-- CONTENIDO PRINCIPAL -->
-    <main class="flex-1 flex flex-col overflow-hidden relative bg-background-light dark:bg-background-dark">
-        <!-- Header -->
-        <div class="shrink-0 px-6 py-6 flex flex-col md:flex-row md:items-center justify-between border-b border-surface-border bg-background-dark z-20 gap-4">
-            <div>
-                <h2 class="text-2xl font-bold text-white flex items-center gap-2">
-                    <span class="material-symbols-outlined text-admin">category</span>
-                    Catálogo de Asignaturas
-                </h2>
-                <p class="text-text-secondary text-sm">Gestiona la lista maestra de materias y sus coordinadores.</p>
-            </div>
-            
-            <div class="flex items-center gap-3">
-                <!-- Buscador -->
-                <div class="relative group">
-                    <span class="material-symbols-outlined absolute left-3 top-2.5 text-text-secondary group-focus-within:text-primary transition-colors">search</span>
-                    <input type="text" id="search-input" placeholder="Buscar asignatura..." 
-                           class="bg-surface-dark border border-surface-border text-white text-sm rounded-xl pl-10 pr-4 py-2 focus:ring-primary focus:border-primary outline-none w-full md:w-64 transition-all">
-                </div>
-
-                <button onclick="window.prepareCreate()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-admin text-white font-bold hover:brightness-110 transition shadow-lg shadow-admin/20 whitespace-nowrap">
-                    <span class="material-symbols-outlined text-lg">add</span>
-                    Nueva
-                </button>
-            </div>
+    <main class="flex-1 flex flex-col overflow-y-auto relative bg-background-dark p-6 md:p-8 scroll-smooth transition-all duration-300" id="main-content">
+        
+        <!-- Decoración de fondo -->
+        <div class="fixed top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+            <div class="absolute top-[10%] right-[20%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px]"></div>
+            <div class="absolute bottom-[10%] left-[10%] w-[300px] h-[300px] bg-admin/5 rounded-full blur-[100px]"></div>
         </div>
 
-        <!-- Contenido -->
-        <div class="flex-1 overflow-auto p-6 relative flex flex-col">
+        <div class="relative z-10 max-w-7xl mx-auto w-full">
             
-            <div id="loader" class="absolute inset-0 flex items-center justify-center bg-background-dark z-50">
-                <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-admin"></div>
-            </div>
-
-            <!-- Grid de Asignaturas -->
-            <div id="subjects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                <!-- Se llena con JS -->
-            </div>
-
-            <!-- Empty State -->
-            <div id="empty-state" class="hidden flex-col items-center justify-center p-12 text-center mt-10">
-                <div class="w-20 h-20 bg-surface-dark rounded-full flex items-center justify-center mb-4 border border-surface-border">
-                    <span class="material-symbols-outlined text-4xl text-surface-border">auto_stories</span>
+            <!-- Header Móvil -->
+            <div class="lg:hidden flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-lg">school</span>
+                    </div>
+                    <span class="font-bold text-white text-lg">EduSys</span>
                 </div>
-                <h3 class="text-lg font-bold text-white">Catálogo vacío</h3>
-                <p class="text-text-secondary text-sm max-w-xs mx-auto mt-2">No hay asignaturas registradas. Agrega una nueva y asigna un profesor.</p>
+                <button id="mobile-menu-btn" class="text-white material-symbols-outlined p-2 hover:bg-surface-dark rounded-lg transition-colors">menu</button>
+            </div>
+
+            <!-- Header Principal -->
+            <header class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <button id="desktop-sidebar-toggle" class="hidden lg:flex p-2 rounded-xl text-text-secondary hover:text-white hover:bg-surface-dark transition-colors" title="Ocultar/Mostrar Menú">
+                        <span class="material-symbols-outlined">menu_open</span>
+                    </button>
+
+                    <div>
+                        <h2 class="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
+                            Catálogo de Asignaturas
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-admin/20 text-admin border border-admin/20 uppercase tracking-wider">Admin</span>
+                        </h2>
+                        <p class="text-text-secondary text-sm mt-1">Gestiona la lista maestra de materias y coordinadores.</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <!-- Buscador -->
+                    <div class="relative group flex-1 md:flex-none">
+                        <span class="material-symbols-outlined absolute left-3 top-2.5 text-text-secondary group-focus-within:text-primary transition-colors text-lg">search</span>
+                        <input type="text" id="search-input" placeholder="Buscar asignatura..." 
+                               class="w-full md:w-64 bg-surface-dark border border-surface-border text-white text-sm rounded-xl pl-10 pr-4 py-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all shadow-sm placeholder-text-secondary/50">
+                    </div>
+
+                    <button onclick="window.prepareCreate()" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-admin text-white font-bold hover:bg-yellow-500 transition shadow-lg shadow-admin/20 whitespace-nowrap text-sm shrink-0">
+                        <span class="material-symbols-outlined text-lg">add</span>
+                        <span class="hidden md:inline">Nueva Asignatura</span>
+                        <span class="md:hidden">Crear</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Contenedor Grid -->
+            <div class="relative min-h-[400px]">
+                
+                <!-- Loader -->
+                <div id="loader" class="absolute inset-0 flex items-center justify-center bg-background-dark/50 z-20 backdrop-blur-sm rounded-2xl">
+                    <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-admin"></div>
+                </div>
+
+                <!-- Grid de Asignaturas -->
+                <div id="subjects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-10">
+                    <!-- Se llena con JS (asignaturas.js) -->
+                </div>
+
+                <!-- Empty State -->
+                <div id="empty-state" class="hidden flex-col items-center justify-center p-12 text-center mt-10 border border-dashed border-surface-border rounded-2xl bg-surface-dark/30">
+                    <div class="w-16 h-16 bg-surface-dark rounded-full flex items-center justify-center mb-4 border border-surface-border shadow-lg">
+                        <span class="material-symbols-outlined text-3xl text-text-secondary">auto_stories</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-white">Catálogo vacío</h3>
+                    <p class="text-text-secondary text-sm max-w-xs mx-auto mt-1 mb-4">No hay asignaturas registradas en el sistema.</p>
+                    <button onclick="window.prepareCreate()" class="text-admin text-sm font-bold hover:underline">Crear la primera asignatura</button>
+                </div>
             </div>
 
         </div>
     </main>
 
-    <!-- MODAL: CREAR / EDITAR -->
-    <div id="modal-manage-subject" class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center backdrop-blur-sm p-4 transition-all duration-300">
-        <div class="bg-surface-dark border border-surface-border p-6 rounded-2xl w-full max-w-md shadow-2xl relative transform transition-all duration-300 scale-100">
-            <button onclick="toggleModal('modal-manage-subject')" class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined">close</button>
+    <!-- MODAL: CREAR / EDITAR (Nuevo Diseño) -->
+    <div id="modal-manage-subject" class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4 transition-all duration-300">
+        <div class="bg-surface-dark border border-surface-border p-8 rounded-2xl w-full max-w-md shadow-2xl relative animate-fade-in">
+            <button onclick="toggleModal('modal-manage-subject')" class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined p-1 rounded-full hover:bg-white/10 transition-colors">close</button>
             
             <div class="flex items-center gap-3 mb-6">
-                <div class="p-3 rounded-full bg-admin/10 text-admin">
-                    <span class="material-symbols-outlined" id="modal-icon">add</span>
+                <div class="p-3 rounded-xl bg-admin/20 text-admin border border-admin/20">
+                    <span class="material-symbols-outlined text-2xl" id="modal-icon">add</span>
                 </div>
                 <div>
                     <h2 class="text-xl font-bold text-white" id="modal-title">Nueva Asignatura</h2>
-                    <p class="text-xs text-text-secondary">Información básica y asignación</p>
+                    <p class="text-xs text-text-secondary">Definición global de la materia</p>
                 </div>
             </div>
 
-            <form id="form-subject" class="space-y-4">
+            <form id="form-subject" class="space-y-5">
                 <input type="hidden" id="edit-id" value=""> 
 
                 <div>
-                    <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Nombre de la Asignatura</label>
+                    <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Nombre de la Asignatura</label>
                     <input type="text" id="subject-name" placeholder="Ej: Matemáticas Avanzadas" required 
-                        class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white focus:border-admin outline-none transition-colors">
+                        class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white placeholder-text-secondary/30 focus:border-admin focus:ring-1 focus:ring-admin outline-none transition-all shadow-sm text-sm">
                 </div>
 
-                <!-- NUEVO CAMPO: PROFESOR -->
                 <div>
-                    <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Profesor Asignado</label>
+                    <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Profesor Asignado (Default)</label>
                     <div class="relative">
-                        <select id="subject-teacher" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white focus:border-admin outline-none transition-colors appearance-none cursor-pointer">
+                        <select id="subject-teacher" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white focus:border-admin focus:ring-1 focus:ring-admin outline-none transition-all shadow-sm appearance-none cursor-pointer text-sm">
                             <option value="" selected>Sin asignar</option>
                             <option value="" disabled>Cargando lista...</option>
                         </select>
-                        <span class="material-symbols-outlined absolute right-4 top-3 text-text-secondary pointer-events-none">arrow_drop_down</span>
+                        <span class="material-symbols-outlined absolute right-4 top-3 text-text-secondary pointer-events-none">expand_more</span>
                     </div>
-                    <p class="text-[10px] text-text-secondary mt-1 ml-1">Este profesor será el coordinador por defecto.</p>
+                    <p class="text-[9px] text-text-secondary mt-1.5 ml-1 flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[10px]">info</span> Este profesor será el coordinador por defecto.
+                    </p>
                 </div>
 
-                <div class="pt-4 flex gap-3">
-                    <button type="button" onclick="toggleModal('modal-manage-subject')" class="flex-1 py-3 rounded-xl border border-surface-border text-text-secondary hover:text-white transition font-bold text-sm">
+                <div class="pt-4 flex gap-3 border-t border-surface-border/50 mt-6">
+                    <button type="button" onclick="toggleModal('modal-manage-subject')" class="flex-1 py-3 rounded-xl border border-surface-border text-text-secondary hover:text-white hover:bg-surface-border transition font-medium text-sm">
                         Cancelar
                     </button>
-                    <button type="submit" class="flex-1 py-3 rounded-xl bg-admin text-white font-bold hover:brightness-110 transition shadow-lg shadow-admin/20 text-sm flex items-center justify-center gap-2">
+                    <button type="submit" class="flex-1 py-3 rounded-xl bg-admin text-white font-bold hover:bg-yellow-500 transition shadow-lg shadow-admin/20 text-sm flex items-center justify-center gap-2">
                         <span class="material-symbols-outlined text-lg">save</span>
                         Guardar
                     </button>
@@ -172,7 +210,10 @@
     <script>
         function toggleModal(id) {
             const el = document.getElementById(id);
-            if(el) el.classList.toggle('hidden');
+            if(el) {
+                el.classList.toggle('hidden');
+                el.classList.toggle('flex');
+            }
         }
 
         window.prepareCreate = () => {
@@ -182,6 +223,7 @@
             document.getElementById('modal-icon').innerText = 'add';
             
             const select = document.getElementById('subject-teacher');
+            // Intentar cargar profesores si el select está vacío (lógica en asignaturas.js)
             if(select && select.options.length <= 2 && window.loadTeachers) {
                 window.loadTeachers(); 
             }

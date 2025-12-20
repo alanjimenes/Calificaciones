@@ -8,23 +8,29 @@
 
     <link rel="stylesheet" href="css/styles.css">
     <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
-    <!-- CONFIGURACIÓN DE TEMA BLANCO Y AZUL -->
+
+    <!-- CONFIGURACIÓN DE TEMA (Consistente con el sistema) -->
     <script>
         tailwind.config = {
             darkMode: "class",
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#2563eb", 
+                        "primary": "#2563eb",
+                        "primary-dark": "#1d4ed8",
                         "background-light": "#f8fafc",
-                        "background-dark": "#ffffff",
-                        "surface-dark": "#f1f5f9",
-                        "surface-border": "#cbd5e1",
-                        "text-secondary": "#64748b",
-                        "white": "#1e293b",
+                        "background-dark": "#0f172a", /* Fondo principal oscuro */
+                        "surface-dark": "#1e293b",     /* Fondo de tarjetas */
+                        "surface-border": "#334155",   /* Bordes sutiles */
+                        "text-secondary": "#94a3b8",
+                        "white": "#f8fafc",
                         "danger": "#ef4444",
+                        "admin": "#f59e0b",
                     },
-                    fontFamily: { "display": ["Spline Sans", "sans-serif"] }
+                    fontFamily: { "display": ["Spline Sans", "sans-serif"] },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                    }
                 },
             },
         }
@@ -34,146 +40,235 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
 
     <style>
+        /* ESTILOS DE IMPRESIÓN (CRÍTICOS) */
         @media print {
-            body {
+            body * {
+                visibility: hidden;
+            }
+
+            #boletin-preview,
+            #boletin-preview * {
+                visibility: visible;
+            }
+
+            #boletin-preview {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                border: none !important;
                 background: white !important;
+                color: black !important;
+                box-shadow: none !important;
             }
 
             .no-print {
                 display: none !important;
             }
 
-            .print-page {
-                page-break-after: always;
-                width: 21cm;
-                min-height: 29.7cm;
-                padding: 1cm;
-                margin: 0;
-                background: white;
-            }
-
-            .boletin-container {
-                border: 2px solid #000 !important;
-                background: white !important;
-            }
-
-            table {
-                page-break-inside: avoid;
+            @page {
+                size: letter portrait;
+                /* O A4 */
+                margin: 0.5cm;
             }
         }
 
+        /* Estilos de la tabla del boletín (Solo afecta al contenido generado) */
         .boletin-table td,
         .boletin-table th {
             border: 1px solid #000;
             padding: 4px 6px;
             font-size: 11px;
+            color: black;
         }
 
         .boletin-table th {
-            background-color: #e0e0e0;
+            background-color: #f0f0f0;
             font-weight: bold;
         }
 
+        /* Contenedor de Vista Previa (Hoja de Papel) */
         .print-preview {
-            width: 21cm;
-            min-height: 29.7cm;
+            width: 21.59cm;
+            /* Letter Width */
+            min-height: 27.94cm;
+            /* Letter Height */
             margin: 0 auto;
             background: white;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            color: black;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            padding: 1.5cm;
+            position: relative;
         }
     </style>
 </head>
 
-<body class="bg-background-dark text-white font-display min-h-screen opacity-0 transition-opacity duration-300 flex"
+<body
+    class="bg-background-dark text-white font-display antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300"
     id="main-body">
 
     <!-- EL SIDEBAR SE INYECTA CON JS (layout.js) -->
 
     <!-- CONTENIDO PRINCIPAL -->
-    <main class="flex-1 min-h-screen relative overflow-y-auto">
+    <main class="flex-1 flex flex-col overflow-y-auto relative bg-background-dark" id="main-content">
 
-        <!-- Header (No imprimir) -->
-        <div class="no-print bg-surface-dark border-b border-surface-border p-6 sticky top-0 z-20">
+        <!-- Decoración de fondo -->
+        <div class="fixed top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none no-print">
+            <div class="absolute top-[10%] right-[20%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px]">
+            </div>
+            <div class="absolute bottom-[10%] left-[10%] w-[300px] h-[300px] bg-purple-500/5 rounded-full blur-[100px]">
+            </div>
+        </div>
+
+        <!-- Header Fijo -->
+        <div
+            class="shrink-0 px-6 py-6 border-b border-surface-border bg-background-dark/80 backdrop-blur-md z-20 sticky top-0 no-print">
+
+            <!-- Mobile Header -->
+            <div class="lg:hidden flex items-center justify-between mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-lg">school</span>
+                    </div>
+                    <span class="font-bold text-white text-lg">EduSys</span>
+                </div>
+                <button id="mobile-menu-btn"
+                    class="text-white material-symbols-outlined p-2 hover:bg-surface-dark rounded-lg transition-colors">menu</button>
+            </div>
+
             <div class="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                    <h2 class="text-2xl font-bold text-white">Boletines de Calificaciones</h2>
-                    <p class="text-text-secondary text-sm">Generar e imprimir boletines oficiales</p>
+                <div class="flex items-center gap-4">
+                    <button id="desktop-sidebar-toggle"
+                        class="hidden lg:flex p-2 rounded-xl text-text-secondary hover:text-white hover:bg-surface-dark transition-colors"
+                        title="Ocultar/Mostrar Menú">
+                        <span class="material-symbols-outlined">menu_open</span>
+                    </button>
+
+                    <div>
+                        <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                            <span class="material-symbols-outlined text-admin">description</span>
+                            Generador de Boletines
+                        </h2>
+                        <p class="text-text-secondary text-sm mt-1">Crea reportes oficiales de calificaciones.</p>
+                    </div>
                 </div>
 
                 <div class="flex items-center gap-3">
                     <button onclick="window.print()"
-                        class="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-blue-700 text-white font-bold transition shadow-lg shadow-primary/20">
-                        <span class="material-symbols-outlined text-lg">print</span>
-                        Imprimir Boletín
+                        class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold transition shadow-lg shadow-primary/20 hover:scale-105 transform">
+                        <span class="material-symbols-outlined text-[18px]">print</span>
+                        <span class="hidden md:inline">Imprimir Boletín</span>
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- Controles de Selección (No imprimir) -->
-        <div class="no-print p-6 bg-background-dark">
-            <div class="max-w-5xl mx-auto">
-                <div class="bg-surface-dark border border-surface-border rounded-2xl p-6 mb-6">
-                    <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                        <span class="material-symbols-outlined">settings</span>
-                        Configuración del Boletín
+        <div class="flex flex-col lg:flex-row h-full overflow-hidden relative z-10">
+
+            <!-- PANEL DE CONTROL (Izquierda) -->
+            <div
+                class="w-full lg:w-96 bg-surface-dark border-r border-surface-border p-6 overflow-y-auto no-print shrink-0 flex flex-col gap-6">
+
+                <div>
+                    <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <span class="w-1.5 h-4 bg-primary rounded-full"></span>
+                        Configuración
                     </h3>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-4">
+                        <!-- Select Curso -->
                         <div>
-                            <label class="block text-xs font-bold text-text-secondary mb-2 uppercase">Curso</label>
-                            <select id="select-course"
-                                class="w-full bg-background-dark border border-surface-border text-white text-sm rounded-lg p-2">
-                                <option value="">Selecciona un curso...</option>
-                            </select>
+                            <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">1.
+                                Seleccionar Curso</label>
+                            <div class="relative">
+                                <select id="select-course"
+                                    class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none appearance-none cursor-pointer shadow-sm transition-all hover:border-primary/50">
+                                    <option value="">Cargando cursos...</option>
+                                </select>
+                                <span
+                                    class="material-symbols-outlined absolute right-3 top-3 text-text-secondary pointer-events-none text-lg">expand_more</span>
+                            </div>
                         </div>
 
+                        <!-- Select Estudiante -->
                         <div>
-                            <label class="block text-xs font-bold text-text-secondary mb-2 uppercase">Estudiante</label>
-                            <select id="select-student"
-                                class="w-full bg-background-dark border border-surface-border text-white text-sm rounded-lg p-2">
-                                <option value="">Selecciona un estudiante...</option>
-                            </select>
+                            <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">2.
+                                Seleccionar Estudiante</label>
+                            <div class="relative">
+                                <select id="select-student" disabled
+                                    class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none appearance-none cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                                    <option value="">Primero elige un curso</option>
+                                </select>
+                                <span
+                                    class="material-symbols-outlined absolute right-3 top-3 text-text-secondary pointer-events-none text-lg">expand_more</span>
+                            </div>
                         </div>
 
-                        <div>
-                            <label class="block text-xs font-bold text-text-secondary mb-2 uppercase">Año
-                                Escolar</label>
-                            <input type="text" id="year-from" placeholder="2024"
-                                class="w-full bg-background-dark border border-surface-border text-white text-sm rounded-lg p-2">
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-bold text-text-secondary mb-2 uppercase">Año Final</label>
-                            <input type="text" id="year-to" placeholder="2025"
-                                class="w-full bg-background-dark border border-surface-border text-white text-sm rounded-lg p-2">
+                        <!-- Fechas -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Año
+                                    Inicio</label>
+                                <input type="number" id="year-from" placeholder="2024" value="2024"
+                                    class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2.5 text-white text-sm focus:border-primary outline-none transition-all shadow-sm">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Año
+                                    Fin</label>
+                                <input type="number" id="year-to" placeholder="2025" value="2025"
+                                    class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2.5 text-white text-sm focus:border-primary outline-none transition-all shadow-sm">
+                            </div>
                         </div>
                     </div>
+                </div>
 
+                <div class="pt-4 border-t border-surface-border mt-auto">
                     <button onclick="generateBoletin()"
-                        class="mt-4 w-full md:w-auto px-6 py-3 rounded-xl bg-primary hover:bg-blue-700 text-white font-bold transition shadow-lg shadow-primary/20">
-                        Generar Vista Previa
+                        class="w-full py-3.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold border border-white/10 transition-all flex items-center justify-center gap-2 group">
+                        <span
+                            class="material-symbols-outlined group-hover:rotate-180 transition-transform duration-500">sync</span>
+                        Actualizar Vista Previa
                     </button>
+                    <p class="text-[10px] text-text-secondary text-center mt-3">
+                        * Asegúrate de guardar todas las notas antes de generar.
+                    </p>
                 </div>
             </div>
-        </div>
 
-        <!-- VISTA PREVIA DEL BOLETÍN (Para Imprimir) -->
-        <div class="print-page p-6">
-            <div id="boletin-preview"
-                class="print-preview boletin-container border-2 border-black p-8 bg-white text-black">
-                <div class="text-center text-text-secondary py-20">
-                    <span class="material-symbols-outlined text-6xl text-surface-border mb-4 block">description</span>
-                    <p class="text-sm">Selecciona un curso y estudiante para generar el boletín</p>
+            <!-- VISTA PREVIA (Derecha) -->
+            <div class="flex-1 bg-[#2d3748] p-8 overflow-y-auto flex justify-center items-start shadow-inner relative">
+                <!-- Fondo de cuadrícula sutil para el área de trabajo -->
+                <div class="absolute inset-0 opacity-[0.03]"
+                    style="background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 20px 20px;">
+                </div>
+
+                <div id="boletin-preview" class="print-preview transition-transform origin-top duration-300">
+                    <!-- Placeholder -->
+                    <div
+                        class="h-full flex flex-col items-center justify-center text-gray-400 border-2 border-dashed border-gray-200 rounded-xl p-10">
+                        <div class="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-6">
+                            <span class="material-symbols-outlined text-5xl text-gray-300">description</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-700 mb-2">Vista Previa del Documento</h3>
+                        <p class="text-sm text-gray-500 text-center max-w-xs">
+                            Selecciona un curso y un estudiante en el panel izquierdo para generar el boletín oficial.
+                        </p>
+                    </div>
                 </div>
             </div>
+
         </div>
 
     </main>
 
+    <!-- SCRIPTS -->
+    <script type="module" src="js/firebase-config.js"></script>
     <script type="module" src="js/layout.js"></script>
     <script type="module" src="js/main.js"></script>
     <script type="module" src="js/boletin.js"></script>
+
 </body>
 
 </html>
