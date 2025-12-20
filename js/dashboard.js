@@ -1,10 +1,12 @@
-import { auth, db, setDoc, doc, getDoc, getDocs, collection, query, updateDoc } from './firebase-config.js';
+import { auth, db, setDoc, doc, getDoc, getDocs, collection, query, updateDoc, where, runTransaction } from './firebase-config.js';
 
 let allCoursesCache = []; // Caché local
 
+// Variables globales para el manejo de conflictos
+let pendingCourseData = null; // Datos del curso que intentamos crear/editar
+let conflictDataCache = null; // Datos del curso que tiene el conflicto (el curso viejo)
+
 // --- CORRECCIÓN CRÍTICA: Escuchar evento INMEDIATAMENTE ---
-// Se movió este listener fuera de 'DOMContentLoaded' para evitar perder el evento
-// si main.js lo dispara muy rápido.
 window.addEventListener('userReady', (e) => {
     const { role, email } = e.detail;
     // Aseguramos que el DOM esté listo antes de pintar
@@ -16,7 +18,7 @@ window.addEventListener('userReady', (e) => {
         });
     }
 });
-//hola
+
 document.addEventListener('DOMContentLoaded', () => {
 
     window.toggleModal = (modalID) => {
@@ -27,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Lógica Crear/Editar Curso (Solo Admin) ---
+    // --- Lógica Crear/Editar Curso (MODIFICADA CON VALIDACIÓN) ---
     const formCurso = document.getElementById('form-create-course');
     if (formCurso) {
         formCurso.addEventListener('submit', async (e) => {
@@ -43,27 +45,191 @@ document.addEventListener('DOMContentLoaded', () => {
             const idCurso = document.getElementById('course-id').value.trim();
             const emailDocente = document.getElementById('course-teacher-email').value.trim();
 
+            const submitBtn = formCurso.querySelector('button[type="submit"]');
+            const originalBtnText = submitBtn.innerHTML;
+
+            // Estado de carga
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="material-symbols-outlined animate-spin text-sm">refresh</span> Verificando...';
+
             try {
-                await setDoc(doc(db, "cursos_globales", idCurso), {
+                // 1. Verificar si el profesor ya está asignado a otro curso
+                let conflictFound = null;
+
+                if (emailDocente) {
+                    // Buscamos cursos donde este profesor sea titular
+                    const q = query(collection(db, "cursos_globales"), where("titular_email", "==", emailDocente));
+                    const querySnapshot = await getDocs(q);
+
+                    querySnapshot.forEach(docSnap => {
+                        // Si encuentra un curso y NO es el mismo que estamos editando...
+                        if (docSnap.id !== idCurso) {
+                            conflictFound = { id: docSnap.id, ...docSnap.data() };
+                        }
+                    });
+                }
+
+                if (conflictFound) {
+                    // --- DETECTAMOS CONFLICTO ---
+                    console.log("Conflicto detectado con curso:", conflictFound.nombre);
+
+                    // Guardamos los datos temporalmente
+                    pendingCourseData = {
+                        id: idCurso,
+                        nombre: nombreCurso,
+                        titular_email: emailDocente,
+                        creado_por: auth.currentUser.email,
+                        creado_fecha: new Date()
+                    };
+                    conflictDataCache = conflictFound;
+
+                    // Abrimos el modal de resolución de conflicto
+                    openConflictModal(conflictFound, emailDocente);
+
+                    // Restauramos botón pero no guardamos aún
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                    return;
+                }
+
+                // 2. Si no hay conflicto, guardamos normalmente
+                await saveCourseDirectly(idCurso, {
                     nombre: nombreCurso,
                     id: idCurso,
                     titular_email: emailDocente,
                     creado_por: auth.currentUser.email,
                     creado_fecha: new Date()
-                }, { merge: true });
+                });
 
-                alert(`Curso "${nombreCurso}" guardado.`);
+                alert(`Curso "${nombreCurso}" guardado correctamente.`);
                 toggleModal('modal-create-course');
                 formCurso.reset();
-                // Recargar dashboard manualmente
                 loadDashboard(true, auth.currentUser.email);
+
             } catch (error) {
                 console.error(error);
-                alert("Error al guardar curso: " + error.message);
+                alert("Error al procesar: " + error.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
             }
         });
     }
 });
+
+// --- FUNCIONES DE RESOLUCIÓN DE CONFLICTOS ---
+
+// 1. Abrir Modal y mostrar Paso 1
+function openConflictModal(conflictCourse, teacherEmail) {
+    const modal = document.getElementById('modal-teacher-conflict');
+    const teacherSelect = document.getElementById('course-teacher-email');
+    const teacherName = teacherSelect.options[teacherSelect.selectedIndex].text;
+
+    // Llenar datos visuales
+    document.getElementById('conflict-teacher-name').innerText = teacherName;
+    document.getElementById('conflict-course-name').innerText = conflictCourse.nombre;
+
+    // Resetear pasos
+    document.getElementById('conflict-step-1').classList.remove('hidden');
+    document.getElementById('conflict-step-2').classList.add('hidden');
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+// 2. Cerrar Modal (Cancelar todo)
+window.closeConflictModal = () => {
+    const modal = document.getElementById('modal-teacher-conflict');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    pendingCourseData = null;
+    conflictDataCache = null;
+}
+
+// 3. Pasar al Paso 2 (Seleccionar Reemplazo)
+window.showReplacementStep = () => {
+    document.getElementById('conflict-step-1').classList.add('hidden');
+    document.getElementById('conflict-step-2').classList.remove('hidden');
+
+    document.getElementById('replacement-course-target').innerText = conflictDataCache.nombre;
+
+    // Llenar el select de reemplazo con los mismos profesores del formulario original
+    const originalSelect = document.getElementById('course-teacher-email');
+    const replacementSelect = document.getElementById('conflict-replacement-select');
+
+    replacementSelect.innerHTML = '<option value="" disabled selected>Selecciona un profesor...</option>';
+
+    // Clonar opciones excepto la del profesor en conflicto
+    Array.from(originalSelect.options).forEach(opt => {
+        if (opt.value && opt.value !== pendingCourseData.titular_email) {
+            const newOpt = document.createElement('option');
+            newOpt.value = opt.value;
+            newOpt.text = opt.text;
+            replacementSelect.appendChild(newOpt);
+        }
+    });
+}
+
+// 4. Volver al Paso 1
+window.backToConflictStep1 = () => {
+    document.getElementById('conflict-step-2').classList.add('hidden');
+    document.getElementById('conflict-step-1').classList.remove('hidden');
+}
+
+// 5. CONFIRMAR INTERCAMBIO (Transacción Atómica)
+window.confirmTeacherSwap = async () => {
+    const replacementEmail = document.getElementById('conflict-replacement-select').value;
+
+    if (!replacementEmail) {
+        alert("Debes seleccionar un profesor reemplazo para el curso anterior.");
+        return;
+    }
+
+    const btn = document.querySelector('#conflict-step-2 button');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<span class="material-symbols-outlined animate-spin">refresh</span> Procesando cambios...';
+    btn.disabled = true;
+
+    try {
+        // Ejecutamos todo como una transacción para asegurar consistencia
+        await runTransaction(db, async (transaction) => {
+            const newCourseRef = doc(db, "cursos_globales", pendingCourseData.id);
+            const oldCourseRef = doc(db, "cursos_globales", conflictDataCache.id);
+
+            // 1. Actualizar (o crear) el Nuevo Curso con el titular deseado
+            transaction.set(newCourseRef, pendingCourseData, { merge: true });
+
+            // 2. Actualizar el Viejo Curso con el titular de reemplazo
+            transaction.update(oldCourseRef, { titular_email: replacementEmail });
+        });
+
+        // Éxito
+        if (window.showToast) window.showToast("Intercambio de profesores realizado con éxito", "success");
+        else alert("Intercambio realizado exitosamente.");
+
+        // Limpieza
+        closeConflictModal();
+        toggleModal('modal-create-course');
+        document.getElementById('form-create-course').reset();
+
+        // Recargar Dashboard
+        loadDashboard(true, auth.currentUser.email);
+
+    } catch (error) {
+        console.error("Error en transacción:", error);
+        alert("Error al realizar el intercambio: " + error.message);
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
+// Función auxiliar para guardar normal (sin conflicto)
+async function saveCourseDirectly(id, data) {
+    await setDoc(doc(db, "cursos_globales", id), data, { merge: true });
+}
+
+// --- RESTO DEL CÓDIGO ORIGINAL DEL DASHBOARD ---
 
 async function loadDashboard(isAdmin, userEmail) {
     const listContainer = document.getElementById('dashboard-courses-list');

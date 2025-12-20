@@ -124,7 +124,7 @@
 
                     <div class="h-6 w-px bg-surface-border hidden md:block"></div>
 
-                    <!-- Selector Periodo -->
+                    <!-- Selector Periodo (MODIFICADO: Sin FINAL) -->
                     <div id="period-selector-container" class="relative">
                         <select id="period-selector"
                             class="pl-8 bg-background-dark border border-surface-border text-white text-sm rounded-lg focus:ring-primary focus:border-primary block p-2 w-36">
@@ -132,7 +132,6 @@
                             <option value="p2">Periodo 2</option>
                             <option value="p3">Periodo 3</option>
                             <option value="p4">Periodo 4</option>
-                            <option value="final">Final / Extra</option>
                         </select>
                         <span
                             class="material-symbols-outlined absolute left-2 top-2.5 text-text-secondary text-lg">date_range</span>
@@ -302,13 +301,14 @@
                 <div class="grid grid-cols-2 gap-4">
                     <input type="number" id="activity-value" placeholder="Valor %"
                         class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white text-sm focus:border-primary outline-none">
+
+                    <!-- SELECTOR PERIODO (MODIFICADO: Sin FINAL) -->
                     <select id="activity-period"
                         class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white text-sm focus:border-primary outline-none">
                         <option value="p1">P1</option>
                         <option value="p2">P2</option>
                         <option value="p3">P3</option>
                         <option value="p4">P4</option>
-                        <option value="final">Final</option>
                     </select>
                 </div>
                 <button type="submit"
@@ -404,25 +404,33 @@
                         <span class="material-symbols-outlined text-sm text-primary">family_restroom</span>
                         Información Familiar y Contacto
                     </h3>
-                    
+
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                         <div>
-                            <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Nombre de la Madre</label>
-                            <input type="text" id="student-madre" placeholder="Nombre completo" class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
+                        <div>
+                            <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Nombre de
+                                la Madre</label>
+                            <input type="text" id="student-madre" placeholder="Nombre completo"
+                                class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Nombre del Padre</label>
-                            <input type="text" id="student-padre" placeholder="Nombre completo" class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
+                            <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Nombre
+                                del Padre</label>
+                            <input type="text" id="student-padre" placeholder="Nombre completo"
+                                class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
                         </div>
                     </div>
-                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                         <div>
-                            <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Nombre del Tutor</label>
-                            <input type="text" id="student-tutor" placeholder="Nombre completo" class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Nombre
+                                del Tutor</label>
+                            <input type="text" id="student-tutor" placeholder="Nombre completo"
+                                class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Teléfono Contacto</label>
-                            <input type="tel" id="student-telefono" placeholder="809-000-0000" class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
+                            <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Teléfono
+                                Contacto</label>
+                            <input type="tel" id="student-telefono" placeholder="809-000-0000"
+                                class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
                         </div>
                     </div>
                 </div>
@@ -433,27 +441,35 @@
                         <span class="material-symbols-outlined text-sm text-primary">medical_services</span>
                         Datos Adicionales y Médicos
                     </h3>
-                    
+
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                         <div>
-                            <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Lugar de Nacimiento</label>
-                            <input type="text" id="student-lugar-nac" placeholder="Ciudad/País" class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
+                        <div>
+                            <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Lugar de
+                                Nacimiento</label>
+                            <input type="text" id="student-lugar-nac" placeholder="Ciudad/País"
+                                class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Nacionalidad</label>
-                            <input type="text" id="student-nacionalidad" placeholder="Ej: Dominicana" class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
+                            <label
+                                class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Nacionalidad</label>
+                            <input type="text" id="student-nacionalidad" placeholder="Ej: Dominicana"
+                                class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
                         </div>
                     </div>
-                    
+
                     <div class="mb-3">
-                        <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Dirección</label>
-                        <input type="text" id="student-direccion" placeholder="Calle, Número, Sector" class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
+                        <label
+                            class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Dirección</label>
+                        <input type="text" id="student-direccion" placeholder="Calle, Número, Sector"
+                            class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                         <div>
-                            <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Tipo de Sangre</label>
-                            <select id="student-sangre" class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none appearance-none cursor-pointer">
+                        <div>
+                            <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Tipo de
+                                Sangre</label>
+                            <select id="student-sangre"
+                                class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none appearance-none cursor-pointer">
                                 <option value="">Seleccionar</option>
                                 <option value="O+">O+</option>
                                 <option value="O-">O-</option>
@@ -466,14 +482,18 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Teléfono Emergencia</label>
-                            <input type="tel" id="student-emergencia" placeholder="809-000-0000" class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
+                            <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Teléfono
+                                Emergencia</label>
+                            <input type="tel" id="student-emergencia" placeholder="809-000-0000"
+                                class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Alergias / Condición Médica</label>
-                        <input type="text" id="student-medica" placeholder="Ninguna" class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
+                        <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Alergias /
+                            Condición Médica</label>
+                        <input type="text" id="student-medica" placeholder="Ninguna"
+                            class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
                     </div>
                 </div>
 
