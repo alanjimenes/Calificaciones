@@ -7,17 +7,21 @@
     
     <link rel="stylesheet" href="css/styles.css">
     <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <!-- CONFIGURACIÓN DE TEMA BLANCO Y AZUL -->
     <script>
         tailwind.config = {
             darkMode: "class",
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#0df259",
-                        "background-dark": "#0c1a11",
-                        "surface-dark": "#152a1d",
-                        "surface-border": "#22492f",
-                        "text-secondary": "#90cba4",
+                        "primary": "#2563eb", 
+                        "background-light": "#f8fafc",
+                        "background-dark": "#ffffff",
+                        "surface-dark": "#f1f5f9",
+                        "surface-border": "#cbd5e1",
+                        "text-secondary": "#64748b",
+                        "white": "#1e293b",
+                        "danger": "#ef4444",
                         "admin": "#f59e0b",
                     },
                     fontFamily: { "display": ["Spline Sans", "sans-serif"] }
@@ -30,21 +34,19 @@
 </head>
 <body class="bg-background-dark text-white font-display min-h-screen flex items-center justify-center p-4 relative overflow-hidden opacity-0 transition-opacity duration-300" id="main-body">
     
-    <!-- Auth Guard (Solo Admin puede ver esto) -->
+    <!-- Auth Guard (Solo Admin) -->
     <script type="module">
         import { auth, onAuthStateChanged, doc, getDoc, db } from './js/firebase-config.js';
         const body = document.getElementById('main-body');
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // Verificar si es admin
                 const userDoc = await getDoc(doc(db, "usuarios", user.uid));
                 const isAdmin = (user.email === 'admin@mail.com') || (userDoc.exists() && userDoc.data().rol === 'admin');
-                
                 if (isAdmin) {
                     body.classList.remove('opacity-0');
                 } else {
-                    alert("Acceso denegado. Solo administradores.");
+                    alert("Acceso denegado.");
                     window.location.href = 'index.html';
                 }
             } else {
@@ -53,10 +55,10 @@
         });
     </script>
 
-    <!-- Fondo decorativo -->
-    <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-        <div class="absolute top-[10%] left-[20%] w-[30%] h-[30%] bg-admin/5 rounded-full blur-[100px]"></div>
-        <div class="absolute bottom-[10%] right-[10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[80px]"></div>
+    <!-- Fondo decorativo (Adaptado para blanco) -->
+    <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none bg-white">
+        <div class="absolute top-[10%] left-[20%] w-[30%] h-[30%] bg-blue-100 rounded-full blur-[100px]"></div>
+        <div class="absolute bottom-[10%] right-[10%] w-[40%] h-[40%] bg-orange-100 rounded-full blur-[80px]"></div>
     </div>
 
     <!-- Tarjeta de Registro -->
@@ -73,7 +75,7 @@
             </div>
 
             <div class="mt-8">
-                <div class="p-4 rounded-xl bg-surface-border/30 border border-surface-border/50">
+                <div class="p-4 rounded-xl bg-white border border-surface-border shadow-sm">
                     <p id="role-desc" class="text-xs text-text-secondary italic">
                         <span class="font-bold text-white block mb-1">Profesor:</span> 
                         Acceso limitado a sus clases asignadas. Puede tomar asistencia y subir notas.
@@ -81,7 +83,6 @@
                 </div>
             </div>
 
-            <!-- ENLACE CORREGIDO: Apunta a la lista de usuarios -->
             <a href="usuarios.html" class="mt-8 flex items-center gap-2 text-sm font-bold text-text-secondary hover:text-white transition-colors group">
                 <span class="material-symbols-outlined text-lg group-hover:-translate-x-1 transition-transform">arrow_back</span>
                 Volver a la Lista
@@ -106,7 +107,6 @@
                     </div>
                 </div>
 
-                <!-- NUEVOS CAMPOS: NIVEL Y TELÉFONO -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Nivel de Estudios</label>
@@ -140,7 +140,7 @@
                 </div>
 
                 <div class="pt-2">
-                    <button type="submit" class="w-full bg-admin text-background-dark font-bold py-3 rounded-xl hover:brightness-110 transition-transform active:scale-95 shadow-lg shadow-admin/20 flex items-center justify-center gap-2">
+                    <button type="submit" class="w-full bg-admin text-white font-bold py-3 rounded-xl hover:brightness-110 transition-transform active:scale-95 shadow-lg shadow-admin/20 flex items-center justify-center gap-2">
                         <span class="material-symbols-outlined text-lg">save</span>
                         Registrar Usuario
                     </button>

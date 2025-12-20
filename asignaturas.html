@@ -7,19 +7,21 @@
     
     <link rel="stylesheet" href="css/styles.css">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- CONFIGURACIÓN DE TEMA BLANCO Y AZUL -->
     <script>
         tailwind.config = {
             darkMode: "class",
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#0df259",
-                        "background-light": "#f5f8f6",
-                        "background-dark": "#0c1a11",
-                        "surface-dark": "#152a1d",
-                        "surface-border": "#22492f",
-                        "text-secondary": "#90cba4",
-                        "danger": "#ff6b6b",
+                        "primary": "#2563eb", 
+                        "background-light": "#f8fafc",
+                        "background-dark": "#ffffff",
+                        "surface-dark": "#f1f5f9",
+                        "surface-border": "#cbd5e1",
+                        "text-secondary": "#64748b",
+                        "white": "#1e293b",
+                        "danger": "#ef4444",
                         "admin": "#f59e0b",
                     },
                     fontFamily: { "display": ["Spline Sans", "sans-serif"] }
@@ -78,7 +80,7 @@
                            class="bg-surface-dark border border-surface-border text-white text-sm rounded-xl pl-10 pr-4 py-2 focus:ring-primary focus:border-primary outline-none w-full md:w-64 transition-all">
                 </div>
 
-                <button onclick="window.prepareCreate()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-admin text-background-dark font-bold hover:brightness-110 transition shadow-lg shadow-admin/20 whitespace-nowrap">
+                <button onclick="window.prepareCreate()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-admin text-white font-bold hover:brightness-110 transition shadow-lg shadow-admin/20 whitespace-nowrap">
                     <span class="material-symbols-outlined text-lg">add</span>
                     Nueva
                 </button>
@@ -110,7 +112,7 @@
     </main>
 
     <!-- MODAL: CREAR / EDITAR -->
-    <div id="modal-manage-subject" class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4 transition-all duration-300">
+    <div id="modal-manage-subject" class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center backdrop-blur-sm p-4 transition-all duration-300">
         <div class="bg-surface-dark border border-surface-border p-6 rounded-2xl w-full max-w-md shadow-2xl relative transform transition-all duration-300 scale-100">
             <button onclick="toggleModal('modal-manage-subject')" class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined">close</button>
             
@@ -150,7 +152,7 @@
                     <button type="button" onclick="toggleModal('modal-manage-subject')" class="flex-1 py-3 rounded-xl border border-surface-border text-text-secondary hover:text-white transition font-bold text-sm">
                         Cancelar
                     </button>
-                    <button type="submit" class="flex-1 py-3 rounded-xl bg-admin text-background-dark font-bold hover:brightness-110 transition shadow-lg shadow-admin/20 text-sm flex items-center justify-center gap-2">
+                    <button type="submit" class="flex-1 py-3 rounded-xl bg-admin text-white font-bold hover:brightness-110 transition shadow-lg shadow-admin/20 text-sm flex items-center justify-center gap-2">
                         <span class="material-symbols-outlined text-lg">save</span>
                         Guardar
                     </button>
@@ -173,20 +175,16 @@
             if(el) el.classList.toggle('hidden');
         }
 
-        // Función auxiliar para preparar el modal de creación
         window.prepareCreate = () => {
             document.getElementById('form-subject').reset();
             document.getElementById('edit-id').value = '';
             document.getElementById('modal-title').innerText = 'Nueva Asignatura';
             document.getElementById('modal-icon').innerText = 'add';
             
-            // Intenta cargar profesores si el select parece vacío o incorrecto
             const select = document.getElementById('subject-teacher');
             if(select && select.options.length <= 2 && window.loadTeachers) {
-                console.log("Intentando recargar profesores...");
                 window.loadTeachers(); 
             }
-            
             toggleModal('modal-manage-subject');
         }
     </script>

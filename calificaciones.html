@@ -8,22 +8,34 @@
 
     <link rel="stylesheet" href="css/styles.css">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    
+    <!-- CONFIGURACIÓN DE TEMA BLANCO Y AZUL -->
     <script>
         tailwind.config = {
             darkMode: "class",
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#0df259",
-                        "background-light": "#f5f8f6",
-                        "background-dark": "#0c1a11",
-                        "surface-dark": "#152a1d",
-                        "surface-border": "#22492f",
-                        "text-secondary": "#90cba4",
-                        "danger": "#ff6b6b",
+                        // RE-MAPEO DE COLORES: Usamos nombres antiguos pero con valores nuevos para no romper el HTML
+                        
+                        // Color Principal: Azul Real
+                        "primary": "#2563eb", 
+                        
+                        // Fondos: Ahora son Blancos/Grises Claros
+                        "background-light": "#f8fafc", // Slate-50
+                        "background-dark": "#ffffff",  // Blanco puro (antes era negro)
+                        "surface-dark": "#f1f5f9",     // Slate-100 (antes era gris oscuro)
+                        "surface-border": "#cbd5e1",   // Slate-300 (bordes visibles pero sutiles)
+                        
+                        // Texto: Ahora es Gris Oscuro
+                        "text-secondary": "#64748b",   // Slate-500
+                        "white": "#1e293b",            // Slate-800 (IMPORTANTE: Esto hace que el texto "blanco" sea oscuro)
+                        
+                        // Estados
+                        "danger": "#ef4444",
                         "warning": "#f59e0b",
                         "info": "#3b82f6",
-                        "admin": "#f59e0b",
+                        "admin": "#f59e0b", // Naranja para admin
                     },
                     fontFamily: { "display": ["Spline Sans", "sans-serif"] }
                 },
@@ -46,7 +58,7 @@
         }
 
         .grade-cell-wrapper:focus-within {
-            background-color: rgba(13, 242, 89, 0.05);
+            background-color: rgba(37, 99, 235, 0.05);
         }
 
         .attendance-btn {
@@ -54,7 +66,7 @@
         }
 
         .attendance-btn.active {
-            @apply ring-2 ring-white ring-offset-2 ring-offset-[#152a1d] scale-110 font-bold;
+            @apply ring-2 ring-[#2563eb] ring-offset-2 ring-offset-white scale-110 font-bold;
         }
     </style>
 </head>
@@ -85,7 +97,7 @@
                     <div class="flex items-center gap-2 mb-1">
                         <!-- Botón Volver (Oculto por defecto) -->
                         <button id="btn-back-to-subjects" onclick="window.returnToSubjects()"
-                            class="hidden mr-2 p-1.5 rounded-full bg-surface-border hover:bg-white/10 text-text-secondary hover:text-white transition-colors">
+                            class="hidden mr-2 p-1.5 rounded-full bg-surface-border hover:bg-black/5 text-text-secondary hover:text-white transition-colors">
                             <span class="material-symbols-outlined text-lg">arrow_back</span>
                         </button>
 
@@ -103,7 +115,7 @@
                 <div class="flex items-center gap-3">
                     <!-- Botón para añadir estudiante -->
                     <button id="btn-add-student" onclick="prepareAddStudent()"
-                        class="hidden flex items-center gap-2 px-4 py-2 rounded-full bg-surface-border hover:bg-white/10 transition-colors text-white text-sm font-bold border border-white/5 shadow-lg">
+                        class="hidden flex items-center gap-2 px-4 py-2 rounded-full bg-surface-border hover:bg-black/5 transition-colors text-white text-sm font-bold border border-black/5 shadow-sm">
                         <span class="material-symbols-outlined text-[18px]">person_add</span>
                         Nuevo Estudiante
                     </button>
@@ -118,7 +130,7 @@
                     <div class="relative">
                         <!-- Label visual de la materia actual -->
                         <div
-                            class="pl-3 pr-4 py-2 bg-background-dark border border-surface-border text-white text-sm rounded-lg min-w-[200px] flex items-center gap-2">
+                            class="pl-3 pr-4 py-2 bg-background-dark border border-surface-border text-white text-sm rounded-lg min-w-[200px] flex items-center gap-2 shadow-sm">
                             <span class="material-symbols-outlined text-primary text-lg">book</span>
                             <span id="current-subject-label" class="font-bold truncate">Materia</span>
                         </div>
@@ -129,7 +141,7 @@
                     <!-- Selector Periodo -->
                     <div id="period-selector-container" class="relative">
                         <select id="period-selector"
-                            class="pl-8 bg-background-dark border border-surface-border text-white text-sm rounded-lg focus:ring-primary focus:border-primary block p-2 w-36 cursor-pointer">
+                            class="pl-8 bg-background-dark border border-surface-border text-white text-sm rounded-lg focus:ring-primary focus:border-primary block p-2 w-36 cursor-pointer shadow-sm">
                             <option value="p1" selected>Periodo 1</option>
                             <option value="p2">Periodo 2</option>
                             <option value="p3">Periodo 3</option>
@@ -143,17 +155,17 @@
                 <div
                     class="flex p-1 bg-surface-dark/50 rounded-xl border border-surface-border/50 gap-1 overflow-x-auto">
                     <button id="tab-grades"
-                        class="whitespace-nowrap flex-1 flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all bg-primary text-background-dark shadow-lg">
+                        class="whitespace-nowrap flex-1 flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all bg-primary text-white shadow-md">
                         <span class="material-symbols-outlined text-[18px]">assignment</span>
                         Planilla
                     </button>
                     <button id="tab-tasks"
-                        class="whitespace-nowrap flex-1 flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold text-text-secondary hover:text-white hover:bg-white/5 transition-all">
+                        class="whitespace-nowrap flex-1 flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold text-text-secondary hover:text-primary hover:bg-primary/5 transition-all">
                         <span class="material-symbols-outlined text-[18px]">checklist</span>
                         Tareas
                     </button>
                     <button id="tab-attendance"
-                        class="whitespace-nowrap flex-1 flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold text-text-secondary hover:text-white hover:bg-white/5 transition-all">
+                        class="whitespace-nowrap flex-1 flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold text-text-secondary hover:text-primary hover:bg-primary/5 transition-all">
                         <span class="material-symbols-outlined text-[18px]">calendar_today</span>
                         Asistencia
                     </button>
@@ -184,7 +196,7 @@
                             </p>
                             <p id="dash-total-subjects" class="text-white text-2xl font-bold mt-1">0</p>
                         </div>
-                        <div class="bg-blue-900/20 text-blue-400 p-2 rounded-lg">
+                        <div class="bg-blue-100 text-blue-600 p-2 rounded-lg">
                             <span class="material-symbols-outlined">library_books</span>
                         </div>
                     </div>
@@ -195,7 +207,7 @@
                             <p class="text-text-secondary text-xs font-medium uppercase tracking-wider">Estudiantes</p>
                             <p id="dash-total-students" class="text-white text-2xl font-bold mt-1">0</p>
                         </div>
-                        <div class="bg-green-900/20 text-green-400 p-2 rounded-lg">
+                        <div class="bg-green-100 text-green-600 p-2 rounded-lg">
                             <span class="material-symbols-outlined">groups</span>
                         </div>
                     </div>
@@ -217,7 +229,7 @@
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse">
                             <thead>
-                                <tr class="border-b border-surface-border bg-[#0f2115]">
+                                <tr class="border-b border-surface-border bg-gray-50">
                                     <th
                                         class="py-4 px-6 text-xs font-bold text-text-secondary uppercase tracking-wider">
                                         Materia</th>
@@ -250,15 +262,15 @@
                                 id="current-period-display">Periodo 1</strong></span>
                     </div>
                     <button onclick="toggleModal('modal-add-activity')" id="btn-add-activity-main"
-                        class="hidden flex items-center gap-2 px-4 py-2 rounded-full bg-primary hover:bg-[#0be050] transition-colors text-background-dark text-sm font-bold shadow-lg shadow-primary/20">
+                        class="hidden flex items-center gap-2 px-4 py-2 rounded-full bg-primary hover:bg-blue-700 transition-colors text-white text-sm font-bold shadow-lg shadow-primary/20">
                         <span class="material-symbols-outlined text-[18px]">post_add</span>
                         Nueva Actividad
                     </button>
                 </div>
-                <div class="border border-surface-border rounded-xl overflow-hidden bg-surface-dark shadow-2xl">
+                <div class="border border-surface-border rounded-xl overflow-hidden bg-surface-dark shadow-xl">
                     <table class="w-full text-left border-collapse">
                         <thead
-                            class="bg-[#0f2115] sticky top-0 z-10 text-xs uppercase tracking-wider text-text-secondary">
+                            class="bg-gray-100 sticky top-0 z-10 text-xs uppercase tracking-wider text-text-secondary border-b border-surface-border">
                             <tr id="table-headers"></tr>
                         </thead>
                         <tbody id="students-table-body" class="divide-y divide-surface-border/30 text-sm"></tbody>
@@ -273,7 +285,7 @@
                     <div class="flex justify-between items-center mb-6">
                         <h3 class="text-xl font-bold text-white">Todas las Actividades</h3>
                         <button onclick="toggleModal('modal-add-activity')" id="btn-add-activity-tasks"
-                            class="hidden flex items-center gap-2 px-4 py-2 rounded-full bg-primary hover:bg-[#0be050] transition-colors text-background-dark text-sm font-bold shadow-lg shadow-primary/20">
+                            class="hidden flex items-center gap-2 px-4 py-2 rounded-full bg-primary hover:bg-blue-700 transition-colors text-white text-sm font-bold shadow-lg shadow-primary/20">
                             <span class="material-symbols-outlined text-[18px]">post_add</span>
                             Crear Tarea
                         </button>
@@ -287,7 +299,7 @@
                 <div id="single-task-container" class="hidden">
                     <div class="flex items-center gap-4 mb-6">
                         <button onclick="closeTaskGrading()"
-                            class="p-2 rounded-full bg-surface-border hover:bg-white/10 text-white transition-colors">
+                            class="p-2 rounded-full bg-surface-border hover:bg-black/5 text-white transition-colors">
                             <span class="material-symbols-outlined">arrow_back</span>
                         </button>
                         <div>
@@ -299,10 +311,10 @@
                             <p class="text-xs text-text-secondary" id="grading-task-period">Periodo 1</p>
                         </div>
                     </div>
-                    <div class="border border-surface-border rounded-xl overflow-hidden bg-surface-dark shadow-2xl">
+                    <div class="border border-surface-border rounded-xl overflow-hidden bg-surface-dark shadow-xl">
                         <table class="w-full text-left border-collapse">
                             <thead
-                                class="bg-[#0f2115] sticky top-0 z-10 text-xs uppercase tracking-wider text-text-secondary">
+                                class="bg-gray-100 sticky top-0 z-10 text-xs uppercase tracking-wider text-text-secondary border-b border-surface-border">
                                 <tr>
                                     <th class="p-4 border-b border-surface-border w-12 text-center">#</th>
                                     <th class="p-4 border-b border-surface-border">Estudiante</th>
@@ -318,7 +330,7 @@
             <!-- VISTA 3: ASISTENCIA -->
             <div id="view-attendance" class="hidden min-w-[900px] animate-fade-in">
                 <div
-                    class="flex justify-between items-center mb-4 bg-surface-dark p-3 rounded-xl border border-surface-border">
+                    class="flex justify-between items-center mb-4 bg-surface-dark p-3 rounded-xl border border-surface-border shadow-sm">
                     <div class="flex items-center gap-4">
                         <label class="text-xs font-bold text-text-secondary uppercase">Fecha:</label>
                         <input type="date" id="attendance-date"
@@ -337,10 +349,10 @@
                         </div>
                     </div>
                 </div>
-                <div class="border border-surface-border rounded-xl overflow-hidden bg-surface-dark shadow-2xl">
+                <div class="border border-surface-border rounded-xl overflow-hidden bg-surface-dark shadow-xl">
                     <table class="w-full text-left border-collapse">
                         <thead
-                            class="bg-[#0f2115] sticky top-0 z-10 text-xs uppercase tracking-wider text-text-secondary">
+                            class="bg-gray-100 sticky top-0 z-10 text-xs uppercase tracking-wider text-text-secondary border-b border-surface-border">
                             <tr>
                                 <th class="p-4 border-b border-surface-border w-12 text-center">#</th>
                                 <th class="p-4 border-b border-surface-border">Estudiante</th>
@@ -361,9 +373,9 @@
         </div>
     </main>
 
-    <!-- MODALES (Actividad y Estudiante) - Se mantienen igual que antes, solo asegúrate que estén aquí -->
+    <!-- MODALES (Actividad y Estudiante) -->
     <div id="modal-add-activity"
-        class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4">
+        class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center backdrop-blur-sm p-4">
         <div class="bg-surface-dark border border-surface-border p-6 rounded-2xl w-full max-w-sm shadow-2xl relative">
             <button onclick="toggleModal('modal-add-activity')"
                 class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined">close</button>
@@ -383,14 +395,14 @@
                     </select>
                 </div>
                 <button type="submit"
-                    class="w-full py-2 rounded-xl bg-primary hover:bg-[#0be050] text-background-dark font-bold text-sm shadow-lg shadow-primary/20">Guardar</button>
+                    class="w-full py-2 rounded-xl bg-primary hover:bg-blue-700 text-white font-bold text-sm shadow-lg shadow-primary/20">Guardar</button>
             </form>
         </div>
     </div>
 
     <!-- MODAL REGISTRAR ESTUDIANTE -->
     <div id="modal-add-student"
-        class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4 overflow-y-auto">
+        class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center backdrop-blur-sm p-4 overflow-y-auto">
         <div
             class="bg-surface-dark border border-surface-border p-6 rounded-2xl w-full max-w-lg shadow-2xl relative my-auto">
             <button onclick="toggleModal('modal-add-student')"
@@ -409,7 +421,7 @@
             <form id="form-add-student" class="space-y-4">
                 <input type="hidden" id="edit-student-original-id" value="">
 
-                <!-- Campos (Igual que tu versión anterior) -->
+                <!-- Campos -->
                 <div class="grid grid-cols-4 gap-3">
                     <div class="col-span-1">
                         <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">No.
@@ -467,107 +479,25 @@
                         <option value="Reingreso">Reingreso</option>
                     </select>
                 </div>
-                <!-- SECCIÓN: FAMILIA Y CONTACTO -->
+
+                <!-- Sección extra colapsada en un scroll si es necesario -->
                 <div class="border-t border-surface-border my-4 pt-4">
                     <h3 class="text-xs font-bold text-white mb-3 flex items-center gap-2">
                         <span class="material-symbols-outlined text-sm text-primary">family_restroom</span>
                         Información Familiar y Contacto
                     </h3>
-
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                         <div>
-                            <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Nombre de
-                                la Madre</label>
-                            <input type="text" id="student-madre" placeholder="Nombre completo"
-                                class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
+                            <input type="text" id="student-madre" placeholder="Nombre Madre" class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Nombre
-                                del Padre</label>
-                            <input type="text" id="student-padre" placeholder="Nombre completo"
-                                class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
+                            <input type="text" id="student-padre" placeholder="Nombre Padre" class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
                         </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Nombre
-                                del Tutor</label>
-                            <input type="text" id="student-tutor" placeholder="Nombre completo"
-                                class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Teléfono
-                                Contacto</label>
-                            <input type="tel" id="student-telefono" placeholder="809-000-0000"
-                                class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- SECCIÓN: DATOS ADICIONALES Y MÉDICOS -->
-                <div class="border-t border-surface-border my-4 pt-4">
-                    <h3 class="text-xs font-bold text-white mb-3 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-sm text-primary">medical_services</span>
-                        Datos Adicionales y Médicos
-                    </h3>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                        <div>
-                            <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Lugar de
-                                Nacimiento</label>
-                            <input type="text" id="student-lugar-nac" placeholder="Ciudad/País"
-                                class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
-                        </div>
-                        <div>
-                            <label
-                                class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Nacionalidad</label>
-                            <input type="text" id="student-nacionalidad" placeholder="Ej: Dominicana"
-                                class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label
-                            class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Dirección</label>
-                        <input type="text" id="student-direccion" placeholder="Calle, Número, Sector"
-                            class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                        <div>
-                            <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Tipo de
-                                Sangre</label>
-                            <select id="student-sangre"
-                                class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none appearance-none cursor-pointer">
-                                <option value="">Seleccionar</option>
-                                <option value="O+">O+</option>
-                                <option value="O-">O-</option>
-                                <option value="A+">A+</option>
-                                <option value="A-">A-</option>
-                                <option value="B+">B+</option>
-                                <option value="B-">B-</option>
-                                <option value="AB+">AB+</option>
-                                <option value="AB-">AB-</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Teléfono
-                                Emergencia</label>
-                            <input type="tel" id="student-emergencia" placeholder="809-000-0000"
-                                class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-[10px] font-bold text-text-secondary mb-1 ml-1 uppercase">Alergias /
-                            Condición Médica</label>
-                        <input type="text" id="student-medica" placeholder="Ninguna"
-                            class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-sm focus:border-primary outline-none">
                     </div>
                 </div>
 
                 <button type="submit" id="btn-submit-student"
-                    class="w-full py-3 mt-2 rounded-xl bg-surface-border hover:bg-white/20 text-white font-bold text-sm border border-white/10 shadow-lg transition-all flex items-center justify-center gap-2">
+                    class="w-full py-3 mt-2 rounded-xl bg-surface-border hover:bg-black/5 text-white font-bold text-sm border border-black/5 shadow-md transition-all flex items-center justify-center gap-2">
                     <span class="material-symbols-outlined">save</span>
                     Guardar Estudiante
                 </button>

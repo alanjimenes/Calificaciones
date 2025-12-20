@@ -9,19 +9,22 @@
     <link rel="stylesheet" href="css/styles.css">
 
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    
+    <!-- CONFIGURACIÓN DE TEMA BLANCO Y AZUL -->
     <script>
         tailwind.config = {
             darkMode: "class",
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#0df259",
-                        "background-light": "#f5f8f6",
-                        "background-dark": "#0c1a11",
-                        "surface-dark": "#152a1d",
-                        "surface-border": "#22492f",
-                        "text-secondary": "#90cba4",
-                        "danger": "#ff6b6b",
+                        "primary": "#2563eb", 
+                        "background-light": "#f8fafc",
+                        "background-dark": "#ffffff",
+                        "surface-dark": "#f1f5f9",
+                        "surface-border": "#cbd5e1",
+                        "text-secondary": "#64748b",
+                        "white": "#1e293b", // Texto oscuro
+                        "danger": "#ef4444",
                         "admin": "#f59e0b",
                     },
                     fontFamily: {
@@ -152,7 +155,7 @@
                                 </div>
 
                                 <button type="submit"
-                                    class="w-full py-3 rounded-xl bg-primary hover:bg-[#0be050] text-background-dark font-bold transition shadow-lg shadow-primary/20 flex items-center justify-center gap-2 mt-2">
+                                    class="w-full py-3 rounded-xl bg-primary hover:bg-blue-700 text-white font-bold transition shadow-lg shadow-primary/20 flex items-center justify-center gap-2 mt-2">
                                     <span class="material-symbols-outlined text-lg">add_task</span>
                                     Crear Tarea
                                 </button>
@@ -185,12 +188,11 @@
     <div id="toast-container"></div>
 
     <!-- SCRIPTS -->
-    <script type="module" src="js/layout.js"></script> <!-- AGREGADO LAYOUT.JS -->
+    <script type="module" src="js/layout.js"></script>
     <script type="module" src="js/main.js"></script>
     <script type="module" src="js/dashboard.js"></script>
 
     <script>
-        // Script simple para fecha
         const dateEl = document.getElementById('date-display');
         if (dateEl) {
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };

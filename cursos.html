@@ -9,19 +9,21 @@
     <link rel="stylesheet" href="css/styles.css">
 
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- CONFIGURACIÓN DE TEMA BLANCO Y AZUL -->
     <script>
         tailwind.config = {
             darkMode: "class",
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#0df259",
-                        "background-light": "#f5f8f6",
-                        "background-dark": "#0c1a11",
-                        "surface-dark": "#152a1d",
-                        "surface-border": "#22492f",
-                        "text-secondary": "#90cba4",
-                        "danger": "#ff6b6b",
+                        "primary": "#2563eb", 
+                        "background-light": "#f8fafc",
+                        "background-dark": "#ffffff",
+                        "surface-dark": "#f1f5f9",
+                        "surface-border": "#cbd5e1",
+                        "text-secondary": "#64748b",
+                        "white": "#1e293b",
+                        "danger": "#ef4444",
                         "admin": "#f59e0b",
                         "warning": "#f59e0b",
                     },
@@ -69,7 +71,7 @@
                         Catálogo Asignaturas
                     </button>
                     <button onclick="toggleModal('modal-create-course')"
-                        class="flex items-center gap-2 px-4 py-2 rounded-xl bg-admin text-background-dark font-bold hover:brightness-110 transition shadow-lg shadow-admin/20">
+                        class="flex items-center gap-2 px-4 py-2 rounded-xl bg-admin text-white font-bold hover:brightness-110 transition shadow-lg shadow-admin/20">
                         <span class="material-symbols-outlined text-lg">add</span>
                         Nuevo Curso
                     </button>
@@ -85,7 +87,7 @@
 
     <!-- MODAL: CREAR/EDITAR CURSO -->
     <div id="modal-create-course"
-        class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4 transition-all duration-300">
+        class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center backdrop-blur-sm p-4 transition-all duration-300">
         <div
             class="bg-surface-dark border border-surface-border p-8 rounded-2xl w-full max-w-md shadow-2xl relative transform transition-all duration-300 scale-100 max-h-[90vh] overflow-y-auto">
             <button onclick="toggleModal('modal-create-course')"
@@ -123,7 +125,7 @@
                     <button type="button" onclick="toggleModal('modal-create-course')"
                         class="flex-1 py-3 rounded-xl border border-surface-border text-text-secondary hover:text-white transition font-medium">Cancelar</button>
                     <button type="submit"
-                        class="flex-1 py-3 rounded-xl bg-admin text-background-dark font-bold hover:brightness-110 transition shadow-lg shadow-admin/20">Guardar
+                        class="flex-1 py-3 rounded-xl bg-admin text-white font-bold hover:brightness-110 transition shadow-lg shadow-admin/20">Guardar
                         Curso</button>
                 </div>
             </form>
@@ -132,7 +134,7 @@
 
     <!-- MODAL: GESTIONAR MATERIAS DEL CURSO -->
     <div id="modal-manage-subjects"
-        class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4 transition-all duration-300">
+        class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center backdrop-blur-sm p-4 transition-all duration-300">
         <div
             class="bg-surface-dark border border-surface-border p-6 rounded-2xl w-full max-w-md shadow-2xl relative transform transition-all duration-300 scale-100 max-h-[90vh] overflow-y-auto">
             <button onclick="toggleModal('modal-manage-subjects')"
@@ -157,7 +159,6 @@
                     <select id="select-global-subject"
                         class="flex-1 bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white focus:border-primary outline-none transition-colors text-sm appearance-none cursor-pointer">
                         <option value="" disabled selected>Selecciona asignatura...</option>
-                        <!-- Se llena con JS desde el catálogo global -->
                     </select>
                 </div>
 
@@ -168,7 +169,7 @@
                         <option value="" disabled selected>Cargando docentes...</option>
                     </select>
                     <button onclick="addSubjectToCourse()"
-                        class="bg-primary hover:bg-[#0be050] text-background-dark font-bold px-4 py-2 rounded-xl transition-colors shadow-lg shadow-primary/20 flex items-center justify-center w-12 shrink-0">
+                        class="bg-primary hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl transition-colors shadow-lg shadow-primary/20 flex items-center justify-center w-12 shrink-0">
                         <span class="material-symbols-outlined text-lg">add</span>
                     </button>
                 </div>
@@ -198,7 +199,7 @@
 
     <!-- MODAL: CATÁLOGO GLOBAL DE ASIGNATURAS -->
     <div id="modal-global-catalog"
-        class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4 transition-all duration-300">
+        class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center backdrop-blur-sm p-4 transition-all duration-300">
         <div
             class="bg-surface-dark border border-surface-border p-6 rounded-2xl w-full max-w-md shadow-2xl relative transform transition-all duration-300 scale-100 max-h-[90vh] overflow-y-auto">
             <button onclick="toggleModal('modal-global-catalog')"
@@ -219,7 +220,7 @@
                 <input type="text" id="new-global-subject-name" placeholder="Nueva Asignatura (Ej: Biología)"
                     class="flex-1 bg-background-dark border border-surface-border rounded-xl px-4 py-2 text-white focus:border-primary outline-none transition-colors text-sm">
                 <button onclick="addGlobalSubject()"
-                    class="bg-primary hover:bg-[#0be050] text-background-dark font-bold px-4 py-2 rounded-xl transition-colors shadow-lg shadow-primary/20 whitespace-nowrap text-sm">
+                    class="bg-primary hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl transition-colors shadow-lg shadow-primary/20 whitespace-nowrap text-sm">
                     Crear
                 </button>
             </div>
@@ -237,9 +238,9 @@
         </div>
     </div>
 
-    <!-- MODAL: CONFLICTO DE PROFESOR (NUEVO) -->
+    <!-- MODAL: CONFLICTO DE PROFESOR -->
     <div id="modal-teacher-conflict"
-        class="hidden fixed inset-0 bg-black/80 z-[110] flex items-center justify-center backdrop-blur-sm p-4 transition-all">
+        class="hidden fixed inset-0 bg-black/60 z-[110] flex items-center justify-center backdrop-blur-sm p-4 transition-all">
         <div
             class="bg-surface-dark border border-warning/50 p-6 rounded-2xl w-full max-w-md shadow-2xl relative animate-fade-in ring-1 ring-warning/30">
 
@@ -255,7 +256,7 @@
                         curso
                         <strong class="text-warning" id="conflict-course-name">Curso X</strong>.
                     </p>
-                    <p class="text-xs text-text-secondary mt-3 bg-black/20 p-2 rounded-lg border border-surface-border">
+                    <p class="text-xs text-text-secondary mt-3 bg-black/5 p-2 rounded-lg border border-surface-border">
                         ¿Deseas realizar una sustitución? <br>
                         Esto moverá al profesor a tu nuevo curso y te pedirá un reemplazo para el anterior.
                     </p>
@@ -266,7 +267,7 @@
                         Cancelar
                     </button>
                     <button onclick="showReplacementStep()"
-                        class="flex-1 py-3 rounded-xl bg-warning text-background-dark font-bold hover:brightness-110 transition shadow-lg text-sm">
+                        class="flex-1 py-3 rounded-xl bg-warning text-white font-bold hover:brightness-110 transition shadow-lg text-sm">
                         Sí, sustituir
                     </button>
                 </div>
@@ -276,7 +277,7 @@
             <div id="conflict-step-2" class="hidden">
                 <div class="flex items-center gap-3 mb-6">
                     <button onclick="backToConflictStep1()"
-                        class="p-1 rounded-full hover:bg-white/10 text-text-secondary transition-colors">
+                        class="p-1 rounded-full hover:bg-black/5 text-text-secondary transition-colors">
                         <span class="material-symbols-outlined text-lg">arrow_back</span>
                     </button>
                     <div>
@@ -305,7 +306,7 @@
                 </div>
 
                 <button onclick="confirmTeacherSwap()"
-                    class="w-full py-3 rounded-xl bg-primary text-background-dark font-bold hover:bg-[#0be050] transition shadow-lg shadow-primary/20 text-sm flex items-center justify-center gap-2">
+                    class="w-full py-3 rounded-xl bg-primary text-white font-bold hover:bg-blue-700 transition shadow-lg shadow-primary/20 text-sm flex items-center justify-center gap-2">
                     <span class="material-symbols-outlined text-lg">swap_horiz</span>
                     Confirmar Cambios
                 </button>
