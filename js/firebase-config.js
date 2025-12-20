@@ -33,31 +33,21 @@ import {
     arrayRemove,
     runTransaction, 
     onSnapshot,
-    deleteField, // <--- AGREGADO: Para borrar campos de mapas (profesores asignados)
+    deleteField, 
     enableIndexedDbPersistence 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // --- CONFIGURACIÓN DE FIREBASE ---
-let firebaseConfig;
-
-if (typeof __firebase_config !== 'undefined') {
-    firebaseConfig = JSON.parse(__firebase_config);
-} else {
-    firebaseConfig = {
-        apiKey: "AIzaSyA0j-lU3viEHsNjzUB1xhSFgUMaZPNt8Lk",
-        authDomain: "notas-1ea5a.firebaseapp.com",
-        projectId: "notas-1ea5a",
-        storageBucket: "notas-1ea5a.firebasestorage.app",
-        messagingSenderId: "144917311326",
-        appId: "1:144917311326:web:dca2bd3cb62cb3dc6e29cf",
-        measurementId: "G-0ZSDRNHSZP"
-    };
-}
-
-if (!firebaseConfig.apiKey || firebaseConfig.apiKey === "PON_TU_API_KEY_AQUI") {
-    const msg = "⛔ ERROR DE CONFIGURACIÓN ⛔\n\nEstás ejecutando en Localhost pero no has configurado tus credenciales de Firebase.";
-    console.error(msg);
-}
+// La exportamos para usarla en register.js
+export const firebaseConfig = {
+    apiKey: "AIzaSyA0j-lU3viEHsNjzUB1xhSFgUMaZPNt8Lk",
+    authDomain: "notas-1ea5a.firebaseapp.com",
+    projectId: "notas-1ea5a",
+    storageBucket: "notas-1ea5a.firebasestorage.app",
+    messagingSenderId: "144917311326",
+    appId: "1:144917311326:web:dca2bd3cb62cb3dc6e29cf",
+    measurementId: "G-0ZSDRNHSZP"
+};
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -110,6 +100,6 @@ export {
     arrayRemove,
     runTransaction,
     onSnapshot, 
-    deleteField, // <--- EXPORTADO
+    deleteField, 
     appId 
 };
