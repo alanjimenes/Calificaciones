@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html class="dark" lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>EduSys - Directorio Global de Estudiantes</title>
+
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+    <!-- CONFIGURACIÓN DE TEMA -->
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2563eb",
+                        "primary-dark": "#1d4ed8",
+                        "background-light": "#f8fafc",
+                        "background-dark": "#0f172a",
+                        "surface-dark": "#1e293b",
+                        "surface-border": "#334155",
+                        "text-secondary": "#94a3b8",
+                        "white": "#f8fafc",
+                        "danger": "#ef4444",
+                        "admin": "#f59e0b",
+                    },
+                    fontFamily: { "display": ["Spline Sans", "sans-serif"] },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                    }
+                },
+            },
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+</head>
+
+<body
+    class="bg-background-dark text-white font-display antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300"
+    id="main-body">
+
+    <!-- Auth Guard (Admin o Secretaria) - CORREGIDO -->
+    <script type="module">
+        import { auth, onAuthStateChanged, doc, getDoc, db } from './js/firebase-config.js';
+        const body = document.getElementById('main-body');
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                let role = 'profesor'; // Default
+
+                // 1. Check Super Admin Hardcoded (Igual que en main.js para consistencia)
+                if (user.email === 'admin@mail.com' || user.email === 'director@edusys.com') {
+                    role = 'admin';
+                } else {
+                    try {
+                        // 2. Intentar obtener por UID
+                        let userDoc = await getDoc(doc(db, "usuarios", user.uid));
+
+                        // 3. Fallback: Intentar obtener por Email (Legacy support)
+                        if (!userDoc.exists()) {
+                            const userDocByEmail = await getDoc(doc(db, "usuarios", user.email));
+                            if (userDocByEmail.exists()) {
+                                userDoc = userDocByEmail;
+                            }
+                        }
+
+                        if (userDoc.exists()) {
+                            const data = userDoc.data();
+                            role = data.rol || 'profesor';
+                        }
+                    } catch (e) {
+                        console.error("Error verificando permisos:", e);
+                    }
+                }
+
+                console.log("Rol detectado en Global View:", role);
+
+                // Permitir acceso a Admin y Secretaria
+                if (role === 'admin' || role === 'secretaria') {
+                    body.classList.remove('opacity-0');
+                    window.dispatchEvent(new CustomEvent('userReady', { detail: { role: role, user: user } }));
+                } else {
+                    alert(`Acceso denegado.\n\nEsta sección es solo para Administración o Secretaría.\nTu rol actual es: ${role}`);
+                    window.location.href = 'index.html';
+                }
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+    </script>
+
+    <!-- EL SIDEBAR SE INYECTA CON JS (layout.js) -->
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main
+        class="flex-1 flex flex-col overflow-y-auto relative bg-background-dark p-6 md:p-8 scroll-smooth transition-all duration-300"
+        id="main-content">
+
+        <!-- Decoración de fondo -->
+        <div class="fixed top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+            <div class="absolute top-[10%] right-[20%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px]">
+            </div>
+            <div class="absolute bottom-[10%] left-[10%] w-[300px] h-[300px] bg-purple-500/5 rounded-full blur-[100px]">
+            </div>
+        </div>
+
+        <div class="relative z-10 max-w-7xl mx-auto w-full">
+
+            <!-- Header Móvil -->
+            <div class="lg:hidden flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-lg">school</span>
+                    </div>
+                    <span class="font-bold text-white text-lg">EduSys</span>
+                </div>
+                <button id="mobile-menu-btn"
+                    class="text-white material-symbols-outlined p-2 hover:bg-surface-dark rounded-lg transition-colors">menu</button>
+            </div>
+
+            <!-- Header Principal -->
+            <header class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <button id="desktop-sidebar-toggle"
+                        class="hidden lg:flex p-2 rounded-xl text-text-secondary hover:text-white hover:bg-surface-dark transition-colors"
+                        title="Ocultar/Mostrar Menú">
+                        <span class="material-symbols-outlined">menu_open</span>
+                    </button>
+
+                    <div>
+                        <h2 class="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
+                            Directorio Global
+                            <span
+                                class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-400 border border-purple-500/20 uppercase tracking-wider">Gestión
+                                Académica</span>
+                        </h2>
+                        <p class="text-text-secondary text-sm mt-1">Consulta el rendimiento académico de todos los
+                            estudiantes.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <!-- Selector de Periodo -->
+                    <div class="relative">
+                        <select id="period-filter"
+                            class="appearance-none bg-surface-dark border border-surface-border text-white text-sm rounded-xl pl-4 pr-10 py-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all shadow-sm cursor-pointer">
+                            <option value="p1" selected>Periodo 1</option>
+                            <option value="p2">Periodo 2</option>
+                            <option value="p3">Periodo 3</option>
+                            <option value="p4">Periodo 4</option>
+                        </select>
+                        <span
+                            class="material-symbols-outlined absolute right-3 top-2.5 text-text-secondary pointer-events-none text-lg">calendar_month</span>
+                    </div>
+
+                    <!-- Buscador -->
+                    <div class="relative group flex-1 md:flex-none">
+                        <span
+                            class="material-symbols-outlined absolute left-3 top-2.5 text-text-secondary group-focus-within:text-primary transition-colors text-lg">search</span>
+                        <input type="text" id="global-search" placeholder="Buscar estudiante, ID o curso..."
+                            class="w-full md:w-80 bg-surface-dark border border-surface-border text-white text-sm rounded-xl pl-10 pr-4 py-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all shadow-sm placeholder-text-secondary/50">
+                    </div>
+
+                    <button onclick="loadGlobalStudents()"
+                        class="p-2.5 rounded-xl bg-surface-dark border border-surface-border text-text-secondary hover:text-white hover:border-white/20 transition-all"
+                        title="Recargar Datos">
+                        <span class="material-symbols-outlined text-lg">refresh</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Contenedor Tabla -->
+            <div
+                class="bg-surface-dark border border-surface-border rounded-2xl shadow-xl overflow-hidden flex flex-col min-h-[500px]">
+
+                <!-- Loader Overlay -->
+                <div id="loader"
+                    class="absolute inset-0 flex items-center justify-center bg-background-dark/80 z-20 backdrop-blur-sm rounded-2xl">
+                    <div class="flex flex-col items-center gap-3">
+                        <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
+                        <p class="text-xs text-text-secondary animate-pulse">Compilando información de todos los
+                            cursos...</p>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto flex-1">
+                    <table class="w-full text-left border-collapse">
+                        <thead
+                            class="bg-surface-border/20 border-b border-surface-border/50 sticky top-0 backdrop-blur-md z-10">
+                            <tr>
+                                <th
+                                    class="py-4 px-6 text-[10px] font-bold text-text-secondary uppercase tracking-wider w-16">
+                                    Ord.</th>
+                                <th
+                                    class="py-4 px-6 text-[10px] font-bold text-text-secondary uppercase tracking-wider min-w-[250px]">
+                                    Estudiante</th>
+                                <th
+                                    class="py-4 px-6 text-[10px] font-bold text-text-secondary uppercase tracking-wider">
+                                    Curso</th>
+                                <th
+                                    class="py-4 px-6 text-[10px] font-bold text-text-secondary uppercase tracking-wider">
+                                    Desempeño por Asignatura (Promedios)</th>
+                                <th
+                                    class="py-4 px-6 text-[10px] font-bold text-text-secondary uppercase tracking-wider text-right">
+                                    Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="global-students-body" class="divide-y divide-surface-border/30 text-sm">
+                            <!-- Se llena con JS -->
+                        </tbody>
+                    </table>
+
+                    <!-- Empty State -->
+                    <div id="empty-state" class="hidden flex-col items-center justify-center p-12 text-center h-full">
+                        <div
+                            class="w-16 h-16 bg-surface-dark rounded-full flex items-center justify-center mb-4 border border-surface-border shadow-lg">
+                            <span class="material-symbols-outlined text-3xl text-text-secondary">school</span>
+                        </div>
+                        <h3 class="text-lg font-bold text-white">No se encontraron estudiantes</h3>
+                        <p class="text-text-secondary text-sm mt-1">Intenta con otro término de búsqueda.</p>
+                    </div>
+                </div>
+
+                <!-- Footer Informativo -->
+                <div
+                    class="border-t border-surface-border bg-surface-dark/50 p-3 px-6 flex justify-between items-center text-xs text-text-secondary">
+                    <span id="total-count">Cargando...</span>
+                    <span class="flex items-center gap-1.5"><span
+                            class="w-2 h-2 rounded-full bg-primary/20 border border-primary"></span> Promedios
+                        calculados según actividades registradas.</span>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- SCRIPTS -->
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/layout.js"></script>
+    <script type="module" src="js/main.js"></script>
+    <script type="module" src="js/estudiantes_global.js"></script>
+
+</body>
+
+</html>

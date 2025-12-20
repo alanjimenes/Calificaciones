@@ -16,27 +16,28 @@ window.addEventListener('userReady', (e) => {
 
 function renderSidebar() {
     const currentPath = window.location.pathname;
-    
+
     const links = [
         { href: 'index.html', icon: 'dashboard', text: 'Inicio' },
         { href: 'cursos.html', icon: 'auto_stories', text: 'Cursos' }
     ];
 
     const managementLinks = [
-        { href: 'boletin.html', icon: 'description', text: 'Boletines' }
+        { href: 'boletin.html', icon: 'description', text: 'Boletines' },
+        // --- NUEVA OPCIÓN AGREGADA ---
+        { href: 'estudiantes_global.html', icon: 'groups', text: 'Estudiantes Global' }
     ];
 
     const adminLinks = [
         { href: 'usuarios.html', icon: 'group', text: 'Gestión Usuarios' },
         { href: 'asignaturas.html', icon: 'category', text: 'Asignaturas' },
-        // --- NUEVA OPCIÓN AÑADIDA AQUÍ ---
         { href: 'auditoria.html', icon: 'history', text: 'Historial Cambios' }
     ];
 
     // Detectar si estamos en configuración para resaltar el botón
     const isSettingsActive = currentPath.includes('configuracion.html');
-    const settingsClass = isSettingsActive 
-        ? "bg-primary/10 text-primary border-l-4 border-primary" 
+    const settingsClass = isSettingsActive
+        ? "bg-primary/10 text-primary border-l-4 border-primary"
         : "text-text-secondary hover:text-white hover:bg-white/5";
 
     const sidebarHTML = `
@@ -95,7 +96,7 @@ function renderSidebar() {
 
 function setupSidebarToggle() {
     const sidebar = document.getElementById('main-sidebar');
-    if (!sidebar) return; 
+    if (!sidebar) return;
 
     let mobileBtn = document.getElementById('mobile-menu-btn');
     if (!mobileBtn) {
@@ -106,7 +107,7 @@ function setupSidebarToggle() {
     }
 
     let desktopBtn = document.getElementById('desktop-sidebar-toggle');
-    
+
     if (!desktopBtn) {
         desktopBtn = document.createElement('button');
         desktopBtn.id = 'desktop-sidebar-toggle';
@@ -121,11 +122,11 @@ function setupSidebarToggle() {
             if (sidebar.classList.contains('lg:flex')) {
                 sidebar.classList.remove('lg:flex');
                 sidebar.classList.add('lg:hidden');
-                updateDesktopIcon('menu'); 
+                updateDesktopIcon('menu');
             } else {
                 sidebar.classList.remove('lg:hidden');
                 sidebar.classList.add('lg:flex');
-                updateDesktopIcon('menu_open'); 
+                updateDesktopIcon('menu_open');
             }
         } else {
             if (sidebar.classList.contains('hidden')) {
@@ -164,11 +165,11 @@ function setupSidebarToggle() {
     document.addEventListener('click', (e) => {
         const isMobile = window.innerWidth < 1024;
         const isHidden = sidebar.classList.contains('hidden');
-        
+
         if (isMobile && !isHidden) {
             const clickedInside = sidebar.contains(e.target);
             const clickedBtn = mobileBtn && mobileBtn.contains(e.target);
-            
+
             if (!clickedInside && !clickedBtn) {
                 toggleSidebar(false);
             }
@@ -184,12 +185,12 @@ function createLinkHTML(link, currentPath, isAdmin = false) {
     if ((link.href === 'index.html' && (cleanPageName === '' || cleanPageName === 'index.html')) || cleanPageName === link.href) {
         isActive = true;
     }
-    
+
     let classes = "flex items-center gap-4 rounded-xl px-4 py-3.5 transition-all ";
-    
+
     if (isActive) {
         if (isAdmin) classes += "bg-admin/10 text-admin border-l-4 border-admin";
-        else classes += "bg-primary/10 text-primary border-l-4 border-primary"; 
+        else classes += "bg-primary/10 text-primary border-l-4 border-primary";
     } else {
         classes += "text-text-secondary hover:text-white hover:bg-white/5";
     }
@@ -214,21 +215,23 @@ function updateSidebarInfo(user, role) {
         imgEl.style.backgroundImage = `url('${user.photoURL}')`;
         imgEl.classList.remove('animate-pulse');
     } else if (imgEl && user.email) {
-         imgEl.classList.remove('animate-pulse');
-         imgEl.innerText = user.email.charAt(0).toUpperCase();
-         imgEl.classList.add('flex', 'items-center', 'justify-center', 'text-xl', 'font-bold', 'text-white');
+        imgEl.classList.remove('animate-pulse');
+        imgEl.innerText = user.email.charAt(0).toUpperCase();
+        imgEl.classList.add('flex', 'items-center', 'justify-center', 'text-xl', 'font-bold', 'text-white');
     }
 
     if (roleEl) {
         let roleName = 'DOCENTE';
         let roleClass = 'bg-primary/20 text-primary';
-        
-        if (role === 'admin') { 
-            roleName = 'ADMINISTRADOR'; 
-            roleClass = 'bg-admin/20 text-admin'; 
-        } else if (role === 'secretaria') { 
-            roleName = 'SECRETARIA'; 
-            roleClass = 'bg-purple-500/20 text-purple-400 border border-purple-500/20'; 
+
+        if (role === 'admin') {
+            roleName = 'ADMINISTRADOR';
+            roleClass = 'bg-admin/20 text-admin';
+        } else if (role === 'secretaria') {
+            roleName = 'SECRETARIA';
+            roleClass = 'bg-purple-500/20 text-purple-400 border border-purple-500/20';
+        } else if (role === 'titular') {
+            roleName = 'TITULAR';
         }
 
         roleEl.innerText = roleName;
@@ -241,6 +244,7 @@ function updateSidebarInfo(user, role) {
     }
 
     if (managementSection) {
+        // Permitimos acceso a Management (Boletines, Estudiantes Global) a Secretaria y Admin
         if (role === 'admin' || role === 'secretaria') managementSection.classList.remove('hidden');
         else managementSection.classList.add('hidden');
     }
