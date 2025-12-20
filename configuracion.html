@@ -189,12 +189,13 @@
                         <span class="material-symbols-outlined text-text-secondary transition-transform duration-300 arrow-icon">expand_more</span>
                     </button>
                     
-                    <div id="content-backup" class="hidden px-8 pb-8 animate-fade-in">
+                    <div id="content-backup" class="hidden px-8 pb-8 animate-fade-in space-y-4">
+                        <!-- EXPORTAR -->
                         <div class="flex flex-col md:flex-row items-center justify-between gap-6 bg-background-dark border border-surface-border rounded-xl p-5">
                             <div>
                                 <p class="text-sm text-white font-bold mb-1">Exportar Base de Datos</p>
                                 <p class="text-xs text-text-secondary leading-relaxed max-w-lg">
-                                    Descarga un archivo JSON con toda la información del sistema (usuarios, cursos, notas y logs). 
+                                    Descarga un archivo JSON con toda la información del sistema. 
                                     Útil para auditorías o respaldos locales.
                                 </p>
                             </div>
@@ -202,6 +203,27 @@
                                 <span class="material-symbols-outlined">download</span>
                                 Descargar Copia
                             </button>
+                        </div>
+
+                        <!-- RESTAURAR (Nuevo) -->
+                        <div class="flex flex-col md:flex-row items-center justify-between gap-6 bg-background-dark border border-surface-border border-dashed border-admin/50 rounded-xl p-5">
+                            <div>
+                                <p class="text-sm text-white font-bold mb-1">Restaurar Base de Datos</p>
+                                <p class="text-xs text-text-secondary leading-relaxed max-w-lg">
+                                    Sube un archivo de respaldo (.json) para restaurar el sistema. 
+                                    <span class="text-danger font-bold">¡Atención! Esto actualizará o creará los registros contenidos en el archivo.</span>
+                                </p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <input type="file" id="file-restore-input" accept=".json" class="hidden">
+                                <button id="btn-select-restore" class="px-5 py-3 rounded-xl border border-surface-border hover:bg-surface-border text-white font-bold transition-all text-sm whitespace-nowrap">
+                                    Seleccionar Archivo
+                                </button>
+                                <button id="btn-start-restore" class="hidden px-5 py-3 rounded-xl bg-danger text-white hover:bg-red-600 font-bold transition-all shadow-lg shadow-danger/20 text-sm flex items-center gap-2 whitespace-nowrap">
+                                    <span class="material-symbols-outlined">settings_backup_restore</span>
+                                    Restaurar
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

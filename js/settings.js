@@ -155,6 +155,94 @@ if (btnBackup) {
     });
 }
 
+// --- RESTAURACIÓN DE BACKUP (IMPORTAR JSON) ---
+const btnSelectRestore = document.getElementById('btn-select-restore');
+const fileInputRestore = document.getElementById('file-restore-input');
+const btnStartRestore = document.getElementById('btn-start-restore');
+
+if (btnSelectRestore && fileInputRestore) {
+    btnSelectRestore.addEventListener('click', () => fileInputRestore.click());
+
+    fileInputRestore.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            btnSelectRestore.innerText = e.target.files[0].name;
+            btnStartRestore.classList.remove('hidden');
+        }
+    });
+}
+
+if (btnStartRestore) {
+    btnStartRestore.addEventListener('click', async () => {
+        const file = fileInputRestore.files[0];
+        if (!file) return;
+
+        if (!confirm("PELIGRO:\n\nEsta acción sobrescribirá o actualizará los datos con los del archivo de respaldo.\n\n¿Estás seguro de que quieres restaurar la base de datos?")) return;
+
+        const originalText = btnStartRestore.innerHTML;
+        btnStartRestore.disabled = true;
+        btnStartRestore.innerHTML = '<span class="material-symbols-outlined animate-spin">refresh</span> Restaurando...';
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                
+                // Validación básica
+                if (!data.metadata || !data.usuarios) {
+                    throw new Error("Formato de archivo inválido.");
+                }
+
+                // Restaurar Colecciones
+                // 1. Usuarios
+                if (data.usuarios) {
+                    for (const u of data.usuarios) {
+                        const { id, ...uData } = u;
+                        // Usamos merge: true para no borrar campos extra que puedan existir, pero actualizar los del backup
+                        await setDoc(doc(db, "usuarios", id), uData, { merge: true });
+                    }
+                }
+
+                // 2. Cursos Globales
+                if (data.cursos_globales) {
+                    for (const c of data.cursos_globales) {
+                        const { id, ...cData } = c;
+                        await setDoc(doc(db, "cursos_globales", id), cData, { merge: true });
+                    }
+                }
+
+                // 3. Asignaturas
+                if (data.asignaturas_catalogo) {
+                    for (const a of data.asignaturas_catalogo) {
+                        const { id, ...aData } = a;
+                        await setDoc(doc(db, "asignaturas_catalogo", id), aData, { merge: true });
+                    }
+                }
+                
+                // 4. Auditoría (Opcional)
+                if (data.registros_auditoria) {
+                    for (const r of data.registros_auditoria) {
+                        const { id, ...rData } = r;
+                        await setDoc(doc(db, "registros_auditoria", id), rData, { merge: true });
+                    }
+                }
+
+                if (window.showToast) window.showToast("Restauración completada con éxito", "success");
+                
+                // Recargar para ver los cambios
+                setTimeout(() => window.location.reload(), 2000);
+
+            } catch (error) {
+                console.error("Error al restaurar:", error);
+                alert("Error al procesar el archivo: " + error.message);
+            } finally {
+                btnStartRestore.disabled = false;
+                btnStartRestore.innerHTML = originalText;
+            }
+        };
+        reader.readAsText(file);
+    });
+}
+
 // --- ACTUALIZAR PERFIL (NOMBRE) ---
 const formProfile = document.getElementById('form-profile');
 if (formProfile) {
