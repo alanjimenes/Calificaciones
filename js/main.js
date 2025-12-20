@@ -9,6 +9,16 @@ const SUPER_ADMINS = [
     'director@edusys.com'
 ];
 
+// --- APLICACIÓN INMEDIATA DEL TEMA ---
+// Esto se ejecuta en cuanto se importa main.js para evitar parpadeos
+const savedTheme = localStorage.getItem('edusys_theme');
+if (savedTheme === 'light') {
+    document.documentElement.classList.remove('dark');
+} else {
+    // Por defecto es dark, aseguramos que la clase esté presente
+    document.documentElement.classList.add('dark');
+}
+
 function loadUserFromCache() {
     const cached = localStorage.getItem(CACHE_KEY);
     return cached ? JSON.parse(cached) : null;

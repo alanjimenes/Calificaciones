@@ -13,6 +13,57 @@ window.addEventListener('userReady', (e) => {
     }
 });
 
+// --- LÓGICA DE ACORDEÓN (DESPLEGABLES) ---
+document.addEventListener('DOMContentLoaded', () => {
+    const accordionTriggers = document.querySelectorAll('.accordion-trigger');
+
+    accordionTriggers.forEach(trigger => {
+        trigger.addEventListener('click', () => {
+            const targetId = trigger.getAttribute('data-target');
+            const content = document.getElementById(targetId);
+            const arrow = trigger.querySelector('.arrow-icon');
+            
+            // Cerrar otros acordeones (Opcional: Si quieres que solo uno esté abierto a la vez)
+            // accordionTriggers.forEach(otherTrigger => {
+            //     if (otherTrigger !== trigger) {
+            //         const otherTarget = document.getElementById(otherTrigger.getAttribute('data-target'));
+            //         const otherArrow = otherTrigger.querySelector('.arrow-icon');
+            //         otherTarget.classList.add('hidden');
+            //         otherArrow.style.transform = 'rotate(0deg)';
+            //     }
+            // });
+
+            // Toggle actual
+            const isHidden = content.classList.contains('hidden');
+            
+            if (isHidden) {
+                content.classList.remove('hidden');
+                arrow.style.transform = 'rotate(180deg)';
+            } else {
+                content.classList.add('hidden');
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        });
+    });
+
+    // --- LÓGICA DE TEMA ---
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+        const savedTheme = localStorage.getItem('edusys_theme') || 'dark';
+        themeToggle.checked = (savedTheme === 'dark');
+
+        themeToggle.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('edusys_theme', 'dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('edusys_theme', 'light');
+            }
+        });
+    }
+});
+
 function loadUserData(user, role) {
     // 1. Cargar Avatar
     const avatarEl = document.getElementById('settings-avatar');
