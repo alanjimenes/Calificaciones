@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html class="dark" lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>EduSys - Configuración</title>
+
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    
+    <!-- CONFIGURACIÓN DE TEMA -->
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2563eb",
+                        "primary-dark": "#1d4ed8",
+                        "background-light": "#f8fafc",
+                        "background-dark": "#0f172a", 
+                        "surface-dark": "#1e293b",     
+                        "surface-border": "#334155",   
+                        "text-secondary": "#94a3b8",
+                        "white": "#f8fafc",
+                        "danger": "#ef4444",
+                        "admin": "#f59e0b",
+                    },
+                    fontFamily: { "display": ["Spline Sans", "sans-serif"] },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                    }
+                },
+            },
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+</head>
+
+<body class="bg-background-dark text-white font-display antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300" id="main-body">
+
+    <!-- EL SIDEBAR SE INYECTA CON JS (layout.js) -->
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="flex-1 flex flex-col overflow-y-auto relative bg-background-dark p-6 md:p-8 scroll-smooth transition-all duration-300" id="main-content">
+        
+        <!-- Decoración de fondo -->
+        <div class="fixed top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+            <div class="absolute top-[10%] right-[20%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px]"></div>
+            <div class="absolute bottom-[10%] left-[10%] w-[300px] h-[300px] bg-purple-500/5 rounded-full blur-[100px]"></div>
+        </div>
+
+        <div class="relative z-10 max-w-4xl mx-auto w-full">
+            
+            <!-- Header Móvil -->
+            <div class="lg:hidden flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-lg">school</span>
+                    </div>
+                    <span class="font-bold text-white text-lg">EduSys</span>
+                </div>
+                <button id="mobile-menu-btn" class="text-white material-symbols-outlined p-2 hover:bg-surface-dark rounded-lg transition-colors">menu</button>
+            </div>
+
+            <!-- Header Principal -->
+            <header class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <button id="desktop-sidebar-toggle" class="hidden lg:flex p-2 rounded-xl text-text-secondary hover:text-white hover:bg-surface-dark transition-colors" title="Ocultar/Mostrar Menú">
+                        <span class="material-symbols-outlined">menu_open</span>
+                    </button>
+
+                    <div>
+                        <h2 class="text-3xl font-bold text-white tracking-tight">Configuración</h2>
+                        <p class="text-text-secondary text-sm mt-1">Administra tu perfil y opciones de sesión.</p>
+                    </div>
+                </div>
+            </header>
+
+            <!-- CONTENEDOR PRINCIPAL -->
+            <div class="bg-surface-dark border border-surface-border rounded-2xl overflow-hidden shadow-2xl">
+                
+                <!-- SECCIÓN 1: EDITAR PERFIL (Unificada) -->
+                <div class="p-8 border-b border-surface-border/50">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="p-2 rounded-lg bg-primary/10 text-primary">
+                            <span class="material-symbols-outlined">manage_accounts</span>
+                        </div>
+                        <h3 class="text-lg font-bold text-white uppercase tracking-wider">Editar Perfil</h3>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <!-- Columna Izquierda: Avatar y Nombre -->
+                        <div class="lg:col-span-1 flex flex-col items-center gap-4 p-4 rounded-xl bg-background-dark/30 border border-surface-border/30">
+                            <div id="settings-avatar" class="w-32 h-32 rounded-full bg-surface-border flex items-center justify-center text-4xl font-bold text-white bg-cover bg-center border-4 border-background-dark shadow-xl">
+                                <!-- JS -->
+                            </div>
+                            <div class="w-full">
+                                <form id="form-profile" class="space-y-3">
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-text-secondary mb-1 uppercase">Nombre Visible</label>
+                                        <input type="text" id="settings-name" class="w-full bg-background-dark border border-surface-border rounded-lg px-3 py-2 text-white focus:border-primary outline-none transition-colors text-sm text-center">
+                                    </div>
+                                    <button type="submit" class="w-full px-4 py-2 rounded-lg bg-primary hover:bg-primary-dark text-white font-bold transition-all shadow-md text-xs">
+                                        Guardar Nombre
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Columna Derecha: Seguridad -->
+                        <div class="lg:col-span-2 space-y-8">
+                            <!-- Cambio de Email -->
+                            <form id="form-email" class="space-y-3">
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase border-b border-surface-border/50 pb-1">Cambiar Correo Electrónico</label>
+                                <div class="flex gap-3">
+                                    <input type="email" id="settings-email-new" placeholder="Nuevo correo" required class="flex-1 bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white focus:border-primary outline-none transition-colors text-sm">
+                                    <button type="submit" class="px-4 py-2.5 rounded-xl border border-surface-border hover:bg-surface-border text-white font-bold text-xs transition-colors whitespace-nowrap">
+                                        Actualizar
+                                    </button>
+                                </div>
+                                <p class="text-[10px] text-text-secondary/60 italic">* Tu correo actual es: <span id="settings-email-current" class="text-white">...</span></p>
+                            </form>
+
+                            <!-- Cambio de Password -->
+                            <form id="form-password" class="space-y-3">
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase border-b border-surface-border/50 pb-1">Cambiar Contraseña</label>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <input type="password" id="settings-pass-new" placeholder="Nueva contraseña" minlength="6" required class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white focus:border-primary outline-none transition-colors text-sm">
+                                    <input type="password" id="settings-pass-confirm" placeholder="Confirmar" minlength="6" required class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white focus:border-primary outline-none transition-colors text-sm">
+                                </div>
+                                <div class="flex justify-end">
+                                    <button type="submit" class="px-6 py-2.5 rounded-xl bg-surface-border hover:bg-white/10 text-white font-bold text-xs transition-colors">
+                                        Cambiar Clave
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN 2: CERRAR SESIÓN -->
+                <div class="p-6 bg-red-500/5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div>
+                        <h4 class="text-sm font-bold text-danger flex items-center gap-2">
+                            <span class="material-symbols-outlined text-lg">logout</span>
+                            Cerrar Sesión
+                        </h4>
+                        <p class="text-xs text-text-secondary mt-0.5">Finaliza tu sesión actual de forma segura.</p>
+                    </div>
+                    <button id="btn-logout-settings" class="px-8 py-3 rounded-xl bg-danger text-white hover:bg-red-600 font-bold transition-all shadow-lg shadow-danger/20 text-sm w-full sm:w-auto text-center">
+                        Salir del Sistema
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- SCRIPTS -->
+    <script type="module" src="js/layout.js"></script>
+    <script type="module" src="js/main.js"></script>
+    <script type="module" src="js/settings.js"></script>
+
+</body>
+</html>
