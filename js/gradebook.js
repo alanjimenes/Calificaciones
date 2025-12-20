@@ -12,9 +12,7 @@ let currentTab = 'grades';
 let attendanceDate = new Date().toISOString().split('T')[0];
 let currentPeriod = 'p1';
 let currentTaskToGrade = null;
-let saveTimeout = null;
 
-// MODIFICADO: Eliminado 'final'
 const periodNames = { 'p1': 'Periodo 1', 'p2': 'Periodo 2', 'p3': 'Periodo 3', 'p4': 'Periodo 4' };
 
 const urlParams = new URLSearchParams(window.location.search);
@@ -36,26 +34,42 @@ async function initializeGradebook(userId, userEmail) {
 
         courseConfig = courseDoc.data();
         currentStudents = courseConfig.estudiantes || [];
+
+        // Renderizar header del curso
         const titleEl = document.getElementById('course-title-display');
         if (titleEl) titleEl.innerHTML = `<span class="material-symbols-outlined text-[16px]">school</span> ${courseConfig.nombre} <span class="ml-2 text-xs bg-surface-border px-2 py-0.5 rounded text-white font-mono">${courseConfig.id}</span>`;
 
+        // Renderizar Stats del Dashboard
+        const totalSubjectsEl = document.getElementById('dash-total-subjects');
+        const totalStudentsEl = document.getElementById('dash-total-students');
+        if (totalSubjectsEl) totalSubjectsEl.innerText = (courseConfig.materias || []).length;
+        if (totalStudentsEl) totalStudentsEl.innerText = currentStudents.length;
+
         isTitular = (userEmail === courseConfig.titular_email);
         const btnAddStudent = document.getElementById('btn-add-student');
+        // Solo mostrar botón de agregar estudiante si es admin o titular
         if (btnAddStudent && (isAdmin || isTitular)) btnAddStudent.classList.remove('hidden');
 
-        setupSubjectSelector(courseConfig.materias || []);
+        // Búsqueda en el dashboard
+        const searchInput = document.getElementById('dash-subject-search');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                renderSubjectsDashboard(e.target.value);
+            });
+        }
+
         setupTabs();
 
-        // Listener Fechas y Periodos
+        // Listener Periodos
         const periodSelect = document.getElementById('period-selector');
         if (periodSelect) {
             periodSelect.addEventListener('change', (e) => {
                 currentPeriod = e.target.value;
-                document.getElementById('current-period-display').innerText = periodNames[currentPeriod];
                 if (currentTab === 'grades') renderTable();
             });
         }
 
+        // Listener Fecha Asistencia
         const datePicker = document.getElementById('attendance-date');
         if (datePicker) {
             datePicker.value = attendanceDate;
@@ -65,37 +79,120 @@ async function initializeGradebook(userId, userEmail) {
             });
         }
 
+        // --- CAMBIO CLAVE: NO SELECCIONAR MATERIA AUTOMÁTICAMENTE ---
+        // Renderizamos el dashboard primero
+        renderSubjectsDashboard();
+        showDashboardView();
+
     } catch (error) { console.error("Error inicializando:", error); }
     finally { if (loader) loader.style.display = 'none'; }
 }
 
-function setupSubjectSelector(materias) {
-    const subjectSelect = document.getElementById('subject-selector');
-    if (!subjectSelect) return;
-    subjectSelect.innerHTML = '<option value="" disabled selected>Selecciona una materia...</option>';
-    materias.forEach(materia => {
-        const option = document.createElement('option');
-        option.value = materia;
-        option.textContent = materia;
-        subjectSelect.appendChild(option);
-    });
-    subjectSelect.addEventListener('change', (e) => {
-        selectedSubject = e.target.value;
-        const modalSubjectLabel = document.getElementById('modal-current-subject');
-        if (modalSubjectLabel) modalSubjectLabel.innerText = selectedSubject;
-        currentTaskToGrade = null;
-        checkSubjectPermissions();
-        refreshCurrentView();
-    });
-    if (materias.length > 0) {
-        selectedSubject = materias[0];
-        subjectSelect.value = selectedSubject;
-        const modalSubjectLabel = document.getElementById('modal-current-subject');
-        if (modalSubjectLabel) modalSubjectLabel.innerText = selectedSubject;
-        checkSubjectPermissions();
-        refreshCurrentView();
+// --- NUEVO: RENDERIZADO DEL DASHBOARD DE MATERIAS ---
+function renderSubjectsDashboard(filterTerm = "") {
+    const tbody = document.getElementById('subjects-dashboard-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const materias = courseConfig.materias || [];
+    const profesores = courseConfig.profesores_materias || {};
+
+    // Filtrar
+    const filtered = materias.filter(m => m.toLowerCase().includes(filterTerm.toLowerCase()));
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="py-8 text-center text-text-secondary">No se encontraron materias.</td></tr>`;
+        return;
     }
+
+    filtered.forEach(materia => {
+        const profesorEmail = profesores[materia];
+        const initial = materia.charAt(0).toUpperCase();
+
+        // Estilos para el icono (colores aleatorios simulados)
+        const colors = ['text-orange-400 bg-orange-900/30', 'text-blue-400 bg-blue-900/30', 'text-purple-400 bg-purple-900/30', 'text-teal-400 bg-teal-900/30', 'text-red-400 bg-red-900/30'];
+        const colorClass = colors[materia.length % colors.length];
+
+        const tr = document.createElement('tr');
+        tr.className = "group hover:bg-surface-border/10 transition-colors cursor-pointer";
+        tr.onclick = () => selectSubjectFromDashboard(materia); // Click en toda la fila entra
+
+        tr.innerHTML = `
+            <td class="py-4 px-6">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center size-10 rounded-lg ${colorClass}">
+                        <span class="material-symbols-outlined">menu_book</span>
+                    </div>
+                    <div>
+                        <p class="text-white font-medium text-sm">${materia}</p>
+                        <p class="text-text-secondary text-xs">Materia Curricular</p>
+                    </div>
+                </div>
+            </td>
+            <td class="py-4 px-6">
+                <div class="flex items-center gap-3">
+                     <div class="size-8 rounded-full bg-surface-border flex items-center justify-center text-xs font-bold text-white border border-white/10">
+                        ${getInitials(profesorEmail || "S A")}
+                    </div>
+                    <p class="text-white text-sm truncate max-w-[150px]">${profesorEmail || "Sin asignar"}</p>
+                </div>
+            </td>
+            <td class="py-4 px-6">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900/30 text-green-400 border border-green-800">
+                    <span class="size-1.5 rounded-full bg-green-500"></span>
+                    Activo
+                </span>
+            </td>
+            <td class="py-4 px-6 text-right">
+                <button class="bg-primary hover:bg-[#0be050] text-background-dark font-bold text-xs px-3 py-1.5 rounded-lg transition-colors shadow-lg shadow-primary/10">
+                    Entrar
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
 }
+
+// --- LOGICA DE NAVEGACIÓN ---
+
+// 1. Mostrar Dashboard (Estado Inicial)
+function showDashboardView() {
+    document.getElementById('view-subjects-dashboard').classList.remove('hidden');
+    document.getElementById('view-grades').classList.add('hidden');
+    document.getElementById('view-tasks').classList.add('hidden');
+    document.getElementById('view-attendance').classList.add('hidden');
+
+    // Ocultar controles específicos de materia
+    document.getElementById('controls-gradebook').classList.add('hidden');
+    document.getElementById('subject-status').classList.add('hidden');
+    document.getElementById('btn-back-to-subjects').classList.add('hidden');
+
+    selectedSubject = null;
+}
+
+// 2. Entrar a una Materia
+window.selectSubjectFromDashboard = (materiaName) => {
+    selectedSubject = materiaName;
+
+    // Actualizar UI
+    document.getElementById('current-subject-label').innerText = selectedSubject;
+    document.getElementById('view-subjects-dashboard').classList.add('hidden');
+    document.getElementById('controls-gradebook').classList.remove('hidden');
+    document.getElementById('subject-status').classList.remove('hidden');
+    document.getElementById('btn-back-to-subjects').classList.remove('hidden'); // Mostrar botón volver
+
+    checkSubjectPermissions();
+
+    // Ir a pestaña por defecto (Planilla)
+    switchTab('grades');
+}
+
+// 3. Volver al Dashboard
+window.returnToSubjects = () => {
+    showDashboardView();
+}
+
+// --- FUNCIONES ORIGINALES (Adaptadas) ---
 
 function setupTabs() {
     const tabGrades = document.getElementById('tab-grades');
@@ -143,6 +240,7 @@ function setupTabs() {
 }
 
 function refreshCurrentView() {
+    if (!selectedSubject) return; // Si no hay materia, no refrescar vistas de detalle
     if (currentTab === 'grades') renderTable();
     else if (currentTab === 'attendance') renderAttendance();
     else if (currentTab === 'tasks') renderTasksView();
@@ -178,8 +276,13 @@ function renderTable() {
     const tableHeadRow = document.getElementById('table-headers');
     const emptyState = document.getElementById('empty-state');
 
-    if (!selectedSubject) {
-        if (emptyState) emptyState.classList.remove('hidden');
+    // Nota: El empty state general lo manejamos a nivel de vista Dashboard ahora
+    // Pero si entra a una materia y no hay estudiantes, mostramos esto:
+    if (currentStudents.length === 0) {
+        if (emptyState) {
+            emptyState.classList.remove('hidden');
+            emptyState.querySelector('p').innerText = "No hay estudiantes registrados en este curso.";
+        }
         if (tableBody) tableBody.innerHTML = '';
         return;
     }
@@ -417,12 +520,7 @@ window.renderTasksView = function () {
     const singleTaskContainer = document.getElementById('single-task-container');
     const emptyState = document.getElementById('empty-state');
 
-    if (!selectedSubject) {
-        if (emptyState) emptyState.classList.remove('hidden');
-        if (tasksListContainer) tasksListContainer.classList.add('hidden');
-        return;
-    }
-    if (emptyState) emptyState.classList.add('hidden');
+    if (!selectedSubject) return;
 
     if (currentTaskToGrade) {
         if (tasksListContainer) tasksListContainer.classList.add('hidden');
@@ -512,8 +610,7 @@ window.closeTaskGrading = () => { currentTaskToGrade = null; renderTasksView(); 
 window.renderAttendance = function () {
     const tableBody = document.getElementById('attendance-table-body');
     const emptyState = document.getElementById('empty-state');
-    if (!selectedSubject) { if (emptyState) emptyState.classList.remove('hidden'); return; }
-    if (emptyState) emptyState.classList.add('hidden');
+    if (!selectedSubject) return;
 
     const canEdit = checkSubjectPermissions();
     if (tableBody) tableBody.innerHTML = '';
@@ -670,7 +767,6 @@ if (formActivity) {
 
         if (!name || isNaN(value) || !selectedSubject) return;
 
-        // --- VALIDACIÓN 1: Valor individual máximo 100 ---
         if (value > 100) {
             alert("Error: El valor de la actividad no puede ser mayor al 100%.");
             return;
@@ -679,8 +775,6 @@ if (formActivity) {
         if (!courseConfig.actividades) courseConfig.actividades = {};
         if (!courseConfig.actividades[selectedSubject]) courseConfig.actividades[selectedSubject] = [];
 
-        // --- VALIDACIÓN 2: Suma Total del Periodo ---
-        // Filtrar actividades existentes del mismo periodo
         const actividadesDelPeriodo = courseConfig.actividades[selectedSubject].filter(act => (act.periodo || 'p1') === period);
 
         let sumaActual = 0;
@@ -695,14 +789,12 @@ if (formActivity) {
             return;
         }
 
-        // Si pasa validaciones, guardar
         courseConfig.actividades[selectedSubject].push({ nombre: name, valor: value, periodo: period });
 
         await updateDoc(doc(db, "cursos_globales", COURSE_ID), { actividades: courseConfig.actividades });
         if (window.toggleModal) window.toggleModal('modal-add-activity');
         refreshCurrentView();
 
-        // Limpiar formulario
         document.getElementById('activity-name').value = '';
         valueInput.value = '';
     });
