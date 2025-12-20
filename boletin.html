@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="css/styles.css">
     <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
 
-    <!-- CONFIGURACIÓN DE TEMA (Consistente con el sistema) -->
+    <!-- CONFIGURACIÓN DE TEMA -->
     <script>
         tailwind.config = {
             darkMode: "class",
@@ -19,9 +19,9 @@
                         "primary": "#2563eb",
                         "primary-dark": "#1d4ed8",
                         "background-light": "#f8fafc",
-                        "background-dark": "#0f172a", /* Fondo principal oscuro */
-                        "surface-dark": "#1e293b",     /* Fondo de tarjetas */
-                        "surface-border": "#334155",   /* Bordes sutiles */
+                        "background-dark": "#0f172a",
+                        "surface-dark": "#1e293b",
+                        "surface-border": "#334155",
                         "text-secondary": "#94a3b8",
                         "white": "#f8fafc",
                         "danger": "#ef4444",
@@ -40,42 +40,87 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
 
     <style>
-        /* ESTILOS DE IMPRESIÓN (CRÍTICOS) */
+        /* --- ESTILOS DE IMPRESIÓN CORREGIDOS --- */
         @media print {
-            body * {
-                visibility: hidden;
+
+            /* 1. Configuración de Hoja */
+            @page {
+                size: letter landscape;
+                /* Carta Horizontal */
+                margin: 0mm;
+                /* Sin márgenes para control total */
             }
 
-            #boletin-preview,
-            #boletin-preview * {
-                visibility: visible;
-            }
-
-            #boletin-preview {
-                position: absolute;
-                left: 0;
-                top: 0;
+            /* 2. Resetear body y html */
+            html,
+            body {
                 width: 100%;
-                margin: 0;
-                padding: 0;
-                border: none !important;
+                height: 100%;
+                margin: 0 !important;
+                padding: 0 !important;
                 background: white !important;
-                color: black !important;
-                box-shadow: none !important;
+                overflow: visible !important;
             }
 
-            .no-print {
+            /* 3. Ocultar interfaz del sistema (Display None para no ocupar espacio) */
+            #layout-header,
+            #layout-control-panel,
+            .no-print,
+            nav,
+            aside,
+            .fixed,
+            #mobile-menu-btn,
+            #desktop-sidebar-toggle {
                 display: none !important;
             }
 
-            @page {
-                size: letter portrait;
-                /* O A4 */
-                margin: 0.5cm;
+            /* 4. Desbloquear contenedores padres para permitir flujo de páginas */
+            #main-content,
+            #main-wrapper,
+            #preview-area {
+                display: block !important;
+                position: static !important;
+                /* Importante para que el contenido fluya */
+                width: 100% !important;
+                height: auto !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: visible !important;
+                border: none !important;
+                background: white !important;
+            }
+
+            /* 5. Estilos del Boletín */
+            #boletin-preview {
+                display: block !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                position: static !important;
+                box-shadow: none !important;
+            }
+
+            /* Asegurar que el contenido interno sea visible */
+            #boletin-preview * {
+                visibility: visible !important;
             }
         }
 
-        /* Estilos de la tabla del boletín (Solo afecta al contenido generado) */
+        /* Estilos visuales para pantalla (Preview) */
+        .print-preview {
+            width: 27.94cm;
+            /* Letter Landscape Width */
+            min-height: 21.59cm;
+            /* Letter Landscape Height */
+            margin: 0 auto;
+            background: white;
+            color: black;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            padding: 0;
+            /* Padding 0 para que el JS controle los márgenes internos */
+            position: relative;
+        }
+
         .boletin-table td,
         .boletin-table th {
             border: 1px solid #000;
@@ -83,33 +128,12 @@
             font-size: 11px;
             color: black;
         }
-
-        .boletin-table th {
-            background-color: #f0f0f0;
-            font-weight: bold;
-        }
-
-        /* Contenedor de Vista Previa (Hoja de Papel) */
-        .print-preview {
-            width: 21.59cm;
-            /* Letter Width */
-            min-height: 27.94cm;
-            /* Letter Height */
-            margin: 0 auto;
-            background: white;
-            color: black;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            padding: 1.5cm;
-            position: relative;
-        }
     </style>
 </head>
 
 <body
     class="bg-background-dark text-white font-display antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300"
     id="main-body">
-
-    <!-- EL SIDEBAR SE INYECTA CON JS (layout.js) -->
 
     <!-- CONTENIDO PRINCIPAL -->
     <main class="flex-1 flex flex-col overflow-y-auto relative bg-background-dark" id="main-content">
@@ -122,10 +146,9 @@
             </div>
         </div>
 
-        <!-- Header Fijo -->
-        <div
+        <!-- Header Fijo (ID layout-header para ocultarlo al imprimir) -->
+        <div id="layout-header"
             class="shrink-0 px-6 py-6 border-b border-surface-border bg-background-dark/80 backdrop-blur-md z-20 sticky top-0 no-print">
-
             <!-- Mobile Header -->
             <div class="lg:hidden flex items-center justify-between mb-4">
                 <div class="flex items-center gap-3">
@@ -165,12 +188,12 @@
             </div>
         </div>
 
-        <div class="flex flex-col lg:flex-row h-full overflow-hidden relative z-10">
+        <!-- Layout Flexible (ID main-wrapper) -->
+        <div id="main-wrapper" class="flex flex-col lg:flex-row h-full overflow-hidden relative z-10">
 
-            <!-- PANEL DE CONTROL (Izquierda) -->
-            <div
+            <!-- PANEL DE CONTROL (ID layout-control-panel) -->
+            <div id="layout-control-panel"
                 class="w-full lg:w-96 bg-surface-dark border-r border-surface-border p-6 overflow-y-auto no-print shrink-0 flex flex-col gap-6">
-
                 <div>
                     <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
                         <span class="w-1.5 h-4 bg-primary rounded-full"></span>
@@ -237,17 +260,18 @@
                 </div>
             </div>
 
-            <!-- VISTA PREVIA (Derecha) -->
-            <div class="flex-1 bg-[#2d3748] p-8 overflow-y-auto flex justify-center items-start shadow-inner relative">
-                <!-- Fondo de cuadrícula sutil para el área de trabajo -->
+            <!-- VISTA PREVIA (ID preview-area) -->
+            <div id="preview-area"
+                class="flex-1 bg-[#2d3748] p-8 overflow-y-auto flex justify-center items-start shadow-inner relative">
+                <!-- Fondo de cuadrícula sutil -->
                 <div class="absolute inset-0 opacity-[0.03]"
                     style="background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 20px 20px;">
                 </div>
 
                 <div id="boletin-preview" class="print-preview transition-transform origin-top duration-300">
-                    <!-- Placeholder -->
+                    <!-- Placeholder Inicial -->
                     <div
-                        class="h-full flex flex-col items-center justify-center text-gray-400 border-2 border-dashed border-gray-200 rounded-xl p-10">
+                        class="h-full flex flex-col items-center justify-center text-gray-400 border-2 border-dashed border-gray-200 rounded-xl p-10 m-8">
                         <div class="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-6">
                             <span class="material-symbols-outlined text-5xl text-gray-300">description</span>
                         </div>
