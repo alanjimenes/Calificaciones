@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html class="dark" lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>EduSys - Historial de Cambios</title>
+
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    
+    <!-- CONFIGURACIÓN DE TEMA -->
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2563eb",
+                        "primary-dark": "#1d4ed8",
+                        "background-light": "#f8fafc",
+                        "background-dark": "#0f172a", 
+                        "surface-dark": "#1e293b",     
+                        "surface-border": "#334155",   
+                        "text-secondary": "#94a3b8",
+                        "white": "#f8fafc",
+                        "danger": "#ef4444",
+                        "admin": "#f59e0b",
+                    },
+                    fontFamily: { "display": ["Spline Sans", "sans-serif"] },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                    }
+                },
+            },
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+</head>
+
+<body class="bg-background-dark text-white font-display antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300" id="main-body">
+
+    <!-- Auth Guard (Solo Admin) -->
+    <script type="module">
+        import { auth, onAuthStateChanged, doc, getDoc, db } from './js/firebase-config.js';
+        const body = document.getElementById('main-body');
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                const userDoc = await getDoc(doc(db, "usuarios", user.uid));
+                const isAdmin = (user.email === 'admin@mail.com') || (userDoc.exists() && userDoc.data().rol === 'admin');
+                if (isAdmin) {
+                    body.classList.remove('opacity-0');
+                    window.dispatchEvent(new CustomEvent('adminReady'));
+                } else {
+                    alert("Acceso denegado.");
+                    window.location.href = 'index.html';
+                }
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+    </script>
+
+    <!-- EL SIDEBAR SE INYECTA CON JS (layout.js) -->
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="flex-1 flex flex-col overflow-y-auto relative bg-background-dark p-6 md:p-8 scroll-smooth transition-all duration-300" id="main-content">
+        
+        <!-- Decoración de fondo -->
+        <div class="fixed top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+            <div class="absolute top-[10%] right-[20%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px]"></div>
+            <div class="absolute bottom-[10%] left-[10%] w-[300px] h-[300px] bg-admin/5 rounded-full blur-[100px]"></div>
+        </div>
+
+        <div class="relative z-10 max-w-7xl mx-auto w-full">
+            
+            <!-- Header Móvil -->
+            <div class="lg:hidden flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-lg">school</span>
+                    </div>
+                    <span class="font-bold text-white text-lg">EduSys</span>
+                </div>
+                <button id="mobile-menu-btn" class="text-white material-symbols-outlined p-2 hover:bg-surface-dark rounded-lg transition-colors">menu</button>
+            </div>
+
+            <!-- Header Principal -->
+            <header class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <button id="desktop-sidebar-toggle" class="hidden lg:flex p-2 rounded-xl text-text-secondary hover:text-white hover:bg-surface-dark transition-colors" title="Ocultar/Mostrar Menú">
+                        <span class="material-symbols-outlined">menu_open</span>
+                    </button>
+
+                    <div>
+                        <h2 class="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
+                            Historial de Cambios
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-admin/20 text-admin border border-admin/20 uppercase tracking-wider">Auditoría</span>
+                        </h2>
+                        <p class="text-text-secondary text-sm mt-1">Registro detallado de las actividades críticas del sistema.</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    <div class="relative group">
+                        <span class="material-symbols-outlined absolute left-3 top-2.5 text-text-secondary group-focus-within:text-primary transition-colors text-lg">search</span>
+                        <input type="text" id="audit-search" placeholder="Filtrar por usuario..." 
+                               class="w-64 bg-surface-dark border border-surface-border text-white text-sm rounded-xl pl-10 pr-4 py-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all shadow-sm placeholder-text-secondary/50">
+                    </div>
+                    <button onclick="window.loadLogs()" class="p-2.5 rounded-xl bg-surface-dark border border-surface-border text-text-secondary hover:text-white hover:border-white/20 transition-all" title="Recargar">
+                        <span class="material-symbols-outlined text-lg">refresh</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Tabla de Registros -->
+            <div class="bg-surface-dark border border-surface-border rounded-2xl shadow-xl overflow-hidden flex flex-col min-h-[500px]">
+                
+                <!-- Loader -->
+                <div id="loader" class="absolute inset-0 flex items-center justify-center bg-background-dark/50 z-20 backdrop-blur-sm rounded-2xl hidden">
+                    <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-admin"></div>
+                </div>
+
+                <div class="overflow-x-auto flex-1">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-surface-border/20 border-b border-surface-border/50">
+                            <tr>
+                                <th class="py-4 px-6 text-[10px] font-bold text-text-secondary uppercase tracking-wider w-40">Fecha / Hora</th>
+                                <th class="py-4 px-6 text-[10px] font-bold text-text-secondary uppercase tracking-wider w-48">Usuario Responsable</th>
+                                <th class="py-4 px-6 text-[10px] font-bold text-text-secondary uppercase tracking-wider w-40">Acción</th>
+                                <th class="py-4 px-6 text-[10px] font-bold text-text-secondary uppercase tracking-wider">Detalles del Cambio</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audit-table-body" class="divide-y divide-surface-border/30 text-sm">
+                            <!-- Se llena con JS -->
+                        </tbody>
+                    </table>
+                    
+                    <!-- Empty State -->
+                    <div id="empty-state" class="hidden flex-col items-center justify-center p-12 text-center h-full">
+                        <div class="w-16 h-16 bg-surface-dark rounded-full flex items-center justify-center mb-4 border border-surface-border shadow-lg">
+                            <span class="material-symbols-outlined text-3xl text-text-secondary">history_toggle_off</span>
+                        </div>
+                        <h3 class="text-lg font-bold text-white">Sin registros</h3>
+                        <p class="text-text-secondary text-sm mt-1">Aún no hay actividad registrada en el sistema.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+
+    <!-- SCRIPTS -->
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/layout.js"></script>
+    <script type="module" src="js/main.js"></script>
+    <script type="module" src="js/auditoria.js"></script>
+
+</body>
+</html>

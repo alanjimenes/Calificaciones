@@ -28,7 +28,9 @@ function renderSidebar() {
 
     const adminLinks = [
         { href: 'usuarios.html', icon: 'group', text: 'Gestión Usuarios' },
-        { href: 'asignaturas.html', icon: 'category', text: 'Asignaturas' }
+        { href: 'asignaturas.html', icon: 'category', text: 'Asignaturas' },
+        // --- NUEVA OPCIÓN AÑADIDA AQUÍ ---
+        { href: 'auditoria.html', icon: 'history', text: 'Historial Cambios' }
     ];
 
     // Detectar si estamos en configuración para resaltar el botón
