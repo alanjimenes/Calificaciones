@@ -1,6 +1,5 @@
 // js/gradebook.js
-import { auth, db, doc, getDoc, updateDoc, runTransaction } from './firebase-config.js';
-
+import { auth, db, doc, getDoc, updateDoc, runTransaction, collection, getDocs, setDoc, deleteDoc } from './firebase-config.js';
 let currentStudents = [];
 let courseConfig = null;
 let selectedSubject = "";
@@ -37,11 +36,11 @@ window.addEventListener('userReady', (e) => {
 async function initializeGradebook(userId, userEmail) {
     const loader = document.getElementById('loader');
     try {
-        const courseDoc = await getDoc(doc(db, "cursos_globales", COURSE_ID));
+    const courseDoc = await getDoc(doc(db, "cursos_globales", COURSE_ID));
         if (!courseDoc.exists()) { alert("Curso no encontrado."); window.location.href = 'cursos.html'; return; }
 
-        courseConfig = courseDoc.data();
-        currentStudents = courseConfig.estudiantes || [];
+    const studentsSnap = await getDocs(collection(db, "cursos_globales", COURSE_ID, "estudiantes"));
+    currentStudents = studentsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
         // Renderizar header del curso
         const titleEl = document.getElementById('course-title-display');
@@ -443,11 +442,11 @@ window.openObservations = (studentId) => {
 };
 
 window.deleteStudent = async (studentId) => {
-    if (!confirm("¿Estás seguro de eliminar a este estudiante?")) return;
-    currentStudents = currentStudents.filter(s => s.id !== studentId);
+    if (!confirm("¿Eliminar estudiante? Se borrarán sus notas permanentemente.")) return;
     try {
-        await updateDoc(doc(db, "cursos_globales", COURSE_ID), { estudiantes: currentStudents });
-        refreshCurrentView();
+        // OPTIMIZACIÓN: Borra el documento individual
+        await deleteDoc(doc(db, "cursos_globales", COURSE_ID, "estudiantes", studentId));
+        window.location.reload();
     } catch (e) { alert("Error: " + e.message); }
 };
 // Fin funciones auxiliares estudiantes
@@ -588,41 +587,34 @@ window.markAttendance = async (index, status) => {
 // ==========================================
 async function updateGradeSecure(studentID, activityName, value, inputElement) {
     if (!selectedSubject) return;
-    let val = parseFloat(value);
-    if (isNaN(val)) val = 0;
+    let val = parseFloat(value) || 0;
 
     if (inputElement) inputElement.classList.add('is-saved');
     const savingIndicator = document.getElementById('saving-indicator');
     if (savingIndicator) savingIndicator.classList.remove('hidden');
 
     try {
-        const courseRef = doc(db, "cursos_globales", COURSE_ID);
-        await runTransaction(db, async (transaction) => {
-            const freshDoc = await transaction.get(courseRef);
-            if (!freshDoc.exists()) throw "Error: Documento no existe";
-
-            const data = freshDoc.data();
-            const estudiantes = data.estudiantes || [];
-            const studentIndex = estudiantes.findIndex(s => s.id === studentID);
-            if (studentIndex === -1) throw "Estudiante no encontrado";
-
-            if (!estudiantes[studentIndex].notas) estudiantes[studentIndex].notas = {};
-            if (!estudiantes[studentIndex].notas[selectedSubject]) estudiantes[studentIndex].notas[selectedSubject] = {};
-            estudiantes[studentIndex].notas[selectedSubject][activityName] = val;
-
-            transaction.update(courseRef, { estudiantes: estudiantes });
-            return estudiantes;
-        }).then((updatedStudents) => {
-            currentStudents = updatedStudents;
-            recalcLocalAverage(studentID);
-            setTimeout(() => {
-                if (savingIndicator) savingIndicator.classList.add('hidden');
-                if (inputElement) inputElement.classList.remove('is-saved');
-            }, 500);
+        const studentRef = doc(db, "cursos_globales", COURSE_ID, "estudiantes", studentID);
+        
+        // OPTIMIZACIÓN: Solo actualizamos el campo específico usando "dot notation"
+        await updateDoc(studentRef, {
+            [`notas.${selectedSubject}.${activityName}`]: val
         });
-    } catch (e) {
-        console.error("Transaction failed: ", e);
-    }
+
+        // Actualizar caché local para promedios visuales
+        const idx = currentStudents.findIndex(s => s.id === studentID);
+        if (idx !== -1) {
+            if (!currentStudents[idx].notas) currentStudents[idx].notas = {};
+            if (!currentStudents[idx].notas[selectedSubject]) currentStudents[idx].notas[selectedSubject] = {};
+            currentStudents[idx].notas[selectedSubject][activityName] = val;
+            recalcLocalAverage(studentID);
+        }
+
+        setTimeout(() => {
+            if (savingIndicator) savingIndicator.classList.add('hidden');
+            if (inputElement) inputElement.classList.remove('is-saved');
+        }, 500);
+    } catch (e) { console.error("Error al guardar nota:", e); }
 }
 
 function recalcLocalAverage(studentID) {

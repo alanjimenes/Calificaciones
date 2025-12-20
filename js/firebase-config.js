@@ -15,6 +15,7 @@ import {
 import { 
     getFirestore, 
     collection, 
+    collectionGroup, // <--- 1. Incorporado en la importación
     addDoc, 
     getDocs, 
     getDoc, 
@@ -82,6 +83,7 @@ export {
     createUserWithEmailAndPassword,
     updateProfile,
     collection, 
+    collectionGroup, // <--- 2. Incorporado en la exportación
     addDoc, 
     getDocs, 
     getDoc, 
