@@ -137,7 +137,9 @@
                         <label class="text-xs font-bold text-text-secondary uppercase tracking-wider">
                             Contraseña
                         </label>
-
+                        <a href="#" onclick="alert('Contacta al administrador.')" class="text-xs text-primary hover:text-primary-dark font-medium transition-colors">
+                            ¿Olvidaste tu contraseña?
+                        </a>
                     </div>
                     <input type="password" id="password" placeholder="••••••••" required
                         class="w-full bg-surface-dark border border-surface-border rounded-xl px-4 py-3.5 text-white placeholder-text-secondary/40 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm shadow-sm">
@@ -157,7 +159,11 @@
                 </button>
             </form>
 
-
+            <div class="mt-8 text-center">
+                <p class="text-xs text-text-secondary">
+                    ¿No tienes cuenta? <span class="text-white font-medium cursor-not-allowed" title="Contacta a administración">Contacta a Administración</span>
+                </p>
+            </div>
         </div>
     </div>
 
@@ -165,7 +171,7 @@
     <script type="module">
         import { auth, signInWithEmailAndPassword, onAuthStateChanged } from './js/firebase-config.js';
 
-        // Redirección si ya está logueado
+        // Redirección si ya está logueado (Persistencia)
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 document.body.style.opacity = '0';
@@ -191,6 +197,11 @@
 
             try {
                 await signInWithEmailAndPassword(auth, email, password);
+                
+                // --- FIX: Redirección explícita inmediata ---
+                // Esto asegura que el usuario sea redirigido incluso si el listener tarda.
+                window.location.href = 'index.html';
+
             } catch (error) {
                 console.error("Error Login:", error);
                 let message = "Error de acceso.";

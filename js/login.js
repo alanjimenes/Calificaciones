@@ -11,7 +11,8 @@ if (loginForm) {
 
         try {
             await signInWithEmailAndPassword(auth, email, password);
-            // La redirección la maneja main.js automáticamente
+            // FIX: Redirección explícita necesaria ya que main.js no siempre está cargado aquí
+            window.location.href = 'index.html';
         } catch (error) {
             console.error("Error Login:", error);
             
