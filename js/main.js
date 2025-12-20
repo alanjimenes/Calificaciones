@@ -4,11 +4,9 @@ import { auth, db, onAuthStateChanged, signOut, doc, getDoc } from './firebase-c
 const CACHE_KEY = 'edusys_user_data';
 
 // --- LISTA DE SUPER ADMINISTRADORES ---
-// Agrega aquí los correos que deben ser administradores obligatoriamente.
-// Esto es útil si no puedes editar la base de datos directamente.
 const SUPER_ADMINS = [
     'admin@mail.com',
-    'director@edusys.com' // <--- AGREGA TUS CORREOS AQUÍ, separados por comas
+    'director@edusys.com'
 ];
 
 function loadUserFromCache() {
@@ -99,15 +97,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (userDoc.exists()) {
                     const data = userDoc.data();
-                    // Normalizamos a minúsculas para evitar errores "Admin" vs "admin"
                     const dbRole = (data.rol || 'docente').toLowerCase();
                     finalUserData.role = dbRole;
                     finalUserData.nombre = data.nombre || finalUserData.nombre;
                 }
 
-                // --- LÓGICA DE SUPER ADMINS ---
-                // Si el correo está en la lista SUPER_ADMINS, forzamos el rol 'admin'
-                // independientemente de lo que diga la base de datos.
                 if (SUPER_ADMINS.includes(user.email)) {
                     finalUserData.role = 'admin';
                 }
@@ -144,25 +138,54 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // --- SISTEMA DE NOTIFICACIONES (TOAST) MEJORADO ---
     window.showToast = (message, type = 'info') => {
-        const container = document.getElementById('toast-container');
-        if (!container) return;
+        let container = document.getElementById('toast-container');
+        
+        // Crear contenedor si no existe
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            document.body.appendChild(container);
+        }
+
+        // Forzar estilos del contenedor (Top Center)
+        // pointer-events-none permite hacer clic "a través" del área vacía
+        container.className = "fixed top-6 left-1/2 transform -translate-x-1/2 z-[9999] flex flex-col items-center gap-3 w-full max-w-md pointer-events-none";
 
         const toast = document.createElement('div');
-        const colors = type === 'success' ? 'bg-primary text-background-dark border-primary' : 
-                       type === 'error' ? 'bg-danger text-white border-danger' : 
-                       'bg-surface-dark text-white border-surface-border';
         
-        toast.className = `flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl border ${colors} transform transition-all duration-300 translate-y-10 opacity-0 mb-3 min-w-[300px] z-50 font-bold text-sm`;
+        // Colores y estilos
+        const styles = type === 'success' ? 'bg-primary text-white border-primary/20 shadow-primary/30' : 
+                       type === 'error' ? 'bg-danger text-white border-danger/20 shadow-danger/30' : 
+                       type === 'warning' ? 'bg-admin text-white border-admin/20 shadow-admin/30' :
+                       'bg-surface-dark text-white border-surface-border shadow-xl';
         
-        let icon = type === 'success' ? 'check_circle' : type === 'error' ? 'error' : 'info';
+        const iconName = type === 'success' ? 'check_circle' : 
+                         type === 'error' ? 'error' : 
+                         type === 'warning' ? 'warning' : 'info';
 
-        toast.innerHTML = `<span class="material-symbols-outlined text-lg">${icon}</span><span>${message}</span>`;
+        // Estructura del Toast
+        // pointer-events-auto reactiva los clics en la notificación misma
+        toast.className = `pointer-events-auto flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border ${styles} transform transition-all duration-300 -translate-y-10 opacity-0 min-w-[300px] backdrop-blur-md font-medium text-sm`;
+        
+        toast.innerHTML = `
+            <span class="material-symbols-outlined text-xl">${iconName}</span>
+            <span>${message}</span>
+        `;
+        
+        // Añadir al contenedor
         container.appendChild(toast);
-        requestAnimationFrame(() => toast.classList.remove('translate-y-10', 'opacity-0'));
+        
+        // Animación de entrada
+        requestAnimationFrame(() => {
+            toast.classList.remove('-translate-y-10', 'opacity-0');
+        });
+
+        // Animación de salida y eliminación
         setTimeout(() => {
-            toast.classList.add('opacity-0', 'translate-x-full');
+            toast.classList.add('opacity-0', '-translate-y-10'); // Salir hacia arriba
             setTimeout(() => toast.remove(), 300);
-        }, 3000);
+        }, 3500); // Duración un poco más larga para leer cómodamente
     };
 });
