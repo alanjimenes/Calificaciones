@@ -1,3 +1,4 @@
+// js/gradebook.js
 import { auth, db, doc, getDoc, updateDoc, runTransaction } from './firebase-config.js';
 
 let currentStudents = [];
@@ -13,8 +14,7 @@ let currentPeriod = 'p1';
 let currentTaskToGrade = null;
 let saveTimeout = null;
 
-// MODIFICADO: Se eliminó 'final' de la lista de nombres
-const periodNames = { 'p1': 'Periodo 1', 'p2': 'Periodo 2', 'p3': 'Periodo 3', 'p4': 'Periodo 4' };
+const periodNames = { 'p1': 'Periodo 1', 'p2': 'Periodo 2', 'p3': 'Periodo 3', 'p4': 'Periodo 4', 'final': 'Final' };
 
 const urlParams = new URLSearchParams(window.location.search);
 COURSE_ID = urlParams.get('curso');
@@ -50,8 +50,7 @@ async function initializeGradebook(userId, userEmail) {
         if (periodSelect) {
             periodSelect.addEventListener('change', (e) => {
                 currentPeriod = e.target.value;
-                const pName = periodNames[currentPeriod] || currentPeriod; // Fallback por si acaso
-                document.getElementById('current-period-display').innerText = pName;
+                document.getElementById('current-period-display').innerText = periodNames[currentPeriod];
                 if (currentTab === 'grades') renderTable();
             });
         }
@@ -186,6 +185,9 @@ function renderTable() {
     if (emptyState) emptyState.classList.add('hidden');
 
     const canEdit = checkSubjectPermissions();
+    // Para borrar/editar alumnos usamos permiso de Admin o Titular del curso
+    const canManageStudents = isAdmin || isTitular; 
+
     const rawActividades = (courseConfig.actividades || {})[selectedSubject] || [];
     const actividadesFiltradas = rawActividades
         .map(act => (typeof act === 'string') ? { nombre: act, valor: 0, periodo: 'p1' } : act)
@@ -194,17 +196,16 @@ function renderTable() {
     let headerHTML = `
         <th class="p-4 border-b border-surface-border text-center w-12 font-bold">#</th>
         <th class="p-4 border-b border-surface-border border-r border-surface-border/50 sticky left-0 bg-[#0f2115] z-20 min-w-[240px] font-bold text-white">Estudiante</th>
-        <th class="p-4 border-b border-surface-border text-center w-24 font-bold text-white bg-surface-dark/50">Prom.<br><span class="text-[9px] text-text-secondary">${periodNames[currentPeriod] || currentPeriod}</span></th>
+        <th class="p-4 border-b border-surface-border text-center w-24 font-bold text-white bg-surface-dark/50">Prom.<br><span class="text-[9px] text-text-secondary">${periodNames[currentPeriod]}</span></th>
     `;
     actividadesFiltradas.forEach(act => {
         headerHTML += `<th class="p-4 border-b border-surface-border text-center w-32 min-w-[120px] text-xs uppercase tracking-wider text-text-secondary">${act.nombre} <span class="block text-[9px] text-primary/80 font-bold">${act.valor > 0 ? `(${act.valor}%)` : ''}</span></th>`;
     });
-    headerHTML += `<th class="p-4 border-b border-surface-border w-12"></th>`;
+    headerHTML += `<th class="p-4 border-b border-surface-border w-20 text-center text-xs text-text-secondary">Acciones</th>`;
     if (tableHeadRow) tableHeadRow.innerHTML = headerHTML;
 
     if (tableBody) {
         tableBody.innerHTML = '';
-        // Ordenar por número de orden si existe, sino por nombre
         const sortedStudents = [...currentStudents].sort((a, b) => {
             const ordenA = parseInt(a.numero_orden) || 9999;
             const ordenB = parseInt(b.numero_orden) || 9999;
@@ -244,7 +245,24 @@ function renderTable() {
                         </td>`;
                 });
             }
-            rowHTML += `<td class="p-0 text-center"><button class="text-text-secondary hover:text-white material-symbols-outlined text-[16px]">more_vert</button></td>`;
+
+            // Columna de Acciones
+            if (canManageStudents) {
+                rowHTML += `
+                    <td class="p-0 text-center">
+                        <div class="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="editStudent('${student.id}')" class="p-1.5 rounded text-text-secondary hover:text-white hover:bg-surface-border transition-colors" title="Editar">
+                                <span class="material-symbols-outlined text-[16px]">edit</span>
+                            </button>
+                            <button onclick="deleteStudent('${student.id}')" class="p-1.5 rounded text-text-secondary hover:text-danger hover:bg-danger/10 transition-colors" title="Eliminar">
+                                <span class="material-symbols-outlined text-lg">delete</span>
+                            </button>
+                        </div>
+                    </td>`;
+            } else {
+                 rowHTML += `<td class="p-0 text-center text-text-secondary/20"><span class="material-symbols-outlined text-[16px]">lock</span></td>`;
+            }
+
             row.innerHTML = rowHTML;
             tableBody.appendChild(row);
         });
@@ -257,9 +275,171 @@ function renderTable() {
     }
 }
 
-// ==========================================
-// RENDERIZADO TAREAS (Restaurado)
-// ==========================================
+// ----------------------------------------------------
+// FUNCIONES EDITAR Y ELIMINAR ESTUDIANTES
+// ----------------------------------------------------
+window.editStudent = (studentId) => {
+    const student = currentStudents.find(s => s.id === studentId);
+    if(!student) return;
+
+    // Llenar el formulario con los datos
+    document.getElementById('student-num-orden').value = student.numero_orden || '';
+    document.getElementById('student-name').value = student.nombre || '';
+    document.getElementById('student-id').value = student.id || '';
+    document.getElementById('student-rne').value = student.rne || '';
+    document.getElementById('student-sexo').value = student.sexo || 'M';
+    document.getElementById('student-nacimiento').value = student.fecha_nacimiento || '';
+    document.getElementById('student-condicion').value = student.condicion_academica || 'Promovido';
+    
+    // Familia y Contacto
+    document.getElementById('student-madre').value = student.nombre_madre || '';
+    document.getElementById('student-padre').value = student.nombre_padre || '';
+    document.getElementById('student-tutor').value = student.nombre_tutor || '';
+    document.getElementById('student-telefono').value = student.telefono_contacto || '';
+
+    // Datos Adicionales y Médicos (NUEVO)
+    document.getElementById('student-lugar-nac').value = student.lugar_nacimiento || '';
+    document.getElementById('student-nacionalidad').value = student.nacionalidad || '';
+    document.getElementById('student-direccion').value = student.direccion || '';
+    document.getElementById('student-sangre').value = student.tipo_sangre || '';
+    document.getElementById('student-emergencia').value = student.telefono_emergencia || '';
+    document.getElementById('student-medica').value = student.info_medica || '';
+
+    // Configurar estado de "Edición"
+    document.getElementById('edit-student-original-id').value = student.id; // Clave para saber que editamos
+    document.getElementById('modal-student-title').innerText = "Editar Estudiante";
+    document.getElementById('modal-student-icon').innerText = "edit";
+    document.getElementById('btn-submit-student').innerHTML = '<span class="material-symbols-outlined">save_as</span> Actualizar Datos';
+
+    if(window.toggleModal) window.toggleModal('modal-add-student');
+};
+
+window.deleteStudent = async (studentId) => {
+    if(!confirm("¿Estás seguro de eliminar a este estudiante?\n\nSe perderán todas sus calificaciones y registros de asistencia.")) return;
+
+    // Filtrar array local
+    currentStudents = currentStudents.filter(s => s.id !== studentId);
+
+    try {
+        await updateDoc(doc(db, "cursos_globales", COURSE_ID), { estudiantes: currentStudents });
+        if(window.showToast) window.showToast("Estudiante eliminado", "info");
+        refreshCurrentView();
+    } catch (e) {
+        console.error(e);
+        alert("Error al eliminar: " + e.message);
+    }
+};
+
+
+// ----------------------------------------------------
+// MANEJO FORMULARIO ESTUDIANTE (Crear o Editar)
+// ----------------------------------------------------
+const formStudent = document.getElementById('form-add-student');
+if (formStudent) {
+    formStudent.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const editingId = document.getElementById('edit-student-original-id').value; // ID Original si editamos
+
+        // Obtener datos del formulario
+        const numOrden = document.getElementById('student-num-orden').value.trim();
+        const name = document.getElementById('student-name').value.trim();
+        const id = document.getElementById('student-id').value.trim().toUpperCase(); 
+        const rne = document.getElementById('student-rne').value.trim().toUpperCase();
+        const sexo = document.getElementById('student-sexo').value;
+        const nacimiento = document.getElementById('student-nacimiento').value;
+        const condicion = document.getElementById('student-condicion').value;
+
+        const madre = document.getElementById('student-madre').value.trim();
+        const padre = document.getElementById('student-padre').value.trim();
+        const tutor = document.getElementById('student-tutor').value.trim();
+        const telefono = document.getElementById('student-telefono').value.trim();
+
+        // Datos Adicionales (NUEVO)
+        const lugarNac = document.getElementById('student-lugar-nac').value.trim();
+        const nacionalidad = document.getElementById('student-nacionalidad').value.trim();
+        const direccion = document.getElementById('student-direccion').value.trim();
+        const sangre = document.getElementById('student-sangre').value;
+        const emergencia = document.getElementById('student-emergencia').value.trim();
+        const medica = document.getElementById('student-medica').value.trim();
+
+        if (!name || !id) return;
+
+        // Si creamos nuevo, validamos ID duplicado
+        // Si editamos, validamos duplicado SOLO si el ID cambió
+        if (!editingId && currentStudents.some(s => s.id === id)) {
+            alert("Error: Ya existe un estudiante con ese ID SIGERD.");
+            return;
+        }
+        if (editingId && editingId !== id && currentStudents.some(s => s.id === id)) {
+             alert("Error: Ya existe OTRO estudiante con ese ID SIGERD.");
+             return;
+        }
+
+        // Preparar objeto de datos
+        const studentData = {
+            id: id,
+            numero_orden: numOrden,
+            nombre: name,
+            rne: rne,
+            sexo: sexo,
+            fecha_nacimiento: nacimiento,
+            condicion_academica: condicion,
+            
+            // Familia
+            nombre_madre: madre,
+            nombre_padre: padre,
+            nombre_tutor: tutor,
+            telefono_contacto: telefono,
+
+            // Adicionales
+            lugar_nacimiento: lugarNac,
+            nacionalidad: nacionalidad,
+            direccion: direccion,
+            tipo_sangre: sangre,
+            telefono_emergencia: emergencia,
+            info_medica: medica
+        };
+
+        if (editingId) {
+            // --- MODO EDICIÓN ---
+            const index = currentStudents.findIndex(s => s.id === editingId);
+            if (index !== -1) {
+                // Preservar notas y asistencia
+                studentData.notas = currentStudents[index].notas || {};
+                studentData.asistencia = currentStudents[index].asistencia || {};
+                // Actualizar array
+                currentStudents[index] = studentData;
+            }
+        } else {
+            // --- MODO CREACIÓN ---
+            studentData.notas = {};
+            studentData.asistencia = {};
+            currentStudents.push(studentData);
+        }
+
+        // Ordenar siempre
+        currentStudents.sort((a, b) => (parseInt(a.numero_orden) || 999) - (parseInt(b.numero_orden) || 999));
+
+        try {
+            await updateDoc(doc(db, "cursos_globales", COURSE_ID), { estudiantes: currentStudents });
+            
+            formStudent.reset();
+            if (window.toggleModal) window.toggleModal('modal-add-student');
+            refreshCurrentView();
+            
+            const msg = editingId ? "Datos actualizados" : "Estudiante registrado";
+            if(window.showToast) window.showToast(msg, "success");
+            
+        } catch (error) {
+            console.error(error);
+            alert("Error al guardar: " + error.message);
+        }
+    });
+}
+
+
+// --- RESTO DE FUNCIONES (Render Tasks, Attendance, etc.) ---
 window.renderTasksView = function () {
     const tasksListContainer = document.getElementById('tasks-list-container');
     const singleTaskContainer = document.getElementById('single-task-container');
@@ -297,8 +477,7 @@ function renderTasksList() {
 
     actividades.forEach(act => {
         const card = document.createElement('div');
-        // Fallback por si 'periodNames[act.periodo]' es undefined (ej: data vieja 'final')
-        const pName = periodNames[act.periodo || 'p1'] || act.periodo;
+        const pName = periodNames[act.periodo || 'p1'];
         card.className = "bg-surface-dark border border-surface-border hover:border-primary/50 rounded-xl p-5 cursor-pointer transition-all hover:translate-y-[-2px] hover:shadow-lg group";
         card.onclick = () => openTaskGrading(act);
         card.innerHTML = `
@@ -318,7 +497,7 @@ function renderTasksList() {
 function renderSingleTaskGrading() {
     document.getElementById('grading-task-name').innerText = currentTaskToGrade.nombre;
     document.getElementById('grading-task-value').innerText = currentTaskToGrade.valor + "%";
-    document.getElementById('grading-task-period').innerText = periodNames[currentTaskToGrade.periodo || 'p1'] || currentTaskToGrade.periodo;
+    document.getElementById('grading-task-period').innerText = periodNames[currentTaskToGrade.periodo || 'p1'];
 
     const tbody = document.getElementById('single-task-body');
     tbody.innerHTML = '';
@@ -414,8 +593,6 @@ window.markAttendance = async (index, status) => {
     const today = new Date().toISOString().split('T')[0];
     if (attendanceDate > today) { alert("No puedes marcar asistencia en el futuro."); return; }
 
-    // Aplicamos lógica de transacción manual aquí también para seguridad
-    // Para simplificar, usamos la lógica directa pero en un entorno real también debería ser Transacción.
     if (!currentStudents[index].asistencia) currentStudents[index].asistencia = {};
     if (!currentStudents[index].asistencia[selectedSubject]) currentStudents[index].asistencia[selectedSubject] = {};
 
@@ -425,7 +602,6 @@ window.markAttendance = async (index, status) => {
 
     renderAttendance();
 
-    // Guardado (se recomienda mover a Transaction también)
     const savingIndicator = document.getElementById('saving-indicator');
     if (savingIndicator) savingIndicator.classList.remove('hidden');
     try {
@@ -434,9 +610,6 @@ window.markAttendance = async (index, status) => {
     } catch (e) { console.error(e); }
 }
 
-// ==========================================
-// ACTUALIZACIÓN DE NOTAS SEGURA (TRANSACTION)
-// ==========================================
 async function updateGradeSecure(studentID, activityName, value, inputElement) {
     if (!selectedSubject) return;
     let val = parseFloat(value);
@@ -523,104 +696,16 @@ if (formActivity) {
     formActivity.addEventListener('submit', async (e) => {
         e.preventDefault();
         const name = document.getElementById('activity-name').value.trim();
-        const valueInput = document.getElementById('activity-value');
+        const value = document.getElementById('activity-value').value;
         const period = document.getElementById('activity-period').value;
-
-        // --- CORRECCIÓN SOLICITADA ---
-        const value = parseFloat(valueInput.value);
-
-        if (!name || isNaN(value) || !selectedSubject) return;
-
-        // 1. Validar que la nota individual no sea mayor a 100
-        if (value > 100) {
-            alert("El valor de la actividad no puede ser mayor al 100%.");
-            return;
-        }
+        if (!name || !value || !selectedSubject) return;
 
         if (!courseConfig.actividades) courseConfig.actividades = {};
         if (!courseConfig.actividades[selectedSubject]) courseConfig.actividades[selectedSubject] = [];
-
-        // 2. Calcular suma actual del periodo seleccionado
-        const actividadesActuales = courseConfig.actividades[selectedSubject];
-        const actividadesDelPeriodo = actividadesActuales.filter(act => (act.periodo || 'p1') === period);
-
-        let sumaActual = 0;
-        actividadesDelPeriodo.forEach(act => {
-            sumaActual += (parseFloat(act.valor) || 0);
-        });
-
-        const sumaTotal = sumaActual + value;
-
-        // 3. Validar si excede el 100%
-        if (sumaTotal > 100) {
-            const disponible = 100 - sumaActual;
-            alert(`No puedes agregar esta actividad.\n\nSuma actual del ${periodNames[period] || period}: ${sumaActual}%\nValor intento: ${value}%\nTotal resultante: ${sumaTotal}%\n\nMáximo disponible: ${disponible}%`);
-            return;
-        }
-
-        // Si pasa validaciones, guardamos
-        courseConfig.actividades[selectedSubject].push({ nombre: name, valor: value, periodo: period });
+        courseConfig.actividades[selectedSubject].push({ nombre: name, valor: parseFloat(value), periodo: period });
 
         await updateDoc(doc(db, "cursos_globales", COURSE_ID), { actividades: courseConfig.actividades });
         if (window.toggleModal) window.toggleModal('modal-add-activity');
-
-        // Limpiar inputs
-        document.getElementById('activity-name').value = '';
-        valueInput.value = '';
-
-        refreshCurrentView();
-    });
-}
-
-// ----------------------------------------------------
-// NUEVO MANEJO DE REGISTRO ESTUDIANTIL COMPLETO
-// ----------------------------------------------------
-const formStudent = document.getElementById('form-add-student');
-if (formStudent) {
-    formStudent.addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        // Obtener datos del nuevo formulario ampliado
-        const numOrden = document.getElementById('student-num-orden').value.trim();
-        const name = document.getElementById('student-name').value.trim();
-        const id = document.getElementById('student-id').value.trim().toUpperCase(); // SIGERD
-        const rne = document.getElementById('student-rne').value.trim().toUpperCase();
-        const sexo = document.getElementById('student-sexo').value;
-        const nacimiento = document.getElementById('student-nacimiento').value;
-        const condicion = document.getElementById('student-condicion').value;
-
-        if (!name || !id) return;
-
-        // Validar duplicados por ID (SIGERD)
-        if (currentStudents.some(s => s.id === id)) {
-            alert("Error: Ya existe un estudiante con ese ID SIGERD.");
-            return;
-        }
-
-        // Crear objeto estudiante completo
-        const newStudent = {
-            id: id,                  // SIGERD
-            numero_orden: numOrden,  // Nuevo
-            nombre: name,
-            rne: rne,                // Nuevo
-            sexo: sexo,              // Nuevo
-            fecha_nacimiento: nacimiento, // Nuevo
-            condicion_academica: condicion, // Nuevo
-            notas: {},
-            asistencia: {}
-        };
-
-        currentStudents.push(newStudent);
-
-        // Ordenar por número de lista si es posible antes de guardar
-        currentStudents.sort((a, b) => (parseInt(a.numero_orden) || 999) - (parseInt(b.numero_orden) || 999));
-
-        await updateDoc(doc(db, "cursos_globales", COURSE_ID), { estudiantes: currentStudents });
-
-        // Limpiar formulario
-        formStudent.reset();
-
-        if (window.toggleModal) window.toggleModal('modal-add-student');
         refreshCurrentView();
     });
 }
