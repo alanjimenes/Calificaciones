@@ -6,7 +6,9 @@ const SCHOOL_INFO = {
     codigo: "12345",
     tanda: "JORNADA ESCOLAR EXTENDIDA",
     distrito: "10-01",
-    regional: "10"
+    regional: "10",
+    provincia: "Santo Domingo",
+    municipio: "Santo Domingo Este"
 };
 
 const AREAS_CURRICULARES = [
@@ -21,14 +23,6 @@ const AREAS_CURRICULARES = [
     'Formación Integral Humana y Religiosa'
 ];
 
-// Nombres descriptivos para el boletín detallado
-const MAPA_COMPETENCIAS = {
-    c1: "Ética y Ciudadana / Comunicativa",
-    c2: "Pensamiento Lógico / Crítico",
-    c3: "Resolución de Problemas / Científica",
-    c4: "Ambiental / Desarrollo Personal"
-};
-
 const COMPETENCIAS_KEYS = ['c1', 'c2', 'c3', 'c4'];
 const PERIODOS_KEYS = ['p1', 'p2', 'p3', 'p4'];
 
@@ -36,10 +30,28 @@ let allCourses = [];
 let selectedCourseData = null;
 let selectedStudentData = null;
 
+// Inicialización
 window.addEventListener('userReady', async (e) => {
     const { role, email } = e.detail;
     const body = document.getElementById('main-body');
     if (body) body.classList.remove('opacity-0');
+
+    // Inyectar CSS de impresión global si no existe
+    if (!document.getElementById('print-styles')) {
+        const style = document.createElement('style');
+        style.id = 'print-styles';
+        style.innerHTML = `
+            @media print {
+                @page { size: landscape; margin: 0; }
+                body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white; }
+                .no-print, #layout-header, #layout-control-panel, nav, aside { display: none !important; }
+                #main-content, #main-wrapper, #preview-area { margin: 0 !important; padding: 0 !important; width: 100% !important; height: auto !important; overflow: visible !important; }
+                #boletin-preview { display: block !important; width: 100% !important; transform: none !important; box-shadow: none !important; border: none !important; }
+                .page-break { page-break-before: always; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
 
     if (!document.getElementById('toast-container')) {
         const container = document.createElement('div');
@@ -97,7 +109,6 @@ async function loadCourses(isAdminOrSecretaria, userEmail) {
 
 async function loadStudents(courseId) {
     const selectStudent = document.getElementById('select-student');
-
     selectStudent.disabled = false;
     selectStudent.innerHTML = '<option value="">Selecciona un estudiante...</option>';
 
@@ -136,114 +147,225 @@ window.generateBoletin = function () {
         return;
     }
 
-    const yearFrom = document.getElementById('year-from').value || '2024';
-    const yearTo = document.getElementById('year-to').value || '2025';
+    const yearFrom = document.getElementById('year-from').value || '2023';
+    const yearTo = document.getElementById('year-to').value || '2024';
 
-    const nivelRadio = document.querySelector('input[name="nivel-boletin"]:checked');
-    const nivel = nivelRadio ? nivelRadio.value : 'secundaria';
+    if (window.showToast) window.showToast(`Generando boletín oficial...`, "info");
 
-    if (window.showToast) window.showToast(`Generando boletín detallado...`, "info");
-
-    let boletinHTML = "";
-    if (nivel === 'primaria') {
-        boletinHTML = createBoletinPrimariaHTML(selectedCourseData, selectedStudentData, yearFrom, yearTo);
-    } else {
-        boletinHTML = createBoletinSecundariaHTML(selectedCourseData, selectedStudentData, yearFrom, yearTo);
-    }
+    const boletinHTML = createBoletinOficialHTML(selectedCourseData, selectedStudentData, yearFrom, yearTo);
 
     const container = document.getElementById('boletin-preview');
-    container.style.opacity = '0.5';
+    container.innerHTML = ""; // Limpiar antes
+    container.style.opacity = '0';
+    
     setTimeout(() => {
         container.innerHTML = boletinHTML;
         container.style.opacity = '1';
-    }, 400);
+    }, 200);
 }
 
-const logoEscudo = "https://upload.wikimedia.org/wikipedia/commons/2/26/Coat_of_arms_of_the_Dominican_Republic.svg";
-const logoMinerd = "https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Emblema_del_Ministerio_de_Educaci%C3%B3n_de_la_Rep%C3%BAblica_Dominicana.png/240px-Emblema_del_Ministerio_de_Educaci%C3%B3n_de_la_Rep%C3%BAblica_Dominicana.png";
+// ==========================================
+// DISEÑO OFICIAL MINERD (RÉPLICA EXACTA PDF)
+// ==========================================
+function createBoletinOficialHTML(course, student, yearFrom, yearTo) {
+    const logoEscudo = "https://upload.wikimedia.org/wikipedia/commons/2/26/Coat_of_arms_of_the_Dominican_Republic.svg";
+    const logoMinerd = "https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Emblema_del_Ministerio_de_Educaci%C3%B3n_de_la_Rep%C3%BAblica_Dominicana.png/240px-Emblema_del_Ministerio_de_Educaci%C3%B3n_de_la_Rep%C3%BAblica_Dominicana.png";
 
-// ==========================================
-// PLANTILLA SECUNDARIA DETALLADA (FORMATO SÁBANA HORIZONTAL)
-// ==========================================
-function createBoletinSecundariaHTML(course, student, yearFrom, yearTo) {
+    const materiasRows = getMateriasRowsOficial(course, student);
     const asistencia = calculateAttendancePercent(course, student);
-    const materiasRows = getMateriasRowsHorizontal(course, student);
-    const cantAsignaturasReprobadas = getAsignaturasReprobadasCount(course, student);
+    const cantReprobadas = getAsignaturasReprobadasCount(course, student);
 
-    let estadoGeneral = "PROMOVIDO";
-    if (cantAsignaturasReprobadas > 2) estadoGeneral = "REPITENTE";
-    else if (cantAsignaturasReprobadas > 0) estadoGeneral = "APLAZADO";
+    let situacionFinal = "PROMOVIDO";
+    if (cantReprobadas > 2) situacionFinal = "REPITENTE";
+    else if (cantReprobadas > 0) situacionFinal = "APLAZADO";
 
+    // --- ESTILOS EN LÍNEA (CRÍTICOS PARA PDF) ---
+    const fontFamily = "font-family: Arial, Helvetica, sans-serif;";
+    const border = "border: 1px solid #000;";
+    const fontBold = "font-weight: bold;";
+    const flexCenter = "display: flex; justify-content: center; align-items: center;";
+    const textCenter = "text-align: center;";
+    
+    // Ancho total para Letter Landscape (aprox 279mm)
+    
     return `
-    <div style="background:white; color:black; width: 100%; font-family: 'Arial Narrow', Arial, sans-serif; box-sizing: border-box;">
+    <div style="background: white; color: black; ${fontFamily} width: 100%; box-sizing: border-box;">
         
-        <div style="width: 279mm; min-height: 215mm; padding: 5mm 5mm; position: relative;">
+        <!-- ================= PÁGINA 1: PORTADA ================= -->
+        <div class="page-1" style="width: 279mm; height: 215mm; padding: 12mm 15mm; position: relative; box-sizing: border-box; display: flex; flex-direction: column;">
             
-            <!-- Encabezado Oficial -->
-            <div style="display: flex; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 10px;">
-                <div style="width: 10%; text-align: center;"><img src="${logoEscudo}" style="height: 50px;"></div>
-                <div style="width: 80%; text-align: center;">
-                    <h1 style="font-size: 14px; font-weight: bold; margin: 0;">MINISTERIO DE EDUCACIÓN DE LA REPÚBLICA DOMINICANA</h1>
-                    <h2 style="font-size: 11px; font-weight: bold; margin: 2px 0;">REGISTRO DE EVALUACIÓN DE LOS APRENDIZAJES - NIVEL SECUNDARIO</h2>
-                    <h3 style="font-size: 10px; font-weight: normal; margin: 0;">AÑO ESCOLAR ${yearFrom}-${yearTo}</h3>
+            <!-- Encabezado Portada -->
+            <div style="text-align: center; margin-bottom: 25px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px;">
+                    <img src="${logoEscudo}" style="height: 75px; width: auto;">
+                    <div style="margin-top: 5px; flex: 1; text-align: center;">
+                        <h4 style="margin: 0; font-size: 13px; font-weight: bold; color: #000;">GOBIERNO DE LA</h4>
+                        <h2 style="margin: 2px 0; font-size: 19px; font-weight: bold; color: #000;">REPÚBLICA DOMINICANA</h2>
+                        <h1 style="margin: 3px 0; font-size: 28px; font-weight: bold; color: #002e5f; letter-spacing: 0.5px;">EDUCACIÓN</h1>
+                        <p style="margin: 8px 0 0 0; font-size: 10px; color: #000;">Viceministerio de Servicios Técnicos y Pedagógicos</p>
+                        <p style="margin: 0; font-size: 10px; color: #000;">Dirección General de Educación Secundaria</p>
+                    </div>
+                    <img src="${logoMinerd}" style="height: 75px; width: auto;">
                 </div>
-                <div style="width: 10%; text-align: center;"><img src="${logoMinerd}" style="height: 50px;"></div>
+                
+                <div style="border-top: 2px solid #002e5f; border-bottom: 2px solid #002e5f; padding: 8px 0; margin-top: 15px; margin-bottom: 20px;">
+                    <h1 style="margin: 0; font-size: 22px; font-weight: bold; color: #002e5f; letter-spacing: 0.5px;">BOLETÍN DE CALIFICACIONES</h1>
+                    <div style="display: flex; justify-content: center; align-items: baseline; gap: 40px; margin-top: 6px; font-size: 12px; font-weight: bold; color: #000;">
+                        <span>Grado: <span style="border-bottom: 1px solid black; padding: 0 15px; display: inline-block; min-width: 30px;">${course.nombre.replace(/[^0-9]/g, '')}no</span></span>
+                        <span>SEGUNDO CICLO</span>
+                        <span>NIVEL SECUNDARIO</span>
+                    </div>
+                    <p style="margin: 5px 0 0 0; font-size: 12px; color: #000;">Año escolar: <span style="border-bottom: 1px solid black; padding: 0 5px;">20${yearFrom.slice(-2)}</span> - <span style="border-bottom: 1px solid black; padding: 0 5px;">20${yearTo.slice(-2)}</span></p>
+                </div>
             </div>
 
-            <!-- Datos Informativos -->
-            <div style="display: flex; flex-wrap: wrap; font-size: 10px; margin-bottom: 5px; border: 1px solid #000; padding: 2px 5px; background: #f9f9f9;">
-                <div style="width: 40%;"><strong>Centro:</strong> ${SCHOOL_INFO.nombre} (${SCHOOL_INFO.codigo})</div>
-                <div style="width: 40%;"><strong>Estudiante:</strong> ${student.nombre.toUpperCase()}</div>
-                <div style="width: 20%;"><strong>ID:</strong> ${student.rne || student.id}</div>
-                <div style="width: 40%;"><strong>Grado/Sección:</strong> ${course.nombre} - U</div>
-                <div style="width: 40%;"><strong>Tanda:</strong> ${SCHOOL_INFO.tanda}</div>
-                <div style="width: 20%;"><strong>No.</strong> ${student.numero_orden || '-'}</div>
+            <!-- Datos Informativos (Grid 2 Columnas) -->
+            <div style="display: flex; gap: 50px; font-size: 11px; margin-bottom: 20px; color: #000;">
+                <!-- Columna Izquierda -->
+                <div style="flex: 1;">
+                    <div style="display:flex; align-items:flex-end; margin-bottom: 6px;">
+                        <div style="width: 50px; font-weight:bold;">Sección:</div>
+                        <div style="border-bottom: 1px solid black; flex:1; padding-left: 5px;">U</div>
+                    </div>
+                    <div style="display:flex; align-items:flex-end; margin-bottom: 6px;">
+                        <div style="width: 95px; font-weight:bold;">Número de orden:</div>
+                        <div style="border-bottom: 1px solid black; flex:1; padding-left: 5px;">${student.numero_orden || ''}</div>
+                    </div>
+                    <div style="display:flex; align-items:flex-end; margin-bottom: 6px;">
+                        <div style="width: 65px; font-weight:bold;">Nombre (s):</div>
+                        <div style="border-bottom: 1px solid black; flex:1; padding-left: 5px;">${student.nombre.split(' ')[0]}</div>
+                    </div>
+                    <div style="display:flex; align-items:flex-end; margin-bottom: 6px;">
+                        <div style="width: 65px; font-weight:bold;">Apellido (s):</div>
+                        <div style="border-bottom: 1px solid black; flex:1; padding-left: 5px;">${student.nombre.split(' ').slice(1).join(' ')}</div>
+                    </div>
+                    <div style="margin-bottom: 6px;">
+                        <div style="font-weight:bold; margin-bottom: 2px;">ID estudiante (Número de identificación SIGERD):</div>
+                        <div style="border-bottom: 1px solid black; width: 100%; height: 16px; padding-left: 5px;">${student.id}</div>
+                    </div>
+                    <div style="display:flex; align-items:flex-end; margin-bottom: 6px;">
+                        <div style="width: 50px; font-weight:bold;">Docente:</div>
+                        <div style="border-bottom: 1px solid black; flex:1; padding-left: 5px;">${course.titular_email.split('@')[0]}</div>
+                    </div>
+                </div>
+
+                <!-- Columna Derecha -->
+                <div style="flex: 1;">
+                    <div style="display:flex; align-items:flex-end; margin-bottom: 6px;">
+                        <div style="width: 95px; font-weight:bold;">Centro educativo:</div>
+                        <div style="border-bottom: 1px solid black; flex:1; padding-left: 5px;">${SCHOOL_INFO.nombre}</div>
+                    </div>
+                    <div style="display:flex; align-items:flex-end; margin-bottom: 6px;">
+                        <div style="width: 95px; font-weight:bold;">Código del centro:</div>
+                        <div style="border-bottom: 1px solid black; flex:1; padding-left: 5px;">${SCHOOL_INFO.codigo}</div>
+                    </div>
+                    <div style="display:flex; align-items:flex-end; margin-bottom: 6px;">
+                        <div style="width: 40px; font-weight:bold;">Tanda:</div>
+                        <div style="border-bottom: 1px solid black; flex:1; padding-left: 5px;">${SCHOOL_INFO.tanda}</div>
+                    </div>
+                    <div style="display:flex; align-items:flex-end; margin-bottom: 6px;">
+                        <div style="width: 105px; font-weight:bold;">Teléfono del centro:</div>
+                        <div style="border-bottom: 1px solid black; flex:1; padding-left: 5px;">-</div>
+                    </div>
+                    <div style="display:flex; align-items:flex-end; margin-bottom: 6px;">
+                        <div style="width: 95px; font-weight:bold;">Distrito educativo:</div>
+                        <div style="border-bottom: 1px solid black; flex:1; padding-left: 5px;">${SCHOOL_INFO.distrito}</div>
+                    </div>
+                    <div style="display:flex; align-items:flex-end; margin-bottom: 6px;">
+                        <div style="width: 120px; font-weight:bold;">Regional de educación:</div>
+                        <div style="border-bottom: 1px solid black; flex:1; padding-left: 5px;">${SCHOOL_INFO.regional}</div>
+                    </div>
+                    <div style="display:flex; align-items:flex-end; margin-bottom: 6px;">
+                        <div style="width: 55px; font-weight:bold;">Provincia:</div>
+                        <div style="border-bottom: 1px solid black; flex:1; padding-left: 5px;">${SCHOOL_INFO.provincia}</div>
+                    </div>
+                    <div style="display:flex; align-items:flex-end; margin-bottom: 6px;">
+                        <div style="width: 55px; font-weight:bold;">Municipio:</div>
+                        <div style="border-bottom: 1px solid black; flex:1; padding-left: 5px;">${SCHOOL_INFO.municipio}</div>
+                    </div>
+                </div>
             </div>
 
-            <!-- TABLA DETALLADA COMPLEJA -->
-            <table style="width: 100%; border-collapse: collapse; font-size: 8px; text-align: center; border: 1px solid black;">
+            <!-- Tabla de Firmas (Footer Página 1) -->
+            <div style="margin-top: auto;">
+                <p style="text-align: center; font-weight: bold; font-size: 11px; margin-bottom: 5px; color: #000;">FIRMA DEL PADRE, MADRE O TUTOR</p>
+                <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 10px; border: 1px solid black; color: #000;">
+                    <thead>
+                        <tr>
+                            <th style="${border} padding: 5px; width: 20%; font-weight:bold; background-color:#f2f2f2;">Períodos de Reportes de Calificaciones</th>
+                            <th style="${border} padding: 5px; width: 20%; font-weight:bold; background-color:#f2f2f2;">Ago-Sept-Oct</th>
+                            <th style="${border} padding: 5px; width: 20%; font-weight:bold; background-color:#f2f2f2;">Nov-Dic-Ene</th>
+                            <th style="${border} padding: 5px; width: 20%; font-weight:bold; background-color:#f2f2f2;">Feb-Mar</th>
+                            <th style="${border} padding: 5px; width: 20%; font-weight:bold; background-color:#f2f2f2;">Abr-May-Jun</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="${border} height: 45px;"></td>
+                            <td style="${border}"></td>
+                            <td style="${border}"></td>
+                            <td style="${border}"></td>
+                            <td style="${border}"></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div style="margin-top: 15px; font-size: 11px; color: #000;">
+                    <span style="font-weight:bold;">Observaciones:</span>
+                    <div style="border-bottom: 1px solid black; margin-top: 20px; width: 100%;"></div>
+                    <div style="border-bottom: 1px solid black; margin-top: 20px; width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SALTO DE PÁGINA -->
+        <div class="page-break"></div>
+
+        <!-- ================= PÁGINA 2: SÁBANA DE CALIFICACIONES ================= -->
+        <div class="page-2" style="width: 279mm; height: 215mm; padding: 10mm 5mm; box-sizing: border-box; position: relative; display: flex; flex-direction: column;">
+            
+            <!-- Tabla Principal Sábana -->
+            <table style="width: 100%; border-collapse: collapse; font-size: 9px; text-align: center; border: 1px solid black; color: black;">
                 <thead>
-                    <!-- FILA 1: COMPETENCIAS Y RECUPERACIÓN -->
-                    <tr style="background-color: #333; color: white; height: 15px;">
-                        <th rowspan="2" style="border: 1px solid #999; width: 120px; vertical-align: middle;">ASIGNATURAS</th>
+                    <!-- Fila 1: Títulos Superiores -->
+                    <tr style="height: 40px;">
+                        <th rowspan="2" style="${border} width: 120px; font-size: 9px;">COMPETENCIAS<br>FUNDAMENTALES<br><br>ÁREAS<br>CURRICULARES</th>
                         
-                        <th colspan="4" style="border: 1px solid #999; background-color: #444;" title="${MAPA_COMPETENCIAS['c1']}">COMPETENCIA 1</th>
-                        <th colspan="4" style="border: 1px solid #999; background-color: #555;" title="${MAPA_COMPETENCIAS['c2']}">COMPETENCIA 2</th>
-                        <th colspan="4" style="border: 1px solid #999; background-color: #444;" title="${MAPA_COMPETENCIAS['c3']}">COMPETENCIA 3</th>
-                        <th colspan="4" style="border: 1px solid #999; background-color: #555;" title="${MAPA_COMPETENCIAS['c4']}">COMPETENCIA 4</th>
+                        <!-- Colores Oficiales Exactos del PDF -->
+                        <th colspan="4" style="${border} background-color: #FCE4D6; vertical-align: middle;">Comunicativa</th>
+                        <th colspan="4" style="${border} background-color: #E2EFDA; vertical-align: middle;">Pensamiento Lógico,<br>Creativo y Crítico;<br>Resolución de Problemas</th>
+                        <th colspan="4" style="${border} background-color: #DDEBF7; vertical-align: middle;">Científica y<br>Tecnológica;<br>Ambiental y de la Salud</th>
+                        <th colspan="4" style="${border} background-color: #FFF2CC; vertical-align: middle;">Ética y Ciudadana;<br>Desarrollo Personal<br>y Espiritual</th>
                         
-                        <th rowspan="2" style="border: 1px solid #999; width: 25px; background-color: #222; font-weight: bold;">C.F.</th>
+                        <th rowspan="2" style="${border} width: 40px; background-color: #EDEDED; font-size: 7.5px; vertical-align:middle; padding: 2px;">PROMEDIO GRUPO<br>DE COMPETENCIAS<br>ESPECÍFICAS<br>(C.F.)</th>
                         
-                        <!-- SECCIÓN RECUPERACIÓN -->
-                        <th colspan="3" style="border: 1px solid #999; background-color: #666;">COMPLETIVA (C.C.)</th>
-                        <th colspan="3" style="border: 1px solid #999; background-color: #777;">EXTRAORD. (C.E.)</th>
-                        <th rowspan="2" style="border: 1px solid #999; width: 20px; background-color: #222;">E.E.</th>
-                        <th colspan="2" style="border: 1px solid #999; background-color: #333;">EST</th>
+                        <!-- Recuperación -->
+                        <th colspan="3" style="${border} background-color: #EDEDED; font-size: 7px; vertical-align:middle;">CALIFICACIÓN<br>COMPLETIVA</th>
+                        <th colspan="3" style="${border} background-color: #EDEDED; font-size: 7px; vertical-align:middle;">CALIFICACIÓN<br>EXTRAORDINARIA</th>
+                        <th rowspan="2" style="${border} width: 25px; background-color: #EDEDED; font-size: 7px; vertical-align:middle;">EVALUACIÓN<br>ESPECIAL<br>(C.E.)</th>
+                        
+                        <th colspan="2" style="${border} font-size: 7px; vertical-align:middle;">SITUACIÓN<br>FINAL EN LA<br>ASIGNATURA</th>
                     </tr>
                     
-                    <!-- FILA 2: PERIODOS -->
-                    <tr style="background-color: #eee; color: black; font-weight: bold; height: 15px;">
-                        <!-- C1 -->
-                        <th style="border: 1px solid #999; width: 18px;">P1</th><th style="border: 1px solid #999; width: 18px;">P2</th><th style="border: 1px solid #999; width: 18px;">P3</th><th style="border: 1px solid #999; width: 18px;">P4</th>
-                        <!-- C2 -->
-                        <th style="border: 1px solid #999; width: 18px;">P1</th><th style="border: 1px solid #999; width: 18px;">P2</th><th style="border: 1px solid #999; width: 18px;">P3</th><th style="border: 1px solid #999; width: 18px;">P4</th>
-                        <!-- C3 -->
-                        <th style="border: 1px solid #999; width: 18px;">P1</th><th style="border: 1px solid #999; width: 18px;">P2</th><th style="border: 1px solid #999; width: 18px;">P3</th><th style="border: 1px solid #999; width: 18px;">P4</th>
-                        <!-- C4 -->
-                        <th style="border: 1px solid #999; width: 18px;">P1</th><th style="border: 1px solid #999; width: 18px;">P2</th><th style="border: 1px solid #999; width: 18px;">P3</th><th style="border: 1px solid #999; width: 18px;">P4</th>
+                    <!-- Fila 2: Periodos y Porcentajes -->
+                    <tr style="height: 25px; font-weight: bold; font-size: 8px;">
+                        <!-- Periodos -->
+                        <th style="${border} width: 20px;">P1</th><th style="${border} width: 20px;">P2</th><th style="${border} width: 20px;">P3</th><th style="${border} width: 20px;">P4</th>
+                        <th style="${border} width: 20px;">P1</th><th style="${border} width: 20px;">P2</th><th style="${border} width: 20px;">P3</th><th style="${border} width: 20px;">P4</th>
+                        <th style="${border} width: 20px;">P1</th><th style="${border} width: 20px;">P2</th><th style="${border} width: 20px;">P3</th><th style="${border} width: 20px;">P4</th>
+                        <th style="${border} width: 20px;">P1</th><th style="${border} width: 20px;">P2</th><th style="${border} width: 20px;">P3</th><th style="${border} width: 20px;">P4</th>
                         
-                        <!-- C.C. -->
-                        <th style="border: 1px solid #999; width: 20px; font-size: 7px;">50%<br>C.F.</th>
-                        <th style="border: 1px solid #999; width: 20px; font-size: 7px;">50%<br>C.P.</th>
-                        <th style="border: 1px solid #999; width: 20px; background-color: #ddd;">C.C.</th>
+                        <!-- Completiva -->
+                        <th style="${border} width: 25px; font-size: 7px;">50%<br>C.P.C.</th>
+                        <th style="${border} width: 25px; font-size: 7px;">50%<br>C.E.C.</th>
+                        <th style="${border} width: 25px; font-size: 7px;">C.C.F.</th>
                         
-                        <!-- C.E. -->
-                        <th style="border: 1px solid #999; width: 20px; font-size: 7px;">30%<br>C.F.</th>
-                        <th style="border: 1px solid #999; width: 20px; font-size: 7px;">70%<br>C.P.</th>
-                        <th style="border: 1px solid #999; width: 20px; background-color: #ddd;">C.E.</th>
-
-                        <th style="border: 1px solid #999; width: 12px; font-size: 7px;">A</th>
-                        <th style="border: 1px solid #999; width: 12px; font-size: 7px;">R</th>
+                        <!-- Extraordinaria -->
+                        <th style="${border} width: 25px; font-size: 7px;">30%<br>C.P.C.</th>
+                        <th style="${border} width: 25px; font-size: 7px;">70%<br>C.E.EX.</th>
+                        <th style="${border} width: 25px; font-size: 7px;">C.EX.F.</th>
+                        
+                        <th style="${border} width: 15px;">A</th>
+                        <th style="${border} width: 15px;">R</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -251,102 +373,154 @@ function createBoletinSecundariaHTML(course, student, yearFrom, yearTo) {
                 </tbody>
             </table>
 
-            <!-- Resumen y Firmas -->
-            <div style="margin-top: 10px; display: flex; justify-content: space-between; border: 1px solid #000; padding: 5px; font-size: 9px; background: #fff;">
-                <div style="width: 25%;">
-                    <strong>ASISTENCIA:</strong> ${asistencia}% <br>
-                    <strong>CONDICIÓN:</strong> ${asistencia >= 80 ? 'Cumple' : 'No Cumple'}
+            <!-- Pie de Página 2 (Resumen y Firmas) -->
+            <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: flex-start; padding-top: 5px;">
+                
+                <!-- Columna 1: Info + Asistencia -->
+                <div style="width: 35%; font-size: 10px; color: black;">
+                    <div style="margin-bottom: 4px;"><strong>Nombre(s) y apellido (s):</strong> ${student.nombre}</div>
+                    <div style="margin-bottom: 8px;"><strong>Grado:</strong> ${course.nombre.replace(/[^0-9]/g, '')}no &nbsp;&nbsp; <strong>Sección:</strong> U</div>
+                    
+                    <div style="${fontBold} font-size: 9px; margin-bottom: 3px; text-decoration: underline;">CALIFICACIONES DE RENDIMIENTO</div>
+                    <div style="font-size: 9px; margin-bottom: 3px;">RESUMEN DE ASISTENCIA DEL/LA ESTUDIANTE</div>
+                    
+                    <table style="width: 100%; border-collapse: collapse; font-size: 9px; text-align: center; border: 1px solid black;">
+                        <thead>
+                            <tr>
+                                <th style="${border} width: 25%;">Períodos</th>
+                                <th style="${border} width: 25%;">Asistencia</th>
+                                <th style="${border} width: 25%;">Ausencia</th>
+                                <th style="${border} width: 25%;">% de Asistencia<br>Anual</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td style="${border}">P1</td><td style="${border}">-</td><td style="${border}">-</td><td rowspan="4" style="${border} ${fontBold} font-size: 12px; vertical-align: middle;">${asistencia}%</td></tr>
+                            <tr><td style="${border}">P2</td><td style="${border}">-</td><td style="${border}">-</td></tr>
+                            <tr><td style="${border}">P3</td><td style="${border}">-</td><td style="${border}">-</td></tr>
+                            <tr><td style="${border}">P4</td><td style="${border}">-</td><td style="${border}">-</td></tr>
+                        </tbody>
+                    </table>
                 </div>
-                <div style="width: 50%; font-size: 8px; color: #444;">
-                    <strong>COMPETENCIAS:</strong> 
-                    1. Ética y Ciudadana / Comunicativa &nbsp;|&nbsp; 
-                    2. Pensamiento Lógico, Creativo y Crítico &nbsp;|&nbsp; 
-                    3. Resolución de Problemas / Científica &nbsp;|&nbsp; 
-                    4. Ambiental / Desarrollo Personal
+
+                <!-- Columna 2: Leyenda -->
+                <div style="width: 35%; font-size: 8px; line-height: 1.3; padding: 0 10px; color: black;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 3px;">
+                        <span><strong>(P1)</strong> Período 1</span><span><strong>(P2)</strong> Período 2</span>
+                        <span><strong>(P3)</strong> Período 3</span><span><strong>(P4)</strong> Período 4</span>
+                    </div>
+                    <p style="margin: 1px 0;"><strong>(PC)</strong> Promedio Grupo de Competencias Específicas</p>
+                    <p style="margin: 1px 0;"><strong>(C.F.)</strong> Calificación Final</p>
+                    <p style="margin: 1px 0;"><strong>(C.E.C.)</strong> Calificación Evaluación Completiva</p>
+                    <p style="margin: 1px 0;"><strong>(C.C.F.)</strong> Calificación Completiva Final</p>
+                    <p style="margin: 1px 0;"><strong>(C.E.EX.)</strong> Calificación Evaluación Extraordinaria</p>
+                    <p style="margin: 1px 0;"><strong>(C.EX.F.)</strong> Calificación Extraordinaria Final</p>
+                    <p style="margin: 1px 0;"><strong>(C.E.)</strong> Calificación Especial</p>
+                    <div style="margin-top: 2px;">
+                        <span style="margin-right: 10px;"><strong>(A)</strong> Aprobado</span>
+                        <span><strong>(R)</strong> Reprobado</span>
+                    </div>
                 </div>
-                <div style="width: 20%; text-align: right;">
-                    <strong>ESTADO FINAL:</strong> <span style="font-weight: bold; background: #eee; padding: 0 4px;">${estadoGeneral}</span>
+
+                <!-- Columna 3: Condición y Firmas -->
+                <div style="width: 30%; font-size: 9px; color: black;">
+                    <div style="border: 1px solid black; padding: 4px; margin-bottom: 10px;">
+                        <div style="text-align: center; border-bottom: 1px solid #ccc; padding-bottom: 2px; margin-bottom: 3px; font-weight: bold;">LEYENDA:</div>
+                        <div style="font-weight: bold;">SITUACIÓN DEL/DE LA ESTUDIANTE:</div>
+                        <div style="margin-top: 3px;">
+                            ${situacionFinal === 'PROMOVIDO' ? '☑' : '☐'} Promovido/a<br>
+                            ${situacionFinal !== 'PROMOVIDO' ? '☑' : '☐'} Repitente
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <div style="font-weight: bold;">CONDICIÓN FINAL DEL/DE LA ESTUDIANTE:</div>
+                        <div style="border-bottom: 1px solid black; height: 16px; text-align: center; font-weight: bold; margin-top: 2px;">${situacionFinal}</div>
+                    </div>
+                    
+                    <div style="text-align: center;">
+                        <div style="border-bottom: 1px solid black; height: 10px; width: 100%;"></div>
+                        <div style="font-size: 8px; margin-bottom: 15px;">Maestro(a) encargado(a) del grado</div>
+                        
+                        <div style="border-bottom: 1px solid black; height: 10px; width: 100%;"></div>
+                        <div style="font-size: 8px;">Director(a) del Centro Educativo</div>
+                    </div>
                 </div>
             </div>
 
-            <div style="position: absolute; bottom: 8mm; width: 90%; display: flex; justify-content: space-between; font-size: 10px;">
-                <div style="text-align: center; border-top: 1px solid #000; width: 200px; padding-top: 5px;">Director(a) del Centro</div>
-                <div style="text-align: center; border-top: 1px solid #000; width: 200px; padding-top: 5px;">Encargado(a) de Registro</div>
-            </div>
         </div>
     </div>`;
 }
 
 // ==========================================
-// LÓGICA HORIZONTAL (FILA ÚNICA POR MATERIA)
+// LOGICA DE FILAS (SÁBANA HORIZONTAL)
 // ==========================================
-function getMateriasRowsHorizontal(course, student) {
+function getMateriasRowsOficial(course, student) {
     let html = '';
     const todasMaterias = [...new Set([...course.materias || []])];
     if (todasMaterias.length === 0) AREAS_CURRICULARES.forEach(m => todasMaterias.push(m));
 
+    // Añadir OPTATIVA / SALIDA al final
+    if (!todasMaterias.includes("OPTATIVA")) todasMaterias.push("OPTATIVA");
+    if (!todasMaterias.includes("SALIDA")) todasMaterias.push("SALIDA");
+
     todasMaterias.forEach((materia, idx) => {
-        // 1. Calcular C.F. General
         let sumPeriods = 0;
         let countPeriods = 0;
         PERIODOS_KEYS.forEach(p => {
             const pd = getPeriodDetails(course, student, materia, p);
             if (pd.hasData) { sumPeriods += pd.promedio; countPeriods++; }
         });
+        
         const cf = countPeriods > 0 ? Math.round(sumPeriods / countPeriods) : null;
-
-        // 2. Calcular Recuperaciones
         const rec = calculateRecuperacion(course, student, materia, cf);
         const isAprobado = checkAprobado(cf, rec);
         const f = (val) => (val !== null && val !== undefined && val !== '-' && !isNaN(val)) ? val : '';
 
-        // Estilos
-        const bgRow = idx % 2 === 0 ? 'bg-white' : 'bg-gray-50';
-        const border = 'border-right: 1px solid #ccc; border-bottom: 1px solid #ccc;';
+        // Altura fija de fila para compactar (18px)
+        const rowStyle = "height: 18px;"; 
+        const border = "border: 1px solid black; padding: 0 2px;";
 
-        html += `<tr style="height: 20px; ${idx % 2 !== 0 ? 'background-color: #f7f7f7;' : ''}">
-            <td style="text-align: left; padding-left: 4px; border: 1px solid #999; font-weight: bold; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 120px;" title="${materia}">${materia}</td>`;
+        html += `<tr style="${rowStyle}">
+            <td style="${border} text-align: left; font-weight: bold; font-size: 8px;">${materia}</td>`;
 
-        // 3. Celdas de Competencias (4 comps x 4 periodos = 16 celdas)
+        // 4 Competencias x 4 Periodos = 16 Celdas
         COMPETENCIAS_KEYS.forEach(comp => {
             PERIODOS_KEYS.forEach(per => {
                 const val = calculateCompetenceSpecific(course, student, materia, per, comp);
-                html += `<td style="border: 1px solid #ddd;">${f(val)}</td>`;
+                const color = (val !== null && val < 70) ? 'color: red;' : '';
+                html += `<td style="${border} ${color}">${f(val)}</td>`;
             });
         });
 
-        // 4. Columna C.F.
-        html += `<td style="border: 1px solid #999; font-weight: bold; background-color: #e0e0e0;">${f(cf)}</td>`;
+        // C.F.
+        const cfColor = (cf !== null && cf < 70) ? 'color: red;' : '';
+        html += `<td style="${border} font-weight: bold; background-color: #EDEDED; ${cfColor}">${f(cf)}</td>`;
 
-        // 5. Columnas Recuperación
-        // C.C.
-        html += `<td style="border: 1px solid #ddd; font-size: 7px;">${f(rec.cc_50_cpc)}</td>
-                 <td style="border: 1px solid #ddd; font-size: 7px;">${f(rec.cc_50_pe)}</td>
-                 <td style="border: 1px solid #999; background-color: #f0f0f0; font-weight: bold;">${f(rec.cc_final)}</td>`;
+        // Recuperación
+        html += `<td style="${border} font-size: 8px;">${f(rec.cc_50_cpc)}</td>
+                 <td style="${border} font-size: 8px;">${f(rec.cc_50_pe)}</td>
+                 <td style="${border} font-weight: bold; background-color: #F3F3F3;">${f(rec.cc_final)}</td>`;
 
-        // C.E.
-        html += `<td style="border: 1px solid #ddd; font-size: 7px;">${f(rec.ce_30_cpc)}</td>
-                 <td style="border: 1px solid #ddd; font-size: 7px;">${f(rec.ce_70_pe)}</td>
-                 <td style="border: 1px solid #999; background-color: #f0f0f0; font-weight: bold;">${f(rec.ce_final)}</td>`;
+        html += `<td style="${border} font-size: 8px;">${f(rec.ce_30_cpc)}</td>
+                 <td style="${border} font-size: 8px;">${f(rec.ce_70_pe)}</td>
+                 <td style="${border} font-weight: bold; background-color: #F3F3F3;">${f(rec.ce_final)}</td>`;
 
-        // E.E.
-        html += `<td style="border: 1px solid #999; background-color: #e6e6e6;">${f(rec.ee_final)}</td>`;
+        html += `<td style="${border} background-color: #EDEDED;">${f(rec.ee_final)}</td>`;
 
-        // Estado
-        html += `<td style="border: 1px solid #999;">${isAprobado ? '•' : ''}</td>
-                 <td style="border: 1px solid #999; color: red;">${!isAprobado ? '•' : ''}</td>`;
+        // A / R
+        html += `<td style="${border}">${isAprobado ? 'A' : ''}</td>
+                 <td style="${border}">${!isAprobado && cf !== null ? 'R' : ''}</td>`;
 
         html += `</tr>`;
     });
     return html;
 }
 
-// Calculo de nota de una competencia específica en un periodo específico
+// Funciones de Cálculo (Igual que antes)
 function calculateCompetenceSpecific(course, student, materia, period, compKey) {
+    if (materia === "OPTATIVA" || materia === "SALIDA") return null; 
     const acts = (course.actividades || {})[materia] || [];
     const studentNotas = (student.notas && student.notas[materia]) ? student.notas[materia] : {};
-
-    // Filtrar actividades de ese periodo y esa competencia
     const targetActs = acts.filter(a => (a.periodo || 'p1') === period && (a.competencia || 'c1') === compKey && (!a.tipo || a.tipo === 'regular'));
 
     if (targetActs.length === 0) return null;
@@ -369,27 +543,17 @@ function calculateCompetenceSpecific(course, student, materia, period, compKey) 
     });
 
     if (weightTotal > 0) return Math.round(sum);
-    // Si no hay pesos, promedio simple
     if (simpleCount > 0) return Math.round(simpleSum / simpleCount);
-
     return null;
 }
 
-// Función auxiliar para calcular recuperaciones (Reutilizada y limpiada)
 function calculateRecuperacion(course, student, materia, cf) {
-    const result = {
-        cc_50_cpc: '-', cc_50_pe: '-', cc_final: '-',
-        ce_30_cpc: '-', ce_70_pe: '-', ce_final: '-',
-        ee_final: '-'
-    };
+    const result = { cc_50_cpc: '-', cc_50_pe: '-', cc_final: '-', ce_30_cpc: '-', ce_70_pe: '-', ce_final: '-', ee_final: '-' };
+    if (cf === null || materia === "OPTATIVA" || materia === "SALIDA") return result;
+    if (cf >= 70) return result;
 
-    if (cf === null) return result;
-    if (cf >= 70) return result; // Aprobado, no hay recuperación
-
-    // Datos necesarios
     const notas = (student.notas && student.notas[materia]) ? student.notas[materia] : {};
     const acts = (course.actividades || {})[materia] || [];
-
     const actCC = acts.find(a => a.tipo === 'completiva') || { nombre: 'Examen Completivo' };
     const actCE = acts.find(a => a.tipo === 'extraordinaria') || { nombre: 'Examen Extraordinario' };
     const actEE = acts.find(a => a.tipo === 'especial') || { nombre: 'Evaluación Especial' };
@@ -398,31 +562,17 @@ function calculateRecuperacion(course, student, materia, cf) {
     const nCE = parseFloat(notas[actCE.nombre] || 0);
     const nEE = parseFloat(notas[actEE.nombre] || 0);
 
-    // 1. Completiva
-    const val_cc_50_cpc = Math.round(cf * 0.5);
-    const val_cc_50_pe = Math.round(nCC * 0.5);
-    const val_cc_final = val_cc_50_cpc + val_cc_50_pe;
+    result.cc_50_cpc = Math.round(cf * 0.5);
+    result.cc_50_pe = Math.round(nCC * 0.5);
+    result.cc_final = result.cc_50_cpc + result.cc_50_pe;
+    if (result.cc_final >= 70) return result;
 
-    result.cc_50_cpc = val_cc_50_cpc;
-    result.cc_50_pe = val_cc_50_pe;
-    result.cc_final = val_cc_final;
+    result.ce_30_cpc = Math.round(cf * 0.3);
+    result.ce_70_pe = Math.round(nCE * 0.7);
+    result.ce_final = result.ce_30_cpc + result.ce_70_pe;
+    if (result.ce_final >= 70) return result;
 
-    if (val_cc_final >= 70) return result; // Pasó en C.C.
-
-    // 2. Extraordinaria
-    const val_ce_30_cpc = Math.round(cf * 0.3);
-    const val_ce_70_pe = Math.round(nCE * 0.7);
-    const val_ce_final = val_ce_30_cpc + val_ce_70_pe;
-
-    result.ce_30_cpc = val_ce_30_cpc;
-    result.ce_70_pe = val_ce_70_pe;
-    result.ce_final = val_ce_final;
-
-    if (val_ce_final >= 70) return result; // Pasó en C.E.
-
-    // 3. Especial
     result.ee_final = nEE > 0 ? nEE : 0;
-
     return result;
 }
 
@@ -435,22 +585,16 @@ function checkAprobado(cf, rec) {
     return false;
 }
 
-// ... (Funciones auxiliares estándar como getPeriodDetails, calculateAttendance, getReprobadas se mantienen) ...
-
 function getPeriodDetails(course, student, subjectName, period) {
-    // Esta función calcula el promedio general del periodo (Promedio de las 4 comps)
+    if (subjectName === "OPTATIVA" || subjectName === "SALIDA") return { promedio: null, hasData: false };
     let sum = 0;
     let count = 0;
     COMPETENCIAS_KEYS.forEach(k => {
         const val = calculateCompetenceSpecific(course, student, subjectName, period, k);
-        if (val !== null) {
-            sum += val;
-            count++; // Asumimos que todas las competencias pesan igual en el promedio del periodo
-        }
+        if (val !== null) { sum += val; count++; }
     });
-
     if (count === 0) return { promedio: null, hasData: false };
-    return { promedio: Math.round(sum / 4), hasData: true }; // Siempre dividir por 4 estándar curricular
+    return { promedio: Math.round(sum / 4), hasData: true };
 }
 
 function calculateAttendancePercent(course, student) {
@@ -472,53 +616,15 @@ function getAsignaturasReprobadasCount(course, student) {
     if (todasMaterias.length === 0) AREAS_CURRICULARES.forEach(m => todasMaterias.push(m));
 
     todasMaterias.forEach(materia => {
-        // Recalcular CF rápido
         let suma = 0, count = 0;
-        ['p1', 'p2', 'p3', 'p4'].forEach(p => {
+        PERIODOS_KEYS.forEach(p => {
             const d = getPeriodDetails(course, student, materia, p);
             if (d.hasData) { suma += d.promedio; count++; }
         });
-
         let cf = count > 0 ? Math.round(suma / count) : 0;
-        // Si no hay datos, asumimos aprobado o ignoramos para el conteo de "reprobadas activas"
         if (count === 0) cf = 100;
-
         const rec = calculateRecuperacion(course, student, materia, cf);
         if (!checkAprobado(cf, rec)) reprobadas++;
     });
     return reprobadas;
-}
-
-// Placeholder para Primaria (Versión simple)
-function createBoletinPrimariaHTML(course, student, yearFrom, yearTo) {
-    const materias = getMateriasRowsSimple(course, student);
-    return `
-    <div style="padding: 20px; font-family: sans-serif;">
-        <h1 style="text-align: center;">BOLETÍN PRIMARIA</h1>
-        <p style="text-align: center;">${student.nombre} - ${course.nombre}</p>
-        <table style="width: 100%; border-collapse: collapse; border: 1px solid black; margin-top: 20px;">
-            <tr style="background: #eee;">
-                <th style="border: 1px solid black; padding: 5px;">Asignatura</th>
-                <th style="border: 1px solid black;">P1</th>
-                <th style="border: 1px solid black;">P2</th>
-                <th style="border: 1px solid black;">P3</th>
-                <th style="border: 1px solid black;">P4</th>
-                <th style="border: 1px solid black;">Final</th>
-            </tr>
-            ${materias}
-        </table>
-    </div>`;
-}
-
-function getMateriasRowsSimple(course, student) {
-    let html = '';
-    const todas = [...new Set([...course.materias || []])];
-    todas.forEach(m => {
-        const p1 = getPeriodDetails(course, student, m, 'p1').promedio || '-';
-        const p2 = getPeriodDetails(course, student, m, 'p2').promedio || '-';
-        const p3 = getPeriodDetails(course, student, m, 'p3').promedio || '-';
-        const p4 = getPeriodDetails(course, student, m, 'p4').promedio || '-';
-        html += `<tr><td style="border: 1px solid black; padding: 5px;">${m}</td><td style="border: 1px solid black; text-align: center;">${p1}</td><td style="border: 1px solid black; text-align: center;">${p2}</td><td style="border: 1px solid black; text-align: center;">${p3}</td><td style="border: 1px solid black; text-align: center;">${p4}</td><td style="border: 1px solid black; text-align: center;">-</td></tr>`;
-    });
-    return html;
 }

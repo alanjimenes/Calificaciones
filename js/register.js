@@ -1,5 +1,5 @@
 // Importamos firebaseConfig para tener las credenciales correctas
-import { auth, db, setDoc, doc, addDoc, collection, getDocs, orderBy, query } from './firebase-config.js';
+import { auth, db, setDoc, doc, addDoc, collection, getDocs, orderBy, query, appId } from './firebase-config.js';
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signOut as signOutSecondary } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { firebaseConfig } from './firebase-config.js';
@@ -46,7 +46,9 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadSubjectsCatalog() {
         if (!selectMateria) return;
         try {
-            const q = query(collection(db, "asignaturas_catalogo"), orderBy("nombre"));
+            // CORRECCIÓN: Usar la misma ruta que asignaturas.js ('artifacts', appId, 'public', 'data', 'asignaturas')
+            const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'asignaturas');
+            const q = query(colRef, orderBy("nombre"));
             const snapshot = await getDocs(q);
             
             let optionsHTML = '<option value="">Seleccionar Materia </option>';
@@ -57,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
             selectMateria.innerHTML = optionsHTML;
         } catch (error) {
             console.error("Error cargando catálogo de materias:", error);
+            selectMateria.innerHTML = '<option value="">Error al cargar materias</option>';
         }
     }
     loadSubjectsCatalog();
