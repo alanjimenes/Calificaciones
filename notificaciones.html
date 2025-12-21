@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html class="dark" lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>EduSys - Centro de Notificaciones</title>
+
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    
+    <!-- CONFIGURACIÓN DE TEMA -->
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2563eb",
+                        "primary-dark": "#1d4ed8",
+                        "background-light": "#f8fafc",
+                        "background-dark": "#0f172a",
+                        "surface-dark": "#1e293b",
+                        "surface-border": "#334155",
+                        "text-secondary": "#94a3b8",
+                        "white": "#f8fafc",
+                        "danger": "#ef4444",
+                        "admin": "#f59e0b",
+                    },
+                    fontFamily: { "display": ["Spline Sans", "sans-serif"] },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                    }
+                },
+            },
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+</head>
+
+<body class="bg-background-dark text-white font-display antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300" id="main-body">
+
+    <!-- Auth Guard (Admin/Secretaria) -->
+    <script type="module">
+        import { auth, onAuthStateChanged, doc, getDoc, db } from './js/firebase-config.js';
+        const body = document.getElementById('main-body');
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // Verificar permisos
+                let role = 'profesor';
+                if (user.email === 'admin@mail.com') role = 'admin';
+                else {
+                    const userDoc = await getDoc(doc(db, "usuarios", user.uid));
+                    if (userDoc.exists()) role = userDoc.data().rol;
+                }
+
+                if (role === 'admin' || role === 'secretaria') {
+                    body.classList.remove('opacity-0');
+                    window.dispatchEvent(new CustomEvent('userReady', { detail: { role: role, user: user } }));
+                } else {
+                    alert("Acceso denegado. Solo Administración.");
+                    window.location.href = 'index.html';
+                }
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+    </script>
+
+    <!-- EL SIDEBAR SE INYECTA CON JS -->
+
+    <main class="flex-1 flex flex-col overflow-y-auto relative bg-background-dark p-6 md:p-8 scroll-smooth transition-all duration-300" id="main-content">
+        
+        <div class="relative z-10 max-w-7xl mx-auto w-full">
+            
+            <!-- Header Móvil -->
+            <div class="lg:hidden flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-lg">school</span>
+                    </div>
+                    <span class="font-bold text-white text-lg">EduSys</span>
+                </div>
+                <button id="mobile-menu-btn" class="text-white material-symbols-outlined p-2 hover:bg-surface-dark rounded-lg transition-colors">menu</button>
+            </div>
+
+            <!-- Header Principal -->
+            <header class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <button id="desktop-sidebar-toggle" class="hidden lg:flex p-2 rounded-xl text-text-secondary hover:text-white hover:bg-surface-dark transition-colors">
+                        <span class="material-symbols-outlined">menu_open</span>
+                    </button>
+
+                    <div>
+                        <h2 class="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
+                            Tablón de Anuncios
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-pink-500/20 text-pink-400 border border-pink-500/20 uppercase tracking-wider">Comunicación</span>
+                        </h2>
+                        <p class="text-text-secondary text-sm mt-1">Envía, edita o elimina mensajes para el personal docente.</p>
+                    </div>
+                </div>
+            </header>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <!-- COLUMNA IZQUIERDA: CREAR/EDITAR NOTIFICACIÓN -->
+                <div class="lg:col-span-1">
+                    <div class="bg-surface-dark border border-surface-border rounded-2xl p-6 shadow-xl sticky top-6">
+                        <div class="flex items-center justify-between mb-6 pb-4 border-b border-surface-border">
+                            <div class="flex items-center gap-3">
+                                <div class="p-2.5 rounded-xl bg-primary/10 text-primary border border-primary/20">
+                                    <span class="material-symbols-outlined" id="form-icon">campaign</span>
+                                </div>
+                                <h3 class="text-lg font-bold text-white" id="form-title">Nuevo Aviso</h3>
+                            </div>
+                            <button id="btn-cancel-edit" onclick="cancelEdit()" class="hidden text-xs text-danger font-bold hover:bg-danger/10 px-2 py-1 rounded transition-colors">
+                                Cancelar
+                            </button>
+                        </div>
+
+                        <form id="form-notification" class="space-y-4">
+                            <!-- ID Oculto para Edición -->
+                            <input type="hidden" id="notif-id" value="">
+
+                            <div>
+                                <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Título del Mensaje</label>
+                                <input type="text" id="notif-title" required placeholder="Ej: Reunión de Personal"
+                                    class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm focus:border-primary outline-none transition-colors">
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Prioridad / Tipo</label>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="notif-type" value="info" class="peer sr-only" checked>
+                                        <div class="rounded-xl border border-surface-border bg-background-dark p-3 text-center transition-all peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary hover:border-surface-border/80">
+                                            <span class="material-symbols-outlined text-lg mb-1">info</span>
+                                            <p class="text-[10px] font-bold">Info</p>
+                                        </div>
+                                    </label>
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="notif-type" value="warning" class="peer sr-only">
+                                        <div class="rounded-xl border border-surface-border bg-background-dark p-3 text-center transition-all peer-checked:border-admin peer-checked:bg-admin/10 peer-checked:text-admin hover:border-surface-border/80">
+                                            <span class="material-symbols-outlined text-lg mb-1">warning</span>
+                                            <p class="text-[10px] font-bold">Aviso</p>
+                                        </div>
+                                    </label>
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="notif-type" value="urgent" class="peer sr-only">
+                                        <div class="rounded-xl border border-surface-border bg-background-dark p-3 text-center transition-all peer-checked:border-danger peer-checked:bg-danger/10 peer-checked:text-danger hover:border-surface-border/80">
+                                            <span class="material-symbols-outlined text-lg mb-1">priority_high</span>
+                                            <p class="text-[10px] font-bold">Urgente</p>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Contenido del Mensaje</label>
+                                <textarea id="notif-message" rows="4" required placeholder="Escribe los detalles aquí..."
+                                    class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm focus:border-primary outline-none transition-colors resize-none"></textarea>
+                            </div>
+
+                            <button type="submit" id="btn-submit" class="w-full py-3.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 mt-2 group">
+                                <span class="material-symbols-outlined group-hover:rotate-12 transition-transform" id="btn-icon">send</span>
+                                <span id="btn-text">Publicar Notificación</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- COLUMNA DERECHA: HISTORIAL -->
+                <div class="lg:col-span-2">
+                    <div class="bg-surface-dark border border-surface-border rounded-2xl p-6 shadow-xl min-h-[500px] flex flex-col">
+                        <div class="flex items-center justify-between mb-6 pb-4 border-b border-surface-border">
+                            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                                <span class="material-symbols-outlined text-text-secondary">history</span>
+                                Historial de Enviados
+                            </h3>
+                            <button onclick="loadNotifications()" class="p-2 rounded-lg hover:bg-surface-border text-text-secondary hover:text-white transition-colors">
+                                <span class="material-symbols-outlined">refresh</span>
+                            </button>
+                        </div>
+
+                        <div id="notifications-list" class="space-y-4 flex-1">
+                            <!-- JS Cargará aquí -->
+                            <div class="text-center py-12 text-text-secondary">
+                                <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+                                <p class="text-xs">Cargando historial...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- SCRIPTS -->
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/layout.js"></script>
+    <script type="module" src="js/main.js"></script>
+    <script type="module" src="js/notificaciones.js"></script>
+
+</body>
+</html>

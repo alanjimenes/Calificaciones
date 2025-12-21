@@ -1,9 +1,5 @@
 import { auth, signOut, onAuthStateChanged } from './firebase-config.js';
 
-/**
- * Inyecta el Sidebar y maneja la lógica de navegación común.
- * Debe ser importado en todas las páginas principales.
- */
 document.addEventListener('DOMContentLoaded', () => {
     renderSidebar();
     setTimeout(setupSidebarToggle, 100);
@@ -24,8 +20,9 @@ function renderSidebar() {
 
     const managementLinks = [
         { href: 'boletin.html', icon: 'description', text: 'Boletines' },
-        // --- NUEVA OPCIÓN AGREGADA ---
-        { href: 'estudiantes_global.html', icon: 'groups', text: 'Estudiantes Global' }
+        { href: 'estudiantes_global.html', icon: 'groups', text: 'Estudiantes Global' },
+        // --- NUEVO LINK ---
+        { href: 'notificaciones.html', icon: 'campaign', text: 'Tablón Anuncios' } 
     ];
 
     const adminLinks = [
@@ -34,7 +31,6 @@ function renderSidebar() {
         { href: 'auditoria.html', icon: 'history', text: 'Historial Cambios' }
     ];
 
-    // Detectar si estamos en configuración para resaltar el botón
     const isSettingsActive = currentPath.includes('configuracion.html');
     const settingsClass = isSettingsActive
         ? "bg-primary/10 text-primary border-l-4 border-primary"
@@ -75,7 +71,6 @@ function renderSidebar() {
         </nav>
 
         <div class="mt-auto">
-            <!-- ENLACE DIRECTO A CONFIGURACIÓN -->
             <a href="configuracion.html" class="flex w-full items-center gap-4 rounded-xl px-4 py-3.5 transition-colors group ${settingsClass}">
                 <span class="material-symbols-outlined group-hover:rotate-90 transition-transform duration-500">settings</span>
                 <span class="font-medium">Configuración</span>
@@ -165,14 +160,10 @@ function setupSidebarToggle() {
     document.addEventListener('click', (e) => {
         const isMobile = window.innerWidth < 1024;
         const isHidden = sidebar.classList.contains('hidden');
-
         if (isMobile && !isHidden) {
             const clickedInside = sidebar.contains(e.target);
             const clickedBtn = mobileBtn && mobileBtn.contains(e.target);
-
-            if (!clickedInside && !clickedBtn) {
-                toggleSidebar(false);
-            }
+            if (!clickedInside && !clickedBtn) toggleSidebar(false);
         }
     });
 }
@@ -187,14 +178,12 @@ function createLinkHTML(link, currentPath, isAdmin = false) {
     }
 
     let classes = "flex items-center gap-4 rounded-xl px-4 py-3.5 transition-all ";
-
     if (isActive) {
         if (isAdmin) classes += "bg-admin/10 text-admin border-l-4 border-admin";
         else classes += "bg-primary/10 text-primary border-l-4 border-primary";
     } else {
         classes += "text-text-secondary hover:text-white hover:bg-white/5";
     }
-
     const iconColorClass = isActive && isAdmin ? "text-admin" : (isActive ? "text-primary" : "material-symbols-outlined");
 
     return `
@@ -223,16 +212,9 @@ function updateSidebarInfo(user, role) {
     if (roleEl) {
         let roleName = 'DOCENTE';
         let roleClass = 'bg-primary/20 text-primary';
-
-        if (role === 'admin') {
-            roleName = 'ADMINISTRADOR';
-            roleClass = 'bg-admin/20 text-admin';
-        } else if (role === 'secretaria') {
-            roleName = 'SECRETARIA';
-            roleClass = 'bg-purple-500/20 text-purple-400 border border-purple-500/20';
-        } else if (role === 'titular') {
-            roleName = 'TITULAR';
-        }
+        if (role === 'admin') { roleName = 'ADMINISTRADOR'; roleClass = 'bg-admin/20 text-admin'; } 
+        else if (role === 'secretaria') { roleName = 'SECRETARIA'; roleClass = 'bg-purple-500/20 text-purple-400 border border-purple-500/20'; } 
+        else if (role === 'titular') { roleName = 'TITULAR'; }
 
         roleEl.innerText = roleName;
         roleEl.className = `text-[10px] font-bold px-2 py-0.5 rounded w-fit mt-1 ${roleClass}`;
@@ -244,7 +226,7 @@ function updateSidebarInfo(user, role) {
     }
 
     if (managementSection) {
-        // Permitimos acceso a Management (Boletines, Estudiantes Global) a Secretaria y Admin
+        // Habilitar para admin y secretaria
         if (role === 'admin' || role === 'secretaria') managementSection.classList.remove('hidden');
         else managementSection.classList.add('hidden');
     }
