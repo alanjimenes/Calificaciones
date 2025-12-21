@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const q = query(collection(db, "asignaturas_catalogo"), orderBy("nombre"));
             const snapshot = await getDocs(q);
             
-            let optionsHTML = '<option value="">Seleccionar Materia (Opcional)</option>';
+            let optionsHTML = '<option value="">Seleccionar Materia </option>';
             snapshot.forEach(doc => {
                 const sub = doc.data();
                 optionsHTML += `<option value="${sub.nombre}">${sub.nombre}</option>`;
