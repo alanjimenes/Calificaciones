@@ -8,7 +8,7 @@
 
     <link rel="stylesheet" href="css/styles.css">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    
+
     <!-- CONFIGURACIÓN DE TEMA -->
     <script>
         tailwind.config = {
@@ -19,9 +19,9 @@
                         "primary": "#2563eb",
                         "primary-dark": "#1d4ed8",
                         "background-light": "#f8fafc",
-                        "background-dark": "#0f172a", /* Fondo principal oscuro */
-                        "surface-dark": "#1e293b",     /* Fondo de tarjetas */
-                        "surface-border": "#334155",   /* Bordes sutiles */
+                        "background-dark": "#0f172a",
+                        "surface-dark": "#1e293b",
+                        "surface-border": "#334155",
                         "text-secondary": "#94a3b8",
                         "white": "#f8fafc",
                         "danger": "#ef4444",
@@ -35,42 +35,33 @@
             },
         }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
 </head>
 
-<body class="bg-background-dark text-white font-display antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300" id="main-body">
+<body
+    class="bg-background-dark text-white font-display antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300"
+    id="main-body">
 
-    <!-- Auth Guard (Solo Admin) + FIX MENÚ LATERAL -->
+    <!-- Auth Guard (Solo Admin) -->
     <script type="module">
         import { auth, onAuthStateChanged, doc, getDoc, db } from './js/firebase-config.js';
         const body = document.getElementById('main-body');
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // Verificar si es admin
                 const userDoc = await getDoc(doc(db, "usuarios", user.uid));
                 const isAdmin = (user.email === 'admin@mail.com') || (userDoc.exists() && userDoc.data().rol === 'admin');
-                
+
                 if (isAdmin) {
                     body.classList.remove('opacity-0');
-                    
-                    // --- FIX: ESTO FALTABA PARA QUE EL MENÚ LATERAL FUNCIONE ---
-                    // layout.js escucha este evento para saber quién es el usuario y pintar el menú
-                    window.dispatchEvent(new CustomEvent('userReady', { 
-                        detail: { 
-                            user: user, 
-                            uid: user.uid,
-                            role: 'admin', // Forzamos rol admin ya que validamos arriba
-                            email: user.email
-                        } 
+                    window.dispatchEvent(new CustomEvent('userReady', {
+                        detail: { user: user, uid: user.uid, role: 'admin', email: user.email }
                     }));
-                    // -----------------------------------------------------------
-
-                    // Evento para que cargue la lógica interna de asignaturas.js
                     window.dispatchEvent(new CustomEvent('adminReady'));
                 } else {
-                    alert("Acceso denegado. Sección solo para administradores.");
+                    alert("Acceso denegado.");
                     window.location.href = 'index.html';
                 }
             } else {
@@ -79,83 +70,77 @@
         });
     </script>
 
-    <!-- EL SIDEBAR SE INYECTA CON JS (layout.js) -->
+    <!-- EL SIDEBAR SE INYECTA CON JS -->
 
-    <!-- CONTENIDO PRINCIPAL -->
-    <main class="flex-1 flex flex-col overflow-y-auto relative bg-background-dark p-6 md:p-8 scroll-smooth transition-all duration-300" id="main-content">
-        
-        <!-- Decoración de fondo -->
+    <main
+        class="flex-1 flex flex-col overflow-y-auto relative bg-background-dark p-6 md:p-8 scroll-smooth transition-all duration-300"
+        id="main-content">
+
         <div class="fixed top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-            <div class="absolute top-[10%] right-[20%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px]"></div>
-            <div class="absolute bottom-[10%] left-[10%] w-[300px] h-[300px] bg-admin/5 rounded-full blur-[100px]"></div>
+            <div class="absolute top-[10%] right-[20%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px]">
+            </div>
         </div>
 
         <div class="relative z-10 max-w-7xl mx-auto w-full">
-            
-            <!-- Header Móvil -->
-            <div class="lg:hidden flex items-center justify-between mb-6">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                        <span class="material-symbols-outlined text-white text-lg">school</span>
-                    </div>
-                    <span class="font-bold text-white text-lg">EduSys</span>
-                </div>
-                <button id="mobile-menu-btn" class="text-white material-symbols-outlined p-2 hover:bg-surface-dark rounded-lg transition-colors">menu</button>
-            </div>
 
-            <!-- Header Principal -->
             <header class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div class="flex items-center gap-4">
-                    <button id="desktop-sidebar-toggle" class="hidden lg:flex p-2 rounded-xl text-text-secondary hover:text-white hover:bg-surface-dark transition-colors" title="Ocultar/Mostrar Menú">
+                    <button id="desktop-sidebar-toggle"
+                        class="hidden lg:flex p-2 rounded-xl text-text-secondary hover:text-white hover:bg-surface-dark transition-colors">
                         <span class="material-symbols-outlined">menu_open</span>
                     </button>
-
                     <div>
                         <h2 class="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
                             Catálogo de Asignaturas
-                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-admin/20 text-admin border border-admin/20 uppercase tracking-wider">Admin</span>
+                            <span
+                                class="px-2 py-0.5 rounded text-[10px] font-bold bg-admin/20 text-admin border border-admin/20 uppercase tracking-wider">Admin</span>
                         </h2>
-                        <p class="text-text-secondary text-sm mt-1">Gestiona la lista maestra de materias y coordinadores.</p>
+                        <p class="text-text-secondary text-sm mt-1">Gestiona la lista maestra de materias y niveles.</p>
                     </div>
                 </div>
-                
+
                 <div class="flex items-center gap-3 w-full md:w-auto">
-                    <!-- Buscador -->
                     <div class="relative group flex-1 md:flex-none">
-                        <span class="material-symbols-outlined absolute left-3 top-2.5 text-text-secondary group-focus-within:text-primary transition-colors text-lg">search</span>
-                        <input type="text" id="search-input" placeholder="Buscar asignatura..." 
-                               class="w-full md:w-64 bg-surface-dark border border-surface-border text-white text-sm rounded-xl pl-10 pr-4 py-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all shadow-sm placeholder-text-secondary/50">
+                        <span
+                            class="material-symbols-outlined absolute left-3 top-2.5 text-text-secondary group-focus-within:text-primary transition-colors text-lg">search</span>
+                        <input type="text" id="search-input" placeholder="Buscar asignatura..."
+                            class="w-full md:w-64 bg-surface-dark border border-surface-border text-white text-sm rounded-xl pl-10 pr-4 py-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all shadow-sm placeholder-text-secondary/50">
                     </div>
 
-                    <button onclick="window.prepareCreate()" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-admin text-white font-bold hover:bg-yellow-500 transition shadow-lg shadow-admin/20 whitespace-nowrap text-sm shrink-0">
+                    <button onclick="window.syncCatalog()"
+                        class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-surface-dark border border-surface-border hover:bg-surface-border text-text-secondary hover:text-white transition-all shadow-sm text-sm shrink-0 group"
+                        title="Sincronizar materias de cursos">
+                        <span
+                            class="material-symbols-outlined text-lg group-hover:rotate-180 transition-transform duration-500">sync</span>
+                        <span class="hidden md:inline">Sincronizar</span>
+                    </button>
+
+                    <button onclick="window.prepareCreate()"
+                        class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-admin text-white font-bold hover:bg-yellow-500 transition shadow-lg shadow-admin/20 whitespace-nowrap text-sm shrink-0">
                         <span class="material-symbols-outlined text-lg">add</span>
                         <span class="hidden md:inline">Nueva Asignatura</span>
-                        <span class="md:hidden">Crear</span>
                     </button>
                 </div>
             </header>
 
-            <!-- Contenedor Grid -->
             <div class="relative min-h-[400px]">
-                
-                <!-- Loader -->
-                <div id="loader" class="absolute inset-0 flex items-center justify-center bg-background-dark/50 z-20 backdrop-blur-sm rounded-2xl">
+                <div id="loader"
+                    class="absolute inset-0 flex items-center justify-center bg-background-dark/50 z-20 backdrop-blur-sm rounded-2xl">
                     <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-admin"></div>
                 </div>
 
-                <!-- Grid de Asignaturas -->
-                <div id="subjects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-10">
-                    <!-- Se llena con JS (asignaturas.js) -->
-                </div>
+                <div id="subjects-grid"
+                    class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-10"></div>
 
-                <!-- Empty State -->
-                <div id="empty-state" class="hidden flex-col items-center justify-center p-12 text-center mt-10 border border-dashed border-surface-border rounded-2xl bg-surface-dark/30">
-                    <div class="w-16 h-16 bg-surface-dark rounded-full flex items-center justify-center mb-4 border border-surface-border shadow-lg">
+                <div id="empty-state"
+                    class="hidden flex-col items-center justify-center p-12 text-center mt-10 border border-dashed border-surface-border rounded-2xl bg-surface-dark/30">
+                    <div
+                        class="w-16 h-16 bg-surface-dark rounded-full flex items-center justify-center mb-4 border border-surface-border shadow-lg">
                         <span class="material-symbols-outlined text-3xl text-text-secondary">auto_stories</span>
                     </div>
                     <h3 class="text-lg font-bold text-white">Catálogo vacío</h3>
-                    <p class="text-text-secondary text-sm max-w-xs mx-auto mt-1 mb-4">No hay asignaturas registradas en el sistema.</p>
-                    <button onclick="window.prepareCreate()" class="text-admin text-sm font-bold hover:underline">Crear la primera asignatura</button>
+                    <p class="text-text-secondary text-sm max-w-xs mx-auto mt-1 mb-4">No hay asignaturas registradas.
+                    </p>
                 </div>
             </div>
 
@@ -163,48 +148,75 @@
     </main>
 
     <!-- MODAL: CREAR / EDITAR -->
-    <div id="modal-manage-subject" class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4 transition-all duration-300">
-        <div class="bg-surface-dark border border-surface-border p-8 rounded-2xl w-full max-w-md shadow-2xl relative animate-fade-in">
-            <button onclick="toggleModal('modal-manage-subject')" class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined p-1 rounded-full hover:bg-white/10 transition-colors">close</button>
-            
+    <div id="modal-manage-subject"
+        class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4 transition-all duration-300">
+        <div
+            class="bg-surface-dark border border-surface-border p-8 rounded-2xl w-full max-w-md shadow-2xl relative animate-fade-in">
+            <button onclick="toggleModal('modal-manage-subject')"
+                class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined p-1 rounded-full hover:bg-white/10 transition-colors">close</button>
+
             <div class="flex items-center gap-3 mb-6">
                 <div class="p-3 rounded-xl bg-admin/20 text-admin border border-admin/20">
                     <span class="material-symbols-outlined text-2xl" id="modal-icon">add</span>
                 </div>
                 <div>
                     <h2 class="text-xl font-bold text-white" id="modal-title">Nueva Asignatura</h2>
-                    <p class="text-xs text-text-secondary">Definición global de la materia</p>
+                    <p class="text-xs text-text-secondary">Definición de materia y nivel</p>
                 </div>
             </div>
 
             <form id="form-subject" class="space-y-5">
-                <input type="hidden" id="edit-id" value=""> 
+                <input type="hidden" id="edit-id" value="">
 
+                <!-- Nombre -->
                 <div>
-                    <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Nombre de la Asignatura</label>
-                    <input type="text" id="subject-name" placeholder="Ej: Matemáticas Avanzadas" required 
+                    <label
+                        class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Nombre
+                        de la Asignatura</label>
+                    <input type="text" id="subject-name" placeholder="Ej: Matemáticas Avanzadas" required
                         class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white placeholder-text-secondary/30 focus:border-admin focus:ring-1 focus:ring-admin outline-none transition-all shadow-sm text-sm">
                 </div>
 
+                <!-- Nivel Educativo (SELECTOR) -->
                 <div>
-                    <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Profesor Asignado (Default)</label>
+                    <label
+                        class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Nivel
+                        Educativo</label>
                     <div class="relative">
-                        <select id="subject-teacher" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white focus:border-admin focus:ring-1 focus:ring-admin outline-none transition-all shadow-sm appearance-none cursor-pointer text-sm">
+                        <select id="subject-level"
+                            class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white focus:border-admin focus:ring-1 focus:ring-admin outline-none transition-all shadow-sm appearance-none cursor-pointer text-sm pr-10">
+                            <option value="primario">Nivel Primario</option>
+                            <option value="secundario">Nivel Secundario</option>
+                            <option value="ambos" selected>Ambos</option>
+                        </select>
+                        <span
+                            class="material-symbols-outlined absolute right-3 top-3 text-text-secondary pointer-events-none">school</span>
+                    </div>
+                </div>
+
+                <!-- Profesor -->
+                <div>
+                    <label
+                        class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Coordinador
+                        Asignado</label>
+                    <div class="relative">
+                        <select id="subject-teacher"
+                            class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white focus:border-admin focus:ring-1 focus:ring-admin outline-none transition-all shadow-sm appearance-none cursor-pointer text-sm pr-10">
                             <option value="" selected>Sin asignar</option>
                             <option value="" disabled>Cargando lista...</option>
                         </select>
-                        <span class="material-symbols-outlined absolute right-4 top-3 text-text-secondary pointer-events-none">expand_more</span>
+                        <span
+                            class="material-symbols-outlined absolute right-3 top-3 text-text-secondary pointer-events-none">expand_more</span>
                     </div>
-                    <p class="text-[9px] text-text-secondary mt-1.5 ml-1 flex items-center gap-1">
-                        <span class="material-symbols-outlined text-[10px]">info</span> Este profesor será el coordinador por defecto.
-                    </p>
                 </div>
 
                 <div class="pt-4 flex gap-3 border-t border-surface-border/50 mt-6">
-                    <button type="button" onclick="toggleModal('modal-manage-subject')" class="flex-1 py-3 rounded-xl border border-surface-border text-text-secondary hover:text-white hover:bg-surface-border transition font-medium text-sm">
+                    <button type="button" onclick="toggleModal('modal-manage-subject')"
+                        class="flex-1 py-3 rounded-xl border border-surface-border text-text-secondary hover:text-white hover:bg-surface-border transition font-medium text-sm">
                         Cancelar
                     </button>
-                    <button type="submit" class="flex-1 py-3 rounded-xl bg-admin text-white font-bold hover:bg-yellow-500 transition shadow-lg shadow-admin/20 text-sm flex items-center justify-center gap-2">
+                    <button type="submit"
+                        class="flex-1 py-3 rounded-xl bg-admin text-white font-bold hover:bg-yellow-500 transition shadow-lg shadow-admin/20 text-sm flex items-center justify-center gap-2">
                         <span class="material-symbols-outlined text-lg">save</span>
                         Guardar
                     </button>
@@ -213,10 +225,9 @@
         </div>
     </div>
 
-    <!-- Toast Notification Container -->
+    <!-- Toast Container -->
     <div id="toast-container"></div>
 
-    <!-- SCRIPTS -->
     <script type="module" src="js/firebase-config.js"></script>
     <script type="module" src="js/layout.js"></script>
     <script type="module" src="js/asignaturas.js"></script>
@@ -224,24 +235,23 @@
     <script>
         function toggleModal(id) {
             const el = document.getElementById(id);
-            if(el) {
-                el.classList.toggle('hidden');
-                el.classList.toggle('flex');
-            }
+            if (el) { el.classList.toggle('hidden'); el.classList.toggle('flex'); }
         }
 
         window.prepareCreate = () => {
             document.getElementById('form-subject').reset();
             document.getElementById('edit-id').value = '';
             document.getElementById('modal-title').innerText = 'Nueva Asignatura';
-            document.getElementById('modal-icon').innerText = 'add';
-            
+            // Default select
+            document.getElementById('subject-level').value = 'ambos';
+
             const select = document.getElementById('subject-teacher');
-            if(select && select.options.length <= 2 && window.loadTeachers) {
-                window.loadTeachers(); 
+            if (select && select.options.length <= 2 && window.loadTeachers) {
+                window.loadTeachers();
             }
             toggleModal('modal-manage-subject');
         }
     </script>
 </body>
+
 </html>
