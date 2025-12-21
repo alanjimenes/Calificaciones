@@ -1,364 +1,153 @@
-import { db, collection, getDocs, doc, getDoc, deleteDoc, updateDoc, setDoc, arrayUnion, arrayRemove, query, orderBy, onSnapshot, deleteField, auth } from './firebase-config.js';
+import { db, auth, onAuthStateChanged, collection, query, where, getDocs, getDoc, doc, collectionGroup } from './firebase-config.js';
 
-const grid = document.getElementById('courses-grid');
-let isAdminUser = false;
-let isSecretariaUser = false;
-let currentCourseIdForSubjects = null;
-let teacherOptionsCache = "";
+const coursesGrid = document.getElementById('courses-grid');
 
-window.addEventListener('userReady', (e) => {
-    const { role } = e.detail;
-    isAdminUser = (role === 'admin');
-    isSecretariaUser = (role === 'secretaria');
+// Escuchar evento personalizado de que la app está lista (lanzado desde cursos.html)
+window.addEventListener('appReady', () => {
+    initCourses();
+});
 
-    loadCourses(isAdminUser, isSecretariaUser);
-
-    if (isAdminUser) {
-        loadGlobalCatalog();
-        loadTeachersIntoSelects();
+// Si el script carga después del evento (navegación directa), iniciamos si hay usuario
+onAuthStateChanged(auth, (user) => {
+    if (user && document.body.classList.contains('opacity-0') === false) {
+        initCourses();
     }
 });
 
-// --- CARGAR CURSOS ---
-async function loadCourses(isAdmin, isSecretaria) {
-    if (!grid) return;
-    grid.innerHTML = '<div class="col-span-full flex justify-center p-10"><div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div></div>';
+async function initCourses() {
+    const user = auth.currentUser;
+    if (!user) return;
 
     try {
-        const q = query(collection(db, "cursos_globales"));
-        const querySnapshot = await getDocs(q);
-        grid.innerHTML = '';
+        await loadCourses(user);
+    } catch (error) {
+        console.error("Error al cargar cursos:", error);
+        coursesGrid.innerHTML = `<p class="text-danger p-4">Error cargando cursos: ${error.message}</p>`;
+    }
+}
 
-        if (querySnapshot.empty) {
-            grid.innerHTML = `
-                <div class="col-span-full flex flex-col items-center justify-center p-10 bg-surface-dark rounded-2xl border border-surface-border text-center opacity-70">
-                    <span class="material-symbols-outlined text-4xl text-surface-border mb-2">library_books</span>
-                    <p class="text-text-secondary">No hay cursos registrados.</p>
-                </div>`;
+async function loadCourses(user) {
+    // 1. Obtener datos del usuario para ver su rol
+    const userDoc = await getDoc(doc(db, "usuarios", user.uid));
+    const userData = userDoc.data();
+    const rol = userData?.rol || 'profesor';
+
+    let coursesList = [];
+
+    // LÓGICA DE FILTRADO
+    if (rol === 'admin' || rol === 'secretaria') {
+        // A) Admin/Secretaria: Ven TODOS los cursos
+        const q = query(collection(db, "cursos"));
+        const snapshot = await getDocs(q);
+        coursesList = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    } else {
+        // B) Profesor/Titular: Ven solo sus cursos
+        // Esto requiere dos comprobaciones:
+        // 1. ¿Es titular del curso?
+        // 2. ¿Da alguna materia dentro del curso?
+
+        const myCourseIds = new Set();
+
+        // 1. Buscar donde soy TITULAR (campo titularUid en el documento del curso)
+        const titularQuery = query(collection(db, "cursos"), where("titularUid", "==", user.uid));
+        const titularSnap = await getDocs(titularQuery);
+        titularSnap.forEach(doc => myCourseIds.add(doc.id));
+
+        // 2. Buscar donde soy PROFESOR DE MATERIA (subcolección 'materias')
+        // Usamos collectionGroup para buscar en todas las colecciones 'materias' de la BD
+        const materiasQuery = query(collectionGroup(db, "materias"), where("profesorUid", "==", user.uid));
+        const materiasSnap = await getDocs(materiasQuery);
+        
+        materiasSnap.forEach(doc => {
+            // El padre del documento materia es la colección 'materias', 
+            // y el padre de esa colección es el documento 'curso'.
+            // Ref: curso/ID_CURSO/materias/ID_MATERIA
+            const courseDocRef = doc.ref.parent.parent;
+            if (courseDocRef) {
+                myCourseIds.add(courseDocRef.id);
+            }
+        });
+
+        // 3. Si no tengo cursos, terminamos
+        if (myCourseIds.size === 0) {
+            renderCourses([]);
             return;
         }
 
-        querySnapshot.forEach((docSnap) => {
-            const course = docSnap.data();
-            course.id = docSnap.id;
-
-            // Filtro: Mostrar si es Admin, Titular o Secretaria
-            const isTitular = (course.titular_email === (auth.currentUser ? auth.currentUser.email : ''));
-
-            if (isAdmin || isTitular || isSecretaria) {
-                const bgImage = "https://lh3.googleusercontent.com/aida-public/AB6AXuBKlz27CPdY5AUeYAH0R7A2Yrl2WzbhGdLaBUGg3p_xUikEJVl26Mk9zA091rWSG50VbCFg78jdEL0vL1ecxCTiWwxqJGg400D11mOOULbqiQUGt6-7E-pMaXlCsearuXwFT2QaFHlIrHC2xrm2WP4G1XJSmcQ6ZosWkQ9XchVCDFoQkBQXHkXTcWzUqgtMphMVvYiqLIe_es6_NGzsl1F3BA3JIsChgbT7ejE4QbA1C-iuQCESqaro8OWeO80wPZaJqEDZA0X_wJhI";
-
-                const card = document.createElement('div');
-                card.className = "group flex flex-col overflow-hidden rounded-2xl bg-surface-dark border border-surface-border transition-all hover:border-primary/50 shadow-lg hover:shadow-xl h-full";
-
-                let cardContent = `
-                    <a href="calificaciones.html?curso=${course.id}" class="block relative h-32 w-full bg-cover bg-center" style='background-image: url("${bgImage}");'>
-                        <div class="absolute inset-0 bg-gradient-to-t from-surface-dark to-transparent"></div>
-                        <div class="absolute left-4 bottom-4">
-                            <h3 class="text-xl font-bold text-white group-hover:text-primary transition-colors leading-tight drop-shadow-md">${course.nombre}</h3>
-                            <p class="text-xs text-white/80 font-mono tracking-wide mt-0.5 drop-shadow-md">${course.id.toUpperCase()}</p>
-                        </div>
-                    </a>
-                    
-                    <div class="flex-1 p-5 flex flex-col gap-4">
-                        <div class="flex items-center gap-2 text-xs text-text-secondary">
-                            <span class="material-symbols-outlined text-sm">person</span>
-                            <span class="truncate">${course.titular_email || "Sin Titular"}</span>
-                        </div>
-
-                        <div class="flex flex-wrap gap-1.5">
-                            ${(course.materias || []).length > 0
-                        ? `<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-surface-border text-white border border-surface-border/50">${(course.materias || []).length} Asignaturas</span>`
-                        : `<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-surface-border/20 text-text-secondary border border-surface-border/20 border-dashed">Sin plan</span>`
-                    }
-                            <span class="px-2 py-1 rounded-md text-[10px] font-bold bg-surface-border text-white border border-surface-border/50">${(course.estudiantes || []).length} Estudiantes</span>
-                        </div>
-                    </div>
-                `;
-
-                // Botones específicos según rol
-                if (isAdmin) {
-                    cardContent += `
-                        <div class="p-3 border-t border-surface-border bg-black/20 flex flex-col gap-2">
-                            <!-- BOTÓN ENTRAR CORREGIDO -->
-                            <a href="calificaciones.html?curso=${course.id}" class="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg bg-primary text-white text-xs font-bold hover:bg-primary-dark transition-colors shadow-lg shadow-primary/20">
-                                <span class="material-symbols-outlined text-sm">login</span> Entrar al Curso
-                            </a>
-                            
-                            <div class="flex items-center gap-2 justify-between">
-                                <button onclick="openSubjectsModal('${course.id}', '${course.nombre}')" class="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-surface-border/50 hover:bg-surface-border text-white text-xs font-bold transition-colors">
-                                    <span class="material-symbols-outlined text-sm">view_list</span> Materias
-                                </button>
-                                <button onclick="openEditModal('${course.id}')" class="flex items-center justify-center p-2 rounded-lg bg-surface-border/50 hover:bg-admin hover:text-background-dark text-admin transition-colors" title="Editar Info">
-                                    <span class="material-symbols-outlined text-sm">edit</span>
-                                </button>
-                                <button onclick="deleteCourse('${course.id}')" class="flex items-center justify-center p-2 rounded-lg bg-surface-border/50 hover:bg-danger hover:text-white text-danger transition-colors" title="Eliminar Curso">
-                                    <span class="material-symbols-outlined text-sm">delete</span>
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                } else if (isSecretaria) {
-                    cardContent += `
-                        <div class="p-3 border-t border-surface-border bg-black/20 text-center flex gap-2">
-                             <a href="calificaciones.html?curso=${course.id}" class="flex-1 py-2 rounded-lg bg-purple-500/20 text-purple-400 hover:bg-purple-500 hover:text-white text-xs font-bold transition-colors border border-purple-500/30 flex items-center justify-center gap-1">
-                                <span class="material-symbols-outlined text-sm">school</span> Gestión Académica
-                            </a>
-                        </div>
-                     `;
-                } else {
-                    cardContent += `
-                        <div class="p-3 border-t border-surface-border bg-black/20 text-center">
-                            <a href="calificaciones.html?curso=${course.id}" class="block w-full py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-background-dark text-xs font-bold transition-colors">
-                                Ver Calificaciones
-                            </a>
-                        </div>
-                     `;
-                }
-
-                card.innerHTML = cardContent;
-                grid.appendChild(card);
-            }
-        });
-    } catch (error) {
-        console.error("Error al cargar cursos:", error);
+        // 4. Traer los datos de los cursos identificados
+        // Firestore no permite hacer un "where id IN [...]" con más de 10 IDs fácilmente,
+        // así que para asegurar que funciona siempre, traemos los cursos y filtramos localmente 
+        // o hacemos promesas individuales. Para eficiencia en listas largas, mejor 'in' por lotes.
+        // Aquí usaremos Promise.all para traer los documentos por ID.
+        
+        const promises = Array.from(myCourseIds).map(courseId => getDoc(doc(db, "cursos", courseId)));
+        const courseDocs = await Promise.all(promises);
+        
+        coursesList = courseDocs
+            .filter(d => d.exists())
+            .map(d => ({ id: d.id, ...d.data() }));
     }
+
+    renderCourses(coursesList);
 }
 
-// ... (El resto de funciones auxiliares como loadGlobalCatalog, openSubjectsModal, etc. se mantienen igual)
-// Se incluyen aquí las funciones necesarias para que el archivo sea autónomo y funcional
+function renderCourses(courses) {
+    if (!coursesGrid) return;
+    coursesGrid.innerHTML = '';
 
-async function loadGlobalCatalog() {
-    const list = document.getElementById('global-catalog-list');
-    const select = document.getElementById('select-global-subject');
-    if (!list) return;
-
-    try {
-        const q = query(collection(db, "asignaturas_catalogo"), orderBy("nombre"));
-        onSnapshot(q, (snapshot) => {
-            list.innerHTML = '';
-            if (select) select.innerHTML = '<option value="" disabled selected>Selecciona asignatura...</option>';
-            if (snapshot.empty) {
-                list.innerHTML = '<p class="text-xs text-text-secondary italic text-center p-4">Catálogo vacío.</p>';
-                return;
-            }
-            snapshot.forEach(docSnap => {
-                const item = docSnap.data();
-                const div = document.createElement('div');
-                div.className = "flex justify-between items-center p-2 bg-surface-dark border border-surface-border rounded-lg group hover:border-primary/50";
-                div.innerHTML = `
-                    <span class="text-sm text-white font-medium pl-2">${item.nombre}</span>
-                    <button onclick="deleteGlobalSubject('${docSnap.id}')" class="text-text-secondary hover:text-danger p-1 rounded transition opacity-0 group-hover:opacity-100">
-                        <span class="material-symbols-outlined text-lg">delete</span>
-                    </button>
-                `;
-                list.appendChild(div);
-                if (select) {
-                    const option = document.createElement('option');
-                    option.value = item.nombre;
-                    option.textContent = item.nombre;
-                    select.appendChild(option);
-                }
-            });
-        });
-    } catch (e) { console.error("Error cargando catálogo:", e); }
-}
-
-window.addGlobalSubject = async () => {
-    const input = document.getElementById('new-global-subject-name');
-    const name = input.value.trim();
-    if (!name) return;
-    try {
-        await setDoc(doc(db, "asignaturas_catalogo", name.toLowerCase().replace(/\s+/g, '_')), { nombre: name });
-        input.value = '';
-        if (window.showToast) window.showToast("Asignatura agregada", "success");
-    } catch (e) { console.error(e); }
-}
-
-window.deleteGlobalSubject = async (id) => {
-    if (!confirm("¿Eliminar del catálogo global?")) return;
-    try { await deleteDoc(doc(db, "asignaturas_catalogo", id)); } catch (e) { console.error(e); }
-}
-
-window.openSubjectsModal = async (courseId, courseName) => {
-    currentCourseIdForSubjects = courseId;
-    const titleEl = document.getElementById('modal-course-title');
-    if (titleEl) titleEl.innerHTML = `Curso: <span class="text-white font-bold">${courseName}</span>`;
-    await loadTeachersIntoSelects();
-    if (window.toggleModal) window.toggleModal('modal-manage-subjects');
-    loadCourseSubjects(courseId);
-}
-
-window.loadCourseSubjects = async (courseId) => {
-    const list = document.getElementById('subjects-list');
-    const countBadge = document.getElementById('subject-count');
-    if (!list) return;
-    list.innerHTML = '<div class="text-center p-4"><div class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-primary inline-block"></div></div>';
-    try {
-        const docSnap = await getDoc(doc(db, "cursos_globales", courseId));
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            const materias = data.materias || [];
-            const profesores = data.profesores_materias || {};
-            if (countBadge) countBadge.innerText = materias.length;
-            list.innerHTML = '';
-            if (materias.length === 0) {
-                list.innerHTML = `<p class="text-center text-xs text-text-secondary py-4">Sin asignaturas.</p>`;
-            } else {
-                materias.forEach(materia => {
-                    const teacherEmail = profesores[materia] || "";
-                    const isAssigned = !!teacherEmail;
-                    const cleanMateria = materia.replace(/'/g, "\\'");
-                    const item = document.createElement('div');
-                    item.id = `subject-row-${cleanMateria.replace(/\s+/g, '-')}`;
-                    item.className = "flex items-center justify-between p-2.5 bg-surface-dark rounded-xl border border-surface-border mb-2";
-                    item.innerHTML = `
-                        <div class="flex-1">
-                            <p class="text-white font-bold text-sm">${materia}</p>
-                            <div class="flex items-center gap-1.5 mt-0.5" id="display-${cleanMateria.replace(/\s+/g, '-')}">
-                                <span class="material-symbols-outlined text-[10px] text-text-secondary">person</span>
-                                <span class="text-[10px] ${isAssigned ? 'text-primary' : 'text-text-secondary/50'} italic">
-                                    ${teacherEmail || "Sin asignar"}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="flex gap-1">
-                             <button onclick="enableEditSubject('${cleanMateria}', '${teacherEmail}')" class="text-text-secondary hover:text-primary p-1.5 transition-colors" title="Cambiar Profesor">
-                                <span class="material-symbols-outlined text-lg">edit</span>
-                            </button>
-                            <button onclick="removeSubjectFromCourse('${cleanMateria}')" class="text-text-secondary hover:text-danger p-1.5 transition-colors" title="Quitar Asignatura">
-                                <span class="material-symbols-outlined text-lg">delete</span>
-                            </button>
-                        </div>
-                    `;
-                    list.appendChild(item);
-                });
-            }
-        }
-    } catch (e) {
-        console.error(e);
-        list.innerHTML = '<p class="text-danger text-xs">Error al cargar materias.</p>';
-    }
-}
-
-window.enableEditSubject = (materia, currentEmail) => {
-    const safeId = materia.replace(/\s+/g, '-');
-    const row = document.getElementById(`subject-row-${safeId}`);
-    if (!row) return;
-    row.innerHTML = `
-        <div class="flex-1 flex flex-col gap-2">
-             <p class="text-white font-bold text-sm">${materia}</p>
-             <select id="edit-select-${safeId}" class="bg-background-dark border border-surface-border rounded-lg px-2 py-1 text-xs text-white focus:border-primary outline-none w-full">
-                ${teacherOptionsCache}
-             </select>
-        </div>
-        <div class="flex gap-1 items-end pb-1">
-             <button onclick="saveSubjectTeacher('${materia}', 'edit-select-${safeId}')" class="bg-primary text-background-dark p-1 rounded hover:brightness-110" title="Guardar">
-                <span class="material-symbols-outlined text-lg">check</span>
-            </button>
-             <button onclick="loadCourseSubjects('${currentCourseIdForSubjects}')" class="bg-surface-border text-white p-1 rounded hover:bg-white/20" title="Cancelar">
-                <span class="material-symbols-outlined text-lg">close</span>
-            </button>
-        </div>
-    `;
-    const select = document.getElementById(`edit-select-${safeId}`);
-    if (select) select.value = currentEmail;
-}
-
-window.saveSubjectTeacher = async (materia, selectId) => {
-    const select = document.getElementById(selectId);
-    const newEmail = select.value;
-    const btn = select.parentElement.nextElementSibling.querySelector('button');
-    btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-sm">refresh</span>';
-    try {
-        const updateData = {};
-        if (newEmail) {
-            updateData[`profesores_materias.${materia}`] = newEmail;
-        } else {
-            updateData[`profesores_materias.${materia}`] = deleteField();
-        }
-        await updateDoc(doc(db, "cursos_globales", currentCourseIdForSubjects), updateData);
-        if (window.showToast) window.showToast("Profesor actualizado", "success");
-        loadCourseSubjects(currentCourseIdForSubjects);
-    } catch (e) {
-        console.error(e);
-        alert("Error al actualizar: " + e.message);
-    }
-}
-
-window.addSubjectToCourse = async () => {
-    const selectSubject = document.getElementById('select-global-subject');
-    const selectTeacher = document.getElementById('new-subject-teacher');
-    const subjectName = selectSubject.value;
-    const teacherEmail = selectTeacher.value;
-    if (!subjectName || !currentCourseIdForSubjects) {
-        alert("Selecciona una asignatura del catálogo.");
+    if (courses.length === 0) {
+        coursesGrid.innerHTML = `
+            <div class="col-span-full flex flex-col items-center justify-center py-12 text-text-secondary opacity-50">
+                <span class="material-symbols-outlined text-6xl mb-4">school</span>
+                <p class="text-lg">No tienes cursos asignados.</p>
+            </div>
+        `;
         return;
     }
-    try {
-        const updateData = { materias: arrayUnion(subjectName) };
-        if (teacherEmail) {
-            updateData[`profesores_materias.${subjectName}`] = teacherEmail;
-        }
-        await updateDoc(doc(db, "cursos_globales", currentCourseIdForSubjects), updateData);
-        await loadCourseSubjects(currentCourseIdForSubjects);
-        loadCourses(isAdminUser, isSecretariaUser);
-        if (window.showToast) window.showToast("Materia agregada", "success");
-    } catch (e) { console.error(e); alert("Error: " + e.message); }
-}
 
-window.removeSubjectFromCourse = async (materiaName) => {
-    if (!confirm(`¿Quitar "${materiaName}" del curso? \n\nSe eliminará la asignación del profesor y la materia de la lista.`)) return;
-    try {
-        const updateData = { materias: arrayRemove(materiaName) };
-        updateData[`profesores_materias.${materiaName}`] = deleteField();
-        await updateDoc(doc(db, "cursos_globales", currentCourseIdForSubjects), updateData);
-        await loadCourseSubjects(currentCourseIdForSubjects);
-        loadCourses(isAdminUser, isSecretariaUser);
-        if (window.showToast) window.showToast("Asignatura eliminada", "info");
-    } catch (e) { console.error(e); }
-}
+    courses.forEach(course => {
+        const card = document.createElement('div');
+        card.className = "group relative bg-surface-dark border border-surface-border rounded-2xl p-6 hover:border-primary/50 transition-all duration-300 hover:shadow-2xl hover:shadow-primary/5 cursor-pointer flex flex-col h-full";
+        card.onclick = (e) => {
+            // Evitar click si se toca un botón de acción
+            if(e.target.closest('button')) return;
+            // Navegar al detalle del curso (puedes ajustar la URL)
+            window.location.href = `curso-detalle.html?id=${course.id}`;
+        };
 
-async function loadTeachersIntoSelects() {
-    const selects = [document.getElementById('course-teacher-email'), document.getElementById('new-subject-teacher')];
-    try {
-        const usersSnap = await getDocs(collection(db, "usuarios"));
-        const optionsHTML = ['<option value="" selected>Sin asignar</option>'];
-        usersSnap.forEach(doc => {
-            const user = doc.data();
-            if (user.email !== 'admin@mail.com') {
-                optionsHTML.push(`<option value="${user.email}">${user.nombre || user.email}</option>`);
-            }
-        });
-        teacherOptionsCache = optionsHTML.join('');
-        selects.forEach(sel => { if (sel) sel.innerHTML = teacherOptionsCache; });
-    } catch (e) { console.error("Error cargando profesores", e); }
-}
+        // Asignamos datos por defecto si faltan
+        const title = course.nombre || "Curso sin nombre";
+        const code = course.codigo || course.id;
+        const teacher = course.titularNombre || "Sin titular asignado";
+        const studentsCount = course.estudiantesCount || 0;
 
-window.openEditModal = async (courseId) => {
-    if (window.toggleModal) window.toggleModal('modal-create-course');
-    const form = document.getElementById('form-create-course');
-    form.reset();
-    await loadTeachersIntoSelects();
-    try {
-        const docSnap = await getDoc(doc(db, "cursos_globales", courseId));
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            document.getElementById('course-name').value = data.nombre || '';
-            const idInput = document.getElementById('course-id');
-            idInput.value = data.id || '';
-            idInput.disabled = true;
-            idInput.classList.add('opacity-50', 'cursor-not-allowed');
-            document.getElementById('course-teacher-email').value = data.titular_email || '';
-        }
-    } catch (e) { console.error(e); }
-}
+        card.innerHTML = `
+            <div class="flex items-start justify-between mb-4">
+                <div class="p-3 rounded-xl bg-background-dark border border-surface-border text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+                    <span class="material-symbols-outlined text-2xl">book_2</span>
+                </div>
+                <!-- Menú de opciones (solo visual por ahora) -->
+                <button class="p-2 rounded-lg text-text-secondary hover:text-white hover:bg-white/5 transition-colors">
+                    <span class="material-symbols-outlined">more_vert</span>
+                </button>
+            </div>
+            
+            <div class="mb-4 flex-1">
+                <h3 class="text-xl font-bold text-white mb-1 group-hover:text-primary transition-colors">${title}</h3>
+                <p class="text-sm text-text-secondary font-mono bg-background-dark inline-block px-2 py-0.5 rounded border border-surface-border/50">${code}</p>
+            </div>
 
-window.deleteCourse = async (courseId) => {
-    if (!confirm(`PELIGRO: ¿Eliminar curso "${courseId}"?`)) return;
-    try {
-        await deleteDoc(doc(db, "cursos_globales", courseId));
-        if (window.showToast) window.showToast("Curso eliminado", "success");
-        loadCourses(isAdminUser, isSecretariaUser);
-    } catch (error) { alert("Error: " + error.message); }
+            <div class="space-y-3 pt-4 border-t border-surface-border/50">
+                <div class="flex items-center gap-2 text-sm text-text-secondary">
+                    <span class="material-symbols-outlined text-lg">person</span>
+                    <span class="truncate">${teacher}</span>
+                </div>
+                <div class="flex items-center gap-2 text-sm text-text-secondary">
+                    <span class="material-symbols-outlined text-lg">groups</span>
+                    <span>${studentsCount} Estudiantes</span>
+                </div>
+            </div>
+        `;
+        coursesGrid.appendChild(card);
+    });
 }

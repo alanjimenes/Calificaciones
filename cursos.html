@@ -42,6 +42,39 @@
 
 <body class="bg-background-dark text-white font-display antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300" id="main-body">
 
+    <!-- Auth Guard (CORREGIDO: Permite profesores) -->
+    <script type="module">
+        import { auth, onAuthStateChanged, doc, getDoc, db } from './js/firebase-config.js';
+        const body = document.getElementById('main-body');
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                try {
+                    const userDoc = await getDoc(doc(db, "usuarios", user.uid));
+                    const rol = userDoc.exists() ? userDoc.data().rol : 'profesor'; // Default a profesor si no hay rol
+                    
+                    // CORRECCIÓN: Permitimos 'profesor', 'titular', 'admin', 'secretaria'
+                    const allowedRoles = ['admin', 'secretaria', 'profesor', 'titular'];
+                    
+                    if (allowedRoles.includes(rol)) {
+                        body.classList.remove('opacity-0');
+                        // Disparamos evento para indicar que la app está lista
+                        window.dispatchEvent(new CustomEvent('appReady'));
+                    } else {
+                        alert("Acceso denegado. Rol no autorizado: " + rol);
+                        window.location.href = 'index.html';
+                    }
+                } catch (error) {
+                    console.error("Error en Auth Guard:", error);
+                    // En caso de error, dejamos pasar para no bloquear (el main.js manejará la UI)
+                    body.classList.remove('opacity-0');
+                }
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+    </script>
+
     <!-- EL SIDEBAR SE INYECTA CON JS (layout.js) -->
 
     <!-- CONTENIDO PRINCIPAL -->

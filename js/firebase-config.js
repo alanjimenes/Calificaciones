@@ -21,7 +21,8 @@ import {
     doc, 
     setDoc, 
     query, 
-    where, 
+    where,     
+    collectionGroup,
     orderBy, 
     limit,
     limitToLast,
@@ -87,6 +88,7 @@ export {
     getDoc, 
     doc,
     setDoc,
+    collectionGroup,
     query,
     where,
     orderBy,
@@ -103,3 +105,4 @@ export {
     deleteField, 
     appId 
 };
+// En js/firebase-config.js

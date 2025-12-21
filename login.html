@@ -7,9 +7,8 @@
     <title>EduSys - Iniciar Sesión</title>
 
     <link rel="stylesheet" href="css/styles.css">
-    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     
-    <!-- CONFIGURACIÓN DE TEMA -->
     <script>
         tailwind.config = {
             darkMode: "class",
@@ -19,26 +18,18 @@
                         "primary": "#2563eb",
                         "primary-dark": "#1d4ed8",
                         "background-light": "#f8fafc",
-                        "background-dark": "#0f172a",
-                        "surface-dark": "#1e293b",
-                        "surface-border": "#334155",
+                        "background-dark": "#0f172a", 
+                        "surface-dark": "#1e293b",     
+                        "surface-border": "#334155",   
                         "text-secondary": "#94a3b8",
                         "white": "#f8fafc",
+                        "danger": "#ef4444",
+                        "admin": "#f59e0b",
                     },
                     fontFamily: { "display": ["Spline Sans", "sans-serif"] },
                     animation: {
-                        'fade-in': 'fadeIn 0.6s ease-out',
-                        'slide-up': 'slideUp 0.6s ease-out',
-                    },
-                    keyframes: {
-                        fadeIn: {
-                            '0%': { opacity: '0' },
-                            '100%': { opacity: '1' },
-                        },
-                        slideUp: {
-                            '0%': { transform: 'translateY(20px)', opacity: '0' },
-                            '100%': { transform: 'translateY(0)', opacity: '1' },
-                        }
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                        'slide-up': 'slideUp 0.5s ease-out',
                     }
                 },
             },
@@ -46,193 +37,109 @@
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+    <style>
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    </style>
 </head>
 
-<body class="bg-background-dark text-white font-display h-screen w-full overflow-hidden flex">
+<body class="bg-background-dark text-white font-display antialiased h-screen flex items-center justify-center p-4 relative overflow-hidden">
 
-    <!-- SECCIÓN IZQUIERDA: IDENTIDAD COMPLETA (Logo + Título + Info) -->
-    <div class="hidden lg:flex w-1/2 relative bg-primary overflow-hidden items-center justify-center">
-        
-        <!-- Fondo con Imagen y Gradiente -->
-        <div class="absolute inset-0 z-0">
-            <!-- Usamos una imagen abstracta de fondo o la que subiste si es un fondo -->
-            <img src="https://images.unsplash.com/photo-1497294815431-9365093b7331?q=80&w=2070&auto=format&fit=crop" 
-                 alt="Fondo" 
-                 class="w-full h-full object-cover opacity-20 mix-blend-multiply">
-            <div class="absolute inset-0 bg-gradient-to-br from-primary-dark/90 to-primary/80"></div>
-            
-            <!-- Círculos decorativos de fondo -->
-            <div class="absolute -top-20 -left-20 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
-            <div class="absolute bottom-10 right-10 w-64 h-64 bg-blue-400/20 rounded-full blur-2xl"></div>
-        </div>
-
-        <!-- Contenido Centralizado: Logo e Información -->
-        <div class="relative z-10 flex flex-col items-center text-center p-12 max-w-lg animate-slide-up">
-            
-            <!-- Logo Grande -->
-            <div class="mb-8 p-4 bg-white/10 rounded-3xl backdrop-blur-sm border border-white/20 shadow-xl">
-                <!-- Intentamos cargar tu imagen assets/login.png, si falla muestra icono -->
-                <img src="Calificaciones/assets/login.png" 
-                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block'"
-                     alt="EduSys Logo" 
-                     class="w-32 h-32 object-contain drop-shadow-md">
-                
-                <!-- Fallback Icono -->
-                <span class="material-symbols-outlined text-[80px] text-white hidden">school</span>
-            </div>
-
-            <!-- Título Principal -->
-            <h1 class="text-5xl font-bold text-white mb-4 tracking-tight drop-shadow-lg">EduSys</h1>
-            
-            <!-- Subtítulo / Slogan -->
-            <div class="h-1 w-20 bg-white/50 rounded-full mb-6"></div>
-            
-            <p class="text-xl text-blue-50 font-medium leading-relaxed">
-                Plataforma de Gestión Académica
-            </p>
-            <p class="text-sm text-blue-100/80 mt-4 max-w-md">
-                Administra calificaciones, asistencia y reportes de manera eficiente, segura y centralizada.
-            </p>
-        </div>
-
-        <!-- Footer Izquierdo -->
-        <div class="absolute bottom-8 text-blue-200/60 text-xs">
-            &copy; 2024 EduSys Educational Platform
-        </div>
+    <!-- Fondo decorativo -->
+    <div class="fixed top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+        <div class="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px]"></div>
+        <div class="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-admin/5 rounded-full blur-[120px]"></div>
     </div>
 
-    <!-- SECCIÓN DERECHA: SOLO FORMULARIO -->
-    <div class="w-full lg:w-1/2 flex flex-col justify-center items-center p-8 relative bg-background-dark">
+    <!-- Contenedor Principal -->
+    <div class="w-full max-w-4xl bg-surface-dark border border-surface-border rounded-2xl shadow-2xl z-10 flex overflow-hidden animate-slide-up h-[600px]">
         
-        <div class="w-full max-w-sm z-10 animate-fade-in">
+        <!-- Columna Izquierda: Formulario -->
+        <div class="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center relative">
             
-            <!-- Header visible solo en móvil (Logo pequeño) -->
-            <div class="lg:hidden text-center mb-8">
-                <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-primary text-white mb-3 shadow-lg shadow-primary/30">
-                    <span class="material-symbols-outlined text-3xl">school</span>
-                </div>
-                <h2 class="text-2xl font-bold text-white">EduSys</h2>
-            </div>
-
-            <!-- Saludo Formulario -->
             <div class="mb-8">
-                <h2 class="text-2xl font-bold text-white mb-2">Hola de nuevo 👋</h2>
-                <p class="text-text-secondary text-sm">Ingresa tus credenciales para acceder a tu cuenta.</p>
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
+                        <span class="material-symbols-outlined text-white text-xl">school</span>
+                    </div>
+                    <span class="font-bold text-2xl tracking-tight text-white">EduSys</span>
+                </div>
+                <p class="text-text-secondary text-sm">Plataforma de Gestión Académica</p>
             </div>
 
-            <!-- Formulario Limpio -->
-            <form id="login-form" class="space-y-6">
-                <!-- Email -->
+            <form id="login-form" class="space-y-5">
                 <div>
-                    <label class="block text-xs font-bold text-text-secondary mb-2 ml-1 uppercase tracking-wider">
-                        Correo Electrónico
-                    </label>
-                    <input type="email" id="email" placeholder="usuario@edusys.com" required
-                        class="w-full bg-surface-dark border border-surface-border rounded-xl px-4 py-3.5 text-white placeholder-text-secondary/40 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm shadow-sm">
-                </div>
-
-                <!-- Password -->
-                <div>
-                    <div class="flex justify-between items-center mb-2 ml-1">
-                        <label class="text-xs font-bold text-text-secondary uppercase tracking-wider">
-                            Contraseña
-                        </label>
-                        <a href="#" onclick="alert('Contacta al administrador.')" class="text-xs text-primary hover:text-primary-dark font-medium transition-colors">
-                            ¿Olvidaste tu contraseña?
-                        </a>
+                    <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Correo Electrónico</label>
+                    <div class="relative group">
+                        <span class="material-symbols-outlined absolute left-3 top-3 text-text-secondary group-focus-within:text-primary transition-colors text-lg">mail</span>
+                        <input type="email" id="email" required placeholder="usuario@edusys.com" 
+                            class="w-full bg-background-dark border border-surface-border rounded-xl pl-10 pr-4 py-3 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all shadow-sm placeholder-text-secondary/30 text-sm">
                     </div>
-                    <input type="password" id="password" placeholder="••••••••" required
-                        class="w-full bg-surface-dark border border-surface-border rounded-xl px-4 py-3.5 text-white placeholder-text-secondary/40 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm shadow-sm">
-                </div>
-                
-                <!-- Mensaje de Error -->
-                <div id="error-msg" class="hidden bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-center gap-3 animate-pulse">
-                    <span class="material-symbols-outlined text-red-400 text-lg">error</span>
-                    <p class="text-xs font-medium text-red-200" id="error-text">Credenciales incorrectas.</p>
                 </div>
 
-                <!-- Botón -->
-                <button type="submit" 
-                    class="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3.5 rounded-xl transition-all transform active:scale-[0.98] shadow-lg shadow-primary/25 flex items-center justify-center gap-2 mt-2">
-                    <span>Ingresar</span>
-                    <span class="material-symbols-outlined text-lg">arrow_forward</span>
+                <div>
+                    <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Contraseña</label>
+                    <div class="relative group">
+                        <span class="material-symbols-outlined absolute left-3 top-3 text-text-secondary group-focus-within:text-primary transition-colors text-lg">lock</span>
+                        <input type="password" id="password" required placeholder="••••••••" 
+                            class="w-full bg-background-dark border border-surface-border rounded-xl pl-10 pr-10 py-3 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all shadow-sm placeholder-text-secondary/30 text-sm">
+                        <button type="button" id="toggle-password" class="absolute right-3 top-3 text-text-secondary hover:text-white transition-colors">
+                            <span class="material-symbols-outlined text-lg">visibility</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between text-xs">
+                    <label class="flex items-center gap-2 text-text-secondary cursor-pointer hover:text-white transition-colors">
+                        <input type="checkbox" class="rounded border-surface-border bg-background-dark text-primary focus:ring-offset-0 focus:ring-0">
+                        Recordarme
+                    </label>
+                    <a href="#" class="text-primary hover:text-primary-dark transition-colors font-medium">¿Olvidaste tu contraseña?</a>
+                </div>
+
+                <button type="submit" id="btn-login" class="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3.5 rounded-xl transition-all transform active:scale-[0.98] shadow-lg shadow-primary/20 flex items-center justify-center gap-2 mt-4 group">
+                    <span>Iniciar Sesión</span>
+                    <span class="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform">arrow_forward</span>
                 </button>
             </form>
 
             <div class="mt-8 text-center">
-                <p class="text-xs text-text-secondary">
-                    ¿No tienes cuenta? <span class="text-white font-medium cursor-not-allowed" title="Contacta a administración">Contacta a Administración</span>
+                <p class="text-[10px] text-text-secondary">
+                    © 2024 EduSys Inc. Todos los derechos reservados.
                 </p>
+            </div>
+        </div>
+
+        <!-- Columna Derecha: Imagen / Decoración -->
+        <div class="hidden md:block w-1/2 relative bg-surface-dark overflow-hidden border-l border-surface-border">
+            <!-- Imagen con Fallback y Efectos -->
+            <img src="assets/login.png" alt="Login Visual" 
+                 class="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay hover:scale-105 transition-transform duration-700"
+                 onerror="this.style.display='none'; document.getElementById('fallback-bg').classList.remove('hidden');">
+            
+            <!-- Fallback (Fondo degradado si falla la imagen) -->
+            <div id="fallback-bg" class="hidden absolute inset-0 bg-gradient-to-br from-primary/20 via-background-dark to-admin/10"></div>
+            
+            <!-- Overlay Gradiente Siempre Visible -->
+            <div class="absolute inset-0 bg-gradient-to-t from-background-dark via-transparent to-transparent"></div>
+
+            <div class="absolute bottom-12 left-12 right-12 z-10">
+                <h2 class="text-2xl font-bold text-white mb-2 leading-tight">Gestión educativa simplificada.</h2>
+                <p class="text-sm text-text-secondary leading-relaxed">
+                    Accede a tus cursos, calificaciones y reportes en un entorno seguro y eficiente.
+                </p>
+                
+                <div class="flex gap-2 mt-6">
+                    <div class="w-8 h-1 bg-primary rounded-full"></div>
+                    <div class="w-2 h-1 bg-surface-border rounded-full"></div>
+                    <div class="w-2 h-1 bg-surface-border rounded-full"></div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- LÓGICA DE LOGIN -->
-    <script type="module">
-        import { auth, signInWithEmailAndPassword, onAuthStateChanged } from './js/firebase-config.js';
-
-        // Redirección si ya está logueado (Persistencia)
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                document.body.style.opacity = '0';
-                setTimeout(() => window.location.href = 'index.html', 300);
-            }
-        });
-
-        const loginForm = document.getElementById('login-form');
-        const errorBox = document.getElementById('error-msg');
-        const errorText = document.getElementById('error-text');
-        const submitBtn = loginForm.querySelector('button');
-
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const originalBtnContent = submitBtn.innerHTML;
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="material-symbols-outlined animate-spin text-lg">refresh</span>';
-            errorBox.classList.add('hidden');
-
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-
-            try {
-                await signInWithEmailAndPassword(auth, email, password);
-                
-                // --- FIX: Redirección explícita inmediata ---
-                // Esto asegura que el usuario sea redirigido incluso si el listener tarda.
-                window.location.href = 'index.html';
-
-            } catch (error) {
-                console.error("Error Login:", error);
-                let message = "Error de acceso.";
-                
-                if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-                    message = "Credenciales incorrectas.";
-                } else if (error.code === 'auth/too-many-requests') {
-                    message = "Muchos intentos. Espera un momento.";
-                } else if (error.code === 'auth/network-request-failed') {
-                    message = "Sin conexión a internet.";
-                }
-
-                errorText.textContent = message;
-                errorBox.classList.remove('hidden');
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalBtnContent;
-                
-                // Shake effect
-                const formContainer = loginForm.parentElement;
-                formContainer.classList.add('animate-[shake_0.4s_ease-in-out]');
-                setTimeout(() => formContainer.classList.remove('animate-[shake_0.4s_ease-in-out]'), 400);
-            }
-        });
-    </script>
-    
-    <style>
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-4px); }
-            75% { transform: translateX(4px); }
-        }
-    </style>
+    <!-- Script Lógica -->
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/login.js"></script>
 </body>
 </html>
