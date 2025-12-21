@@ -11,9 +11,9 @@ let currentTab = 'grades';
 let attendanceDate = new Date().toISOString().split('T')[0];
 let currentPeriod = 'p1';
 let currentTaskToGrade = null;
-let studentSearchTerm = ""; // VARIABLE GLOBAL PARA BÚSQUEDA
+let studentSearchTerm = "";
 
-const periodNames = { 'p1': 'Periodo 1', 'p2': 'Periodo 2', 'p3': 'Periodo 3', 'p4': 'Periodo 4' };
+const periodNames = { 'p1': 'Periodo 1', 'p2': 'Periodo 2', 'p3': 'Periodo 3', 'p4': 'Periodo 4', 'recovery': 'Recuperación / Final' };
 
 const COMPETENCIAS = {
     c1: { id: 'c1', nombre: 'Comunicativa', short: 'C1' },
@@ -34,19 +34,25 @@ window.addEventListener('userReady', (e) => {
     else { alert("No se especificó un curso."); window.location.href = 'cursos.html'; }
 });
 
+document.addEventListener('DOMContentLoaded', () => {
+    const periodSelect = document.getElementById('period-selector');
+    if (periodSelect) {
+        periodSelect.addEventListener('change', (e) => {
+            currentPeriod = e.target.value;
+            renderTable();
+        });
+    }
+});
+
 async function initializeGradebook(userId, userEmail) {
     const loader = document.getElementById('loader');
     try {
-        // 1. Cargar Configuración del Curso (Materias, Actividades, Titular)
         const courseDoc = await getDoc(doc(db, "cursos_globales", COURSE_ID));
         if (!courseDoc.exists()) { alert("Curso no encontrado."); window.location.href = 'cursos.html'; return; }
         courseConfig = courseDoc.data();
 
-        // A. Intentar desde Subcolección
         const studentsSnap = await getDocs(collection(db, "cursos_globales", COURSE_ID, "estudiantes"));
         let studentsFromSub = studentsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-        // B. Intentar desde Array (Legacy/Fallback)
         let studentsFromArray = courseConfig.estudiantes || [];
 
         if (studentsFromSub.length > 0) {
@@ -55,11 +61,9 @@ async function initializeGradebook(userId, userEmail) {
             currentStudents = studentsFromArray;
         }
 
-        // Renderizar header
         const titleEl = document.getElementById('course-title-display');
         if (titleEl) titleEl.innerHTML = `<span class="material-symbols-outlined text-[16px]">school</span> ${courseConfig.nombre}`;
 
-        // Stats
         if (document.getElementById('dash-total-subjects')) document.getElementById('dash-total-subjects').innerText = (courseConfig.materias || []).length;
         if (document.getElementById('dash-total-students')) document.getElementById('dash-total-students').innerText = currentStudents.length;
 
@@ -68,8 +72,8 @@ async function initializeGradebook(userId, userEmail) {
         if (btnAddStudent && (isAdmin || isTitular)) btnAddStudent.classList.remove('hidden');
 
         setupTabs();
-        setupSearchListeners(); // ACTIVAR TODOS LOS BUSCADORES (Materia y Estudiante)
-        setupStudentForm(); // ACTIVAR LOGICA FORMULARIO ESTUDIANTE
+        setupSearchListeners();
+        setupStudentForm();
         renderSubjectsDashboard();
         showDashboardView();
 
@@ -77,20 +81,17 @@ async function initializeGradebook(userId, userEmail) {
     finally { if (loader) loader.style.display = 'none'; }
 }
 
-// --- NUEVO: LÓGICA DE BÚSQUEDA UNIFICADA ---
 function setupSearchListeners() {
-    // 1. Buscador de Estudiantes (En la vista de Planilla/Asistencia)
     const studentSearchInput = document.getElementById('student-search-input');
     if (studentSearchInput) {
         studentSearchInput.addEventListener('input', (e) => {
             studentSearchTerm = e.target.value.trim().toLowerCase();
-            renderTable(); // Re-renderizar tabla con filtro
-            renderAttendance(); // También filtrar la asistencia si está visible
-            renderTasksView(); // Filtrar vista de tareas
+            renderTable();
+            renderAttendance();
+            renderTasksView();
         });
     }
 
-    // 2. Buscador de Materias (En el Dashboard Principal del Curso)
     const subjectSearchInput = document.getElementById('dash-subject-search');
     if (subjectSearchInput) {
         subjectSearchInput.addEventListener('input', (e) => {
@@ -100,19 +101,17 @@ function setupSearchListeners() {
     }
 }
 
-// --- LÓGICA DE AGREGAR/EDITAR ESTUDIANTE COMPLETO ---
 function setupStudentForm() {
     const form = document.getElementById('form-add-student');
     if (!form) return;
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
         const originalId = document.getElementById('edit-student-original-id').value;
         const btn = document.getElementById('btn-submit-student');
         const originalBtnText = btn.innerHTML;
-        
-        // Helper para obtener valores de forma segura (evita errores si el input no existe en HTML)
+
         const getVal = (id) => {
             const el = document.getElementById(id);
             return el ? el.value.trim() : '';
@@ -123,41 +122,30 @@ function setupStudentForm() {
 
         try {
             const studentData = {
-                id: getVal('student-id'), // ID SIGERD
+                id: getVal('student-id'),
                 nombre: getVal('student-name'),
                 numero_orden: getVal('student-num-orden'),
                 rne: getVal('student-rne').toUpperCase(),
                 sexo: getVal('student-sexo'),
                 fecha_nacimiento: getVal('student-nacimiento'),
                 condicion_academica: getVal('student-condicion'),
-                
-                // Campos Familiares
                 padre: getVal('student-padre'),
-                telefono_padre: getVal('student-telefono-padre'), // NUEVO
+                telefono_padre: getVal('student-telefono-padre'),
                 madre: getVal('student-madre'),
-                telefono_madre: getVal('student-telefono-madre'), // NUEVO
+                telefono_madre: getVal('student-telefono-madre'),
                 tutor: getVal('student-tutor'),
-                
-                // Campos Contacto
                 telefono: getVal('student-telefono'),
                 direccion: getVal('student-direccion'),
                 nacionalidad: getVal('student-nacionalidad'),
-                
-                // Campos Contacto Emergencia (Asegurados)
                 emergencia_nombre: getVal('student-emergencia-nombre'),
                 emergencia_telefono: getVal('student-emergencia-telefono'),
-                
-                // Campos Médicos
                 tipo_sangre: getVal('student-sangre'),
                 alergias_medicas: getVal('student-medica'),
-                
-                // Mantener datos existentes si es edición
                 notas: {},
                 asistencia: {},
                 observacion: ""
             };
 
-            // Si estamos editando, preservamos las notas y asistencia existentes
             if (originalId) {
                 const existingStudent = currentStudents.find(s => s.id === originalId);
                 if (existingStudent) {
@@ -165,33 +153,25 @@ function setupStudentForm() {
                     studentData.asistencia = existingStudent.asistencia || {};
                     studentData.observacion = existingStudent.observacion || "";
                 }
-                
-                // Actualizar array local
                 currentStudents = currentStudents.map(s => s.id === originalId ? studentData : s);
             } else {
-                // Verificar duplicados de ID solo si es nuevo
                 if (currentStudents.some(s => s.id === studentData.id)) {
                     throw new Error("Ya existe un estudiante con ese ID SIGERD.");
                 }
                 currentStudents.push(studentData);
             }
 
-            // Guardar en Firestore
             await updateDoc(doc(db, "cursos_globales", COURSE_ID), {
                 estudiantes: currentStudents
             });
 
             if (window.showToast) window.showToast("Estudiante guardado correctamente", "success");
-            
-            // Cerrar modal y refrescar
             if (window.toggleModal) window.toggleModal('modal-add-student');
-            
-            // Refrescar vistas activas
+
             if (currentTab === 'grades') renderTable();
             else if (currentTab === 'attendance') renderAttendance();
             else if (currentTab === 'tasks') renderTasksView();
-            
-            // Actualizar contador
+
             if (document.getElementById('dash-total-students')) document.getElementById('dash-total-students').innerText = currentStudents.length;
 
         } catch (error) {
@@ -204,7 +184,6 @@ function setupStudentForm() {
     });
 }
 
-// --- RENDERIZADO DEL DASHBOARD DE MATERIAS ---
 function renderSubjectsDashboard(filterTerm = "") {
     const tbody = document.getElementById('subjects-dashboard-body');
     if (!tbody) return;
@@ -212,8 +191,7 @@ function renderSubjectsDashboard(filterTerm = "") {
 
     const materias = courseConfig.materias || [];
     const profesores = courseConfig.profesores_materias || {};
-    
-    // Filtrar materias
+
     const filtered = materias.filter(m => m.toLowerCase().includes(filterTerm.toLowerCase()));
 
     if (filtered.length === 0) {
@@ -276,12 +254,11 @@ function showDashboardView() {
     document.getElementById('subject-status').classList.add('hidden');
     document.getElementById('btn-back-to-subjects').classList.add('hidden');
     selectedSubject = null;
-    
-    // Limpiar buscador al volver
+
     const searchInput = document.getElementById('dash-subject-search');
     if (searchInput) {
         searchInput.value = '';
-        renderSubjectsDashboard(); // Resetear lista
+        renderSubjectsDashboard();
     }
 }
 
@@ -380,23 +357,22 @@ function renderTable() {
     const tableHeadRow = document.getElementById('table-headers');
     const emptyState = document.getElementById('empty-state');
 
-    // FILTRADO DE ESTUDIANTES POR BÚSQUEDA (MEJORADO)
     let filteredStudents = currentStudents;
     if (studentSearchTerm) {
-        filteredStudents = currentStudents.filter(s => 
-            (s.nombre || "").toLowerCase().includes(studentSearchTerm) || 
+        filteredStudents = currentStudents.filter(s =>
+            (s.nombre || "").toLowerCase().includes(studentSearchTerm) ||
             (s.id || "").toLowerCase().includes(studentSearchTerm) ||
             (s.rne || "").toLowerCase().includes(studentSearchTerm)
         );
     }
 
     if (filteredStudents.length === 0) {
-        if (emptyState && !studentSearchTerm) { // Solo mostrar empty state si no hay alumnos del todo
+        if (emptyState && !studentSearchTerm) {
             emptyState.classList.remove('hidden');
             emptyState.querySelector('p').innerText = "No hay estudiantes registrados en este curso.";
         } else if (tableBody) {
-             tableBody.innerHTML = `<tr><td colspan="100%" class="p-6 text-center text-text-secondary">No se encontraron estudiantes con "${studentSearchTerm}"</td></tr>`;
-             if(emptyState) emptyState.classList.add('hidden');
+            tableBody.innerHTML = `<tr><td colspan="100%" class="p-6 text-center text-text-secondary">No se encontraron estudiantes con "${studentSearchTerm}"</td></tr>`;
+            if (emptyState) emptyState.classList.add('hidden');
         }
         if (tableBody && !studentSearchTerm) tableBody.innerHTML = '';
         return;
@@ -405,11 +381,142 @@ function renderTable() {
 
     const canEdit = checkSubjectPermissions();
     const canManageStudents = isAdmin || isTitular;
+
+    if (currentPeriod === 'recovery') {
+        renderRecoveryTable(filteredStudents, tableHeadRow, tableBody, canEdit, canManageStudents);
+    } else {
+        renderRegularPeriodTable(filteredStudents, tableHeadRow, tableBody, canEdit, canManageStudents);
+    }
+}
+
+function renderRecoveryTable(filteredStudents, tableHeadRow, tableBody, canEdit, canManageStudents) {
+    // 1. Cabecera Específica para Recuperación
+    tableHeadRow.innerHTML = `
+        <th class="p-4 border-b border-surface-border text-center w-12 font-bold">#</th>
+        <th class="p-4 border-b border-surface-border border-r border-surface-border/50 sticky left-0 bg-[#0f2115] z-20 min-w-[240px] font-bold text-white">Estudiante</th>
+        <th class="p-4 border-b border-surface-border text-center w-20 font-bold text-text-secondary bg-surface-dark/50">C.F.<br><span class="text-[9px]">Prom. P1-P4</span></th>
+        
+        <th class="p-4 border-b border-surface-border text-center w-24 bg-orange-900/10 text-orange-400">Examen<br>Completivo</th>
+        <th class="p-4 border-b border-surface-border text-center w-20 font-bold bg-orange-900/20 text-orange-200">Nota Final<br>C.C.</th>
+        
+        <th class="p-4 border-b border-surface-border text-center w-24 bg-red-900/10 text-red-400">Examen<br>Extraord.</th>
+        <th class="p-4 border-b border-surface-border text-center w-20 font-bold bg-red-900/20 text-red-200">Nota Final<br>C.EX.</th>
+        
+        <th class="p-4 border-b border-surface-border text-center w-24 bg-purple-900/10 text-purple-400">Evaluación<br>Especial</th>
+        <th class="p-4 border-b border-surface-border text-center w-32 font-bold text-white">Estado<br>Final</th>
+        <th class="p-4 border-b border-surface-border w-20 text-center text-xs text-text-secondary">Acciones</th>
+    `;
+
+    tableBody.innerHTML = '';
+    const sortedStudents = sortStudents(filteredStudents);
+
+    // Obtener actividades especiales creadas
     const rawActividades = (courseConfig.actividades || {})[selectedSubject] || [];
-    
+    // Simplificación: Tomamos la ÚLTIMA actividad creada de cada tipo para usarla como columna de input
+    // En un sistema más complejo, se promediarían si hay varias, aquí asumimos una por tipo.
+    const actCompletiva = rawActividades.filter(a => a.tipo === 'completiva').pop() || { nombre: 'Examen Completivo', tipo: 'completiva' };
+    const actExtra = rawActividades.filter(a => a.tipo === 'extraordinaria').pop() || { nombre: 'Examen Extraordinario', tipo: 'extraordinaria' };
+    const actEspecial = rawActividades.filter(a => a.tipo === 'especial').pop() || { nombre: 'Evaluación Especial', tipo: 'especial' };
+
+    sortedStudents.forEach((student, index) => {
+        const row = document.createElement('tr');
+        row.className = "group hover:bg-surface-border/10 transition-colors";
+
+        const notas = (student.notas && student.notas[selectedSubject]) ? student.notas[selectedSubject] : {};
+
+        // Calcular CF (Promedio P1-P4)
+        let sumP = 0;
+        let countP = 0;
+        ['p1', 'p2', 'p3', 'p4'].forEach(p => {
+            // Simulamos activitiesList filtrando por periodo
+            const actsP = rawActividades.filter(a => (!a.tipo || a.tipo === 'regular') && (a.periodo || 'p1') === p);
+            if (actsP.length > 0) {
+                const promP = calculateCompetenceAverage(notas, actsP);
+                sumP += promP;
+                countP++;
+            }
+        });
+        const CF = countP > 0 ? Math.round(sumP / countP) : 0;
+
+        // Notas Exámenes
+        const notaCCExam = parseFloat(notas[actCompletiva.nombre] || 0);
+        const notaCEXExam = parseFloat(notas[actExtra.nombre] || 0);
+        const notaEspecial = parseFloat(notas[actEspecial.nombre] || 0);
+
+        // Fórmulas Dominicanas
+        // 1. Completiva: 50% CF + 50% Examen
+        const finalCC = Math.round((CF * 0.5) + (notaCCExam * 0.5));
+
+        // 2. Extraordinaria: 30% CF + 70% Examen
+        const finalCEX = Math.round((CF * 0.3) + (notaCEXExam * 0.7));
+
+        // Estado
+        let estado = "Reprobado";
+        let estadoClass = "bg-red-500/20 text-red-400";
+
+        if (CF >= 70) {
+            estado = "Aprobado";
+            estadoClass = "bg-green-500/20 text-green-400";
+        } else if (finalCC >= 70) {
+            estado = "Aprobado (C.C.)";
+            estadoClass = "bg-blue-500/20 text-blue-400";
+        } else if (finalCEX >= 70) {
+            estado = "Aprobado (C.EX.)";
+            estadoClass = "bg-yellow-500/20 text-yellow-400";
+        } else if (notaEspecial >= 70) {
+            estado = "Aprobado (E.E.)";
+            estadoClass = "bg-purple-500/20 text-purple-400";
+        }
+
+        const disabledAttr = canEdit ? '' : 'disabled';
+        const cursorClass = canEdit ? 'bg-surface-dark/50 hover:bg-surface-border/50 focus:bg-surface-dark' : 'cursor-not-allowed opacity-50 bg-transparent';
+        const inputBaseClass = `grade-input w-full h-8 text-center text-sm font-medium text-white border border-transparent rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all ${cursorClass}`;
+
+        row.innerHTML = `
+            <td class="p-0 text-center text-text-secondary/50 font-mono text-xs">${student.numero_orden || (index + 1)}</td>
+            <td class="p-3 sticky left-0 bg-surface-dark border-r border-surface-border/50 z-10">
+                <div class="flex items-center gap-3">
+                    <div class="h-8 w-8 rounded-full bg-surface-border flex items-center justify-center text-xs font-bold text-white border border-white/10">${getInitials(student.nombre)}</div>
+                    <div><p class="font-medium text-white">${student.nombre}</p><p class="text-[10px] text-text-secondary uppercase tracking-wider">${student.id}</p></div>
+                </div>
+            </td>
+            <td class="p-0 text-center text-text-secondary font-bold">${CF}</td>
+            
+            <!-- C.C. -->
+            <td class="p-1 h-12 relative border-r border-surface-border/10 grade-cell-wrapper transition-colors">
+                <input data-student-id="${student.id}" data-act="${actCompletiva.nombre}" class="${inputBaseClass}" type="number" value="${notas[actCompletiva.nombre] || ''}" min="0" max="100" ${disabledAttr}>
+            </td>
+            <td class="p-0 text-center font-bold ${finalCC >= 70 ? 'text-blue-400' : 'text-text-secondary'}">${CF < 70 ? finalCC : '-'}</td>
+
+            <!-- C.EX. -->
+            <td class="p-1 h-12 relative border-r border-surface-border/10 grade-cell-wrapper transition-colors">
+                <input data-student-id="${student.id}" data-act="${actExtra.nombre}" class="${inputBaseClass}" type="number" value="${notas[actExtra.nombre] || ''}" min="0" max="100" ${disabledAttr}>
+            </td>
+            <td class="p-0 text-center font-bold ${finalCEX >= 70 ? 'text-yellow-400' : 'text-text-secondary'}">${CF < 70 && finalCC < 70 ? finalCEX : '-'}</td>
+
+             <!-- E.E. -->
+            <td class="p-1 h-12 relative border-r border-surface-border/10 grade-cell-wrapper transition-colors">
+                <input data-student-id="${student.id}" data-act="${actEspecial.nombre}" class="${inputBaseClass}" type="number" value="${notas[actEspecial.nombre] || ''}" min="0" max="100" ${disabledAttr}>
+            </td>
+
+            <td class="p-0 text-center">
+                <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold ${estadoClass} uppercase">${estado}</span>
+            </td>
+            ${renderActionsCell(student.id, canManageStudents)}
+        `;
+        tableBody.appendChild(row);
+    });
+
+    if (canEdit) attachInputListeners();
+}
+
+function renderRegularPeriodTable(filteredStudents, tableHeadRow, tableBody, canEdit, canManageStudents) {
+    const rawActividades = (courseConfig.actividades || {})[selectedSubject] || [];
+
+    // Filtrar actividades regulares del periodo actual
     const actividadesFiltradas = rawActividades
-        .map(act => (typeof act === 'string') ? { nombre: act, valor: 0, periodo: 'p1', competencia: 'c1' } : act)
-        .filter(act => (act.periodo || 'p1') === currentPeriod);
+        .map(act => (typeof act === 'string') ? { nombre: act, valor: 0, periodo: 'p1', competencia: 'c1', tipo: 'regular' } : act)
+        .filter(act => (act.periodo || 'p1') === currentPeriod && (!act.tipo || act.tipo === 'regular'));
 
     actividadesFiltradas.sort((a, b) => (a.competencia || 'c1').localeCompare(b.competencia || 'c1'));
 
@@ -432,87 +539,90 @@ function renderTable() {
             </th>`;
     });
     headerHTML += `<th class="p-4 border-b border-surface-border w-20 text-center text-xs text-text-secondary">Acciones</th>`;
-    if (tableHeadRow) tableHeadRow.innerHTML = headerHTML;
+    tableHeadRow.innerHTML = headerHTML;
 
-    if (tableBody) {
-        tableBody.innerHTML = '';
-        const sortedStudents = [...filteredStudents].sort((a, b) => {
-            const ordenA = parseInt(a.numero_orden) || 9999;
-            const ordenB = parseInt(b.numero_orden) || 9999;
-            return ordenA - ordenB;
-        });
+    tableBody.innerHTML = '';
+    const sortedStudents = sortStudents(filteredStudents);
 
-        sortedStudents.forEach((student, index) => {
-            const row = document.createElement('tr');
-            row.className = "group hover:bg-surface-border/10 transition-colors";
-            const notasMateria = (student.notas && student.notas[selectedSubject]) ? student.notas[selectedSubject] : {};
-            const promedioPeriodo = calculateCompetenceAverage(notasMateria, actividadesFiltradas);
-            const promedioClass = getPromedioColor(promedioPeriodo);
-            const numeroOrden = student.numero_orden ? student.numero_orden : (index + 1);
+    sortedStudents.forEach((student, index) => {
+        const row = document.createElement('tr');
+        row.className = "group hover:bg-surface-border/10 transition-colors";
+        const notasMateria = (student.notas && student.notas[selectedSubject]) ? student.notas[selectedSubject] : {};
+        const promedioPeriodo = calculateCompetenceAverage(notasMateria, actividadesFiltradas);
+        const promedioClass = getPromedioColor(promedioPeriodo);
+        const numeroOrden = student.numero_orden ? student.numero_orden : (index + 1);
 
-            let rowHTML = `
-                <td class="p-0 text-center text-text-secondary/50 font-mono text-xs">${numeroOrden}</td>
-                <td class="p-3 sticky left-0 bg-surface-dark border-r border-surface-border/50 z-10">
-                    <div class="flex items-center gap-3">
-                        <div class="h-8 w-8 rounded-full bg-surface-border flex items-center justify-center text-xs font-bold text-white border border-white/10">${getInitials(student.nombre)}</div>
-                        <div><p class="font-medium text-white">${student.nombre}</p><p class="text-[10px] text-text-secondary uppercase tracking-wider">${student.id}</p></div>
-                    </div>
-                </td>
-                <td class="p-0 text-center bg-surface-dark/30"><span id="avg-${student.id}" class="inline-block px-2 py-0.5 rounded text-xs font-bold ${promedioClass}">${promedioPeriodo}</span></td>
-            `;
+        let rowHTML = `
+            <td class="p-0 text-center text-text-secondary/50 font-mono text-xs">${numeroOrden}</td>
+            <td class="p-3 sticky left-0 bg-surface-dark border-r border-surface-border/50 z-10">
+                <div class="flex items-center gap-3">
+                    <div class="h-8 w-8 rounded-full bg-surface-border flex items-center justify-center text-xs font-bold text-white border border-white/10">${getInitials(student.nombre)}</div>
+                    <div><p class="font-medium text-white">${student.nombre}</p><p class="text-[10px] text-text-secondary uppercase tracking-wider">${student.id}</p></div>
+                </div>
+            </td>
+            <td class="p-0 text-center bg-surface-dark/30"><span id="avg-${student.id}" class="inline-block px-2 py-0.5 rounded text-xs font-bold ${promedioClass}">${promedioPeriodo}</span></td>
+        `;
 
-            if (actividadesFiltradas.length === 0) rowHTML += `<td class="p-4 text-center text-text-secondary/20">-</td>`;
-            else {
-                actividadesFiltradas.forEach(act => {
-                    const val = notasMateria[act.nombre] || "";
-                    const disabledAttr = canEdit ? '' : 'disabled';
-                    const cursorClass = canEdit ? 'bg-surface-dark/50 hover:bg-surface-border/50 focus:bg-surface-dark' : 'cursor-not-allowed opacity-50 bg-transparent';
-                    rowHTML += `
-                        <td class="p-1 h-12 relative border-r border-surface-border/10 grade-cell-wrapper transition-colors">
-                            <input data-student-id="${student.id}" data-act="${act.nombre}" class="grade-input w-full h-8 text-center text-sm font-medium text-white border border-transparent rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all ${cursorClass}" type="number" value="${val}" min="0" max="100" ${disabledAttr} oninput="if(this.value>100)this.value=100;if(this.value<0)this.value=0;">
-                        </td>`;
-                });
-            }
-
-            if (canManageStudents) {
+        if (actividadesFiltradas.length === 0) rowHTML += `<td class="p-4 text-center text-text-secondary/20">-</td>`;
+        else {
+            actividadesFiltradas.forEach(act => {
+                const val = notasMateria[act.nombre] || "";
+                const disabledAttr = canEdit ? '' : 'disabled';
+                const cursorClass = canEdit ? 'bg-surface-dark/50 hover:bg-surface-border/50 focus:bg-surface-dark' : 'cursor-not-allowed opacity-50 bg-transparent';
                 rowHTML += `
-                    <td class="p-0 text-center">
-                        <div class="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onclick="openObservations('${student.id}')" class="p-1.5 rounded text-text-secondary hover:text-warning hover:bg-warning/10 transition-colors" title="Observaciones">
-                                <span class="material-symbols-outlined text-[18px]">rate_review</span>
-                            </button>
-                            <button onclick="editStudent('${student.id}')" class="p-1.5 rounded text-text-secondary hover:text-white hover:bg-surface-border transition-colors" title="Editar Info">
-                                <span class="material-symbols-outlined text-[16px]">edit</span>
-                            </button>
-                            <button onclick="deleteStudent('${student.id}')" class="p-1.5 rounded text-text-secondary hover:text-danger hover:bg-danger/10 transition-colors" title="Eliminar">
-                                <span class="material-symbols-outlined text-lg">delete</span>
-                            </button>
-                        </div>
+                    <td class="p-1 h-12 relative border-r border-surface-border/10 grade-cell-wrapper transition-colors">
+                        <input data-student-id="${student.id}" data-act="${act.nombre}" class="grade-input w-full h-8 text-center text-sm font-medium text-white border border-transparent rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all ${cursorClass}" type="number" value="${val}" min="0" max="100" ${disabledAttr} oninput="if(this.value>100)this.value=100;if(this.value<0)this.value=0;">
                     </td>`;
-            } else {
-                rowHTML += `<td class="p-0 text-center text-text-secondary/20"><span class="material-symbols-outlined text-[16px]">lock</span></td>`;
-            }
-            row.innerHTML = rowHTML;
-            tableBody.appendChild(row);
-        });
-
-        if (canEdit) {
-            document.querySelectorAll('.grade-input').forEach(input => {
-                input.addEventListener('change', (e) => updateGradeSecure(e.target.dataset.studentId, e.target.dataset.act, e.target.value, e.target));
             });
         }
+        rowHTML += renderActionsCell(student.id, canManageStudents);
+        row.innerHTML = rowHTML;
+        tableBody.appendChild(row);
+    });
+
+    if (canEdit) attachInputListeners();
+}
+
+function sortStudents(students) {
+    return [...students].sort((a, b) => {
+        const ordenA = parseInt(a.numero_orden) || 9999;
+        const ordenB = parseInt(b.numero_orden) || 9999;
+        return ordenA - ordenB;
+    });
+}
+
+function renderActionsCell(studentId, canManage) {
+    if (canManage) {
+        return `
+            <td class="p-0 text-center">
+                <div class="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onclick="openObservations('${studentId}')" class="p-1.5 rounded text-text-secondary hover:text-warning hover:bg-warning/10 transition-colors" title="Observaciones">
+                        <span class="material-symbols-outlined text-[18px]">rate_review</span>
+                    </button>
+                    <button onclick="editStudent('${studentId}')" class="p-1.5 rounded text-text-secondary hover:text-white hover:bg-surface-border transition-colors" title="Editar Info">
+                        <span class="material-symbols-outlined text-[16px]">edit</span>
+                    </button>
+                    <button onclick="deleteStudent('${studentId}')" class="p-1.5 rounded text-text-secondary hover:text-danger hover:bg-danger/10 transition-colors" title="Eliminar">
+                        <span class="material-symbols-outlined text-lg">delete</span>
+                    </button>
+                </div>
+            </td>`;
+    } else {
+        return `<td class="p-0 text-center text-text-secondary/20"><span class="material-symbols-outlined text-[16px]">lock</span></td>`;
     }
 }
 
-// ----------------------------------------------------
-// FUNCIONES EDITAR Y ELIMINAR ESTUDIANTES
-// ----------------------------------------------------
+function attachInputListeners() {
+    document.querySelectorAll('.grade-input').forEach(input => {
+        input.addEventListener('change', (e) => updateGradeSecure(e.target.dataset.studentId, e.target.dataset.act, e.target.value, e.target));
+    });
+}
+
 window.editStudent = (studentId) => {
     const student = currentStudents.find(s => s.id === studentId);
     if (!student) return;
 
-    // Helper para asignar valores
-    const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val || ''; };
+    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
 
     setVal('edit-student-original-id', student.id);
     setVal('student-num-orden', student.numero_orden);
@@ -523,15 +633,13 @@ window.editStudent = (studentId) => {
     setVal('student-nacimiento', student.fecha_nacimiento);
     setVal('student-condicion', student.condicion_academica);
     setVal('student-padre', student.padre);
-    setVal('student-telefono-padre', student.telefono_padre); // NUEVO
+    setVal('student-telefono-padre', student.telefono_padre);
     setVal('student-madre', student.madre);
-    setVal('student-telefono-madre', student.telefono_madre); // NUEVO
+    setVal('student-telefono-madre', student.telefono_madre);
     setVal('student-tutor', student.tutor);
     setVal('student-telefono', student.telefono);
     setVal('student-direccion', student.direccion);
     setVal('student-nacionalidad', student.nacionalidad);
-    
-    // Campos Emergencia y Salud
     setVal('student-emergencia-nombre', student.emergencia_nombre);
     setVal('student-emergencia-telefono', student.emergencia_telefono);
     setVal('student-sangre', student.tipo_sangre);
@@ -555,17 +663,16 @@ window.openObservations = (studentId) => {
 
 window.deleteStudent = async (studentId) => {
     if (!confirm("¿Estás seguro de eliminar a este estudiante?\n\nSe perderán sus notas y asistencia.")) return;
-    
+
     currentStudents = currentStudents.filter(s => s.id !== studentId);
     try {
         await updateDoc(doc(db, "cursos_globales", COURSE_ID), { estudiantes: currentStudents });
-        if(window.showToast) window.showToast("Estudiante eliminado", "info");
-        
-        // Refrescar vistas
+        if (window.showToast) window.showToast("Estudiante eliminado", "info");
+
         if (currentTab === 'grades') renderTable();
         else if (currentTab === 'attendance') renderAttendance();
         else if (currentTab === 'tasks') renderTasksView();
-        
+
         if (document.getElementById('dash-total-students')) document.getElementById('dash-total-students').innerText = currentStudents.length;
     } catch (e) { alert("Error: " + e.message); }
 };
@@ -591,7 +698,7 @@ function renderTasksList() {
     const tasksGrid = document.getElementById('tasks-grid');
     if (!tasksGrid) return;
     const rawActividades = (courseConfig.actividades || {})[selectedSubject] || [];
-    const actividades = rawActividades.map(act => (typeof act === 'string') ? { nombre: act, valor: 0, periodo: 'p1', competencia: 'c1' } : act);
+    const actividades = rawActividades.map(act => (typeof act === 'string') ? { nombre: act, valor: 0, periodo: 'p1', competencia: 'c1', tipo: 'regular' } : act);
 
     tasksGrid.innerHTML = '';
     if (actividades.length === 0) {
@@ -602,14 +709,20 @@ function renderTasksList() {
     actividades.forEach(act => {
         const card = document.createElement('div');
         const pName = periodNames[act.periodo || 'p1'];
-        const compName = COMPETENCIAS[act.competencia || 'c1'].short;
+        const compName = act.competencia ? (COMPETENCIAS[act.competencia].short) : '-';
+        const typeBadge = act.tipo && act.tipo !== 'regular'
+            ? `<span class="text-[10px] font-bold text-admin bg-admin/10 px-2 py-0.5 rounded uppercase ml-2 border border-admin/20">${act.tipo}</span>`
+            : '';
 
         card.className = "bg-surface-dark border border-surface-border hover:border-primary/50 rounded-xl p-5 cursor-pointer transition-all hover:translate-y-[-2px] hover:shadow-lg group";
         card.onclick = () => openTaskGrading(act);
         card.innerHTML = `
             <div class="flex justify-between items-start mb-3">
                 <span class="text-[10px] font-bold text-text-secondary bg-surface-border/50 px-2 py-0.5 rounded uppercase tracking-wide">${pName} • ${compName}</span>
-                <span class="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded border border-primary/20">${act.valor}%</span>
+                <div class="flex items-center">
+                    <span class="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded border border-primary/20">${act.valor}%</span>
+                    ${typeBadge}
+                </div>
             </div>
             <h4 class="text-lg font-bold text-white mb-1 group-hover:text-primary transition-colors">${act.nombre}</h4>
             <div class="flex items-center gap-2 mt-4 text-xs text-text-secondary">
@@ -629,9 +742,8 @@ function renderSingleTaskGrading() {
     tbody.innerHTML = '';
 
     const canEdit = checkSubjectPermissions();
-    // Usar lista filtrada si hay búsqueda
     let listToRender = currentStudents;
-    if(studentSearchTerm) {
+    if (studentSearchTerm) {
         listToRender = currentStudents.filter(s => (s.nombre || "").toLowerCase().includes(studentSearchTerm) || (s.id || "").toLowerCase().includes(studentSearchTerm) || (s.rne || "").toLowerCase().includes(studentSearchTerm));
     }
 
@@ -673,29 +785,26 @@ window.renderAttendance = function () {
     if (!selectedSubject || !tableBody) return;
     const canEdit = checkSubjectPermissions();
     tableBody.innerHTML = '';
-    
-    // Usar lista filtrada si hay búsqueda
+
     let listToRender = currentStudents;
-    if(studentSearchTerm) {
+    if (studentSearchTerm) {
         listToRender = currentStudents.filter(s => (s.nombre || "").toLowerCase().includes(studentSearchTerm) || (s.id || "").toLowerCase().includes(studentSearchTerm) || (s.rne || "").toLowerCase().includes(studentSearchTerm));
     }
 
     let countP = 0, countA = 0;
     listToRender.forEach((student, index) => {
-        // Para acceder al estudiante correcto en el array original para update
         const originalIndex = currentStudents.findIndex(s => s.id === student.id);
-        
+
         const asistenciasMateria = (student.asistencia && student.asistencia[selectedSubject]) ? student.asistencia[selectedSubject] : {};
         const status = asistenciasMateria[attendanceDate] || null;
         if (status === 'P') countP++;
         if (status === 'A') countA++;
         const row = document.createElement('tr');
         row.className = "hover:bg-surface-border/10 transition-colors";
-        
-        // Pasamos el índice original para que markAttendance funcione
+
         const btnP = getAttendanceBtn(originalIndex, 'P', status, 'bg-primary border-primary text-background-dark', 'hover:border-primary text-text-secondary', 'check');
         const btnA = getAttendanceBtn(originalIndex, 'A', status, 'bg-danger border-danger text-white', 'hover:border-danger text-text-secondary', 'close');
-        
+
         row.innerHTML = `<td class="p-4 text-center text-text-secondary/50 font-mono text-xs">${index + 1}</td><td class="p-4 text-white">${student.nombre}</td><td class="p-4"><div class="flex justify-center gap-2 ${canEdit ? '' : 'pointer-events-none opacity-50'}">${btnP} ${btnA}</div></td><td class="p-4 text-center text-xs text-text-secondary">--</td>`;
         tableBody.appendChild(row);
     });
@@ -719,9 +828,6 @@ window.markAttendance = async (index, status) => {
     await updateDoc(doc(db, "cursos_globales", COURSE_ID), { estudiantes: currentStudents });
 }
 
-// ==========================================
-// CÁLCULO DE PROMEDIOS (LÓGICA ACTUALIZADA)
-// ==========================================
 async function updateGradeSecure(studentID, activityName, value, inputElement) {
     if (!selectedSubject) return;
     let val = parseFloat(value);
@@ -761,10 +867,15 @@ function recalcLocalAverage(studentID) {
     const index = currentStudents.findIndex(s => s.id === studentID);
     if (index === -1) return;
 
+    if (currentPeriod === 'recovery') {
+        renderTable();
+        return;
+    }
+
     const rawActividades = (courseConfig.actividades || {})[selectedSubject] || [];
     const actividadesFiltradas = rawActividades
-        .map(act => (typeof act === 'string') ? { nombre: act, valor: 0, periodo: 'p1', competencia: 'c1' } : act)
-        .filter(act => (act.periodo || 'p1') === currentPeriod);
+        .map(act => (typeof act === 'string') ? { nombre: act, valor: 0, periodo: 'p1', competencia: 'c1', tipo: 'regular' } : act)
+        .filter(act => (act.periodo || 'p1') === currentPeriod && (!act.tipo || act.tipo === 'regular'));
 
     const newAvg = calculateCompetenceAverage(currentStudents[index].notas[selectedSubject], actividadesFiltradas);
     const avgBadge = document.getElementById(`avg-${studentID}`);
@@ -830,6 +941,7 @@ if (formActivity) {
         const value = parseFloat(valueInput.value);
         const period = document.getElementById('activity-period').value;
         const competencia = document.getElementById('activity-competencia').value;
+        const tipo = document.getElementById('activity-type').value;
 
         if (!name || isNaN(value) || !selectedSubject) return;
         if (value > 100) { alert("Error: El valor de la actividad no puede ser mayor al 100%."); return; }
@@ -837,19 +949,28 @@ if (formActivity) {
         if (!courseConfig.actividades) courseConfig.actividades = {};
         if (!courseConfig.actividades[selectedSubject]) courseConfig.actividades[selectedSubject] = [];
 
-        const actividadesCompetencia = courseConfig.actividades[selectedSubject].filter(act =>
-            (act.periodo || 'p1') === period && (act.competencia || 'c1') === competencia
-        );
+        if (tipo === 'regular') {
+            const actividadesCompetencia = courseConfig.actividades[selectedSubject].filter(act =>
+                (act.periodo || 'p1') === period && (act.competencia || 'c1') === competencia && (!act.tipo || act.tipo === 'regular')
+            );
 
-        let sumaActual = 0;
-        actividadesCompetencia.forEach(act => { sumaActual += (parseFloat(act.valor) || 0); });
-        const sumaTotal = sumaActual + value;
-        if (sumaTotal > 100) {
-            alert(`Error: La suma de actividades para la ${COMPETENCIAS[competencia].nombre} excedería el 100%.\n\n• Acumulado actual (${competencia}): ${sumaActual}%\n• Nueva actividad: ${value}%\n• Total: ${sumaTotal}%`);
-            return;
+            let sumaActual = 0;
+            actividadesCompetencia.forEach(act => { sumaActual += (parseFloat(act.valor) || 0); });
+            const sumaTotal = sumaActual + value;
+            if (sumaTotal > 100) {
+                alert(`Error: La suma de actividades para la ${COMPETENCIAS[competencia].nombre} excedería el 100%.\n\n• Acumulado actual (${competencia}): ${sumaActual}%\n• Nueva actividad: ${value}%\n• Total: ${sumaTotal}%`);
+                return;
+            }
         }
 
-        courseConfig.actividades[selectedSubject].push({ nombre: name, valor: value, periodo: period, competencia: competencia });
+        courseConfig.actividades[selectedSubject].push({
+            nombre: name,
+            valor: value,
+            periodo: period,
+            competencia: competencia,
+            tipo: tipo
+        });
+
         await updateDoc(doc(db, "cursos_globales", COURSE_ID), { actividades: courseConfig.actividades });
         if (window.toggleModal) window.toggleModal('modal-add-activity');
         refreshCurrentView();
