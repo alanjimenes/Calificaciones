@@ -75,7 +75,25 @@ async function initializeGradebook(userId, userEmail) {
         setupSearchListeners();
         setupStudentForm();
         renderSubjectsDashboard();
-        showDashboardView();
+        
+        // --- AUTO-ENTRADA A MATERIA ---
+        // Verificar asignaciones del profesor actual
+        const mySubjects = [];
+        if (courseConfig.profesores_materias) {
+            Object.entries(courseConfig.profesores_materias).forEach(([materia, email]) => {
+                if (email === userEmail) mySubjects.push(materia);
+            });
+        }
+
+        // Si no es admin y tiene EXACTAMENTE una materia asignada, entra directo.
+        if (!isAdmin && mySubjects.length === 1) {
+            if (window.showToast) window.showToast(`Entrando a ${mySubjects[0]}...`, "info");
+            window.selectSubjectFromDashboard(mySubjects[0]);
+        } else {
+            // Si tiene múltiples o ninguna específica (o es admin), muestra el dashboard para elegir
+            showDashboardView();
+        }
+        // ------------------------------
 
     } catch (error) { console.error("Error inicializando:", error); }
     finally { if (loader) loader.style.display = 'none'; }
@@ -207,7 +225,7 @@ function renderSubjectsDashboard(filterTerm = "") {
 
         const tr = document.createElement('tr');
         tr.className = "group hover:bg-surface-border/10 transition-colors cursor-pointer";
-        tr.onclick = () => selectSubjectFromDashboard(materia);
+        tr.onclick = () => window.selectSubjectFromDashboard(materia);
 
         tr.innerHTML = `
             <td class="py-4 px-6">
