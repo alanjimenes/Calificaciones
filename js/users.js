@@ -5,18 +5,50 @@ let firstVisible = null;
 let pageStack = []; 
 const PAGE_SIZE = 10;
 let isSearching = false;
+let subjectsCache = []; // Caché de materias para el modal de edición
 
 window.addEventListener('adminReady', () => {
     loadUsers();
     setupSearch();
     setupPagination();
+    loadSubjectsCatalog(); // Cargar materias al inicio
     
     // Configurar listener para el formulario de edición
     const editForm = document.getElementById('form-edit-user');
     if(editForm) {
         editForm.addEventListener('submit', handleEditUserSubmit);
     }
+
+    // Listener para mostrar/ocultar materia en el modal de edición
+    const editRole = document.getElementById('edit-role');
+    if(editRole) {
+        editRole.addEventListener('change', toggleEditMateriaVisibility);
+    }
 });
+
+// Cargar catálogo de materias para el selector de edición
+async function loadSubjectsCatalog() {
+    try {
+        const q = query(collection(db, "asignaturas_catalogo"), orderBy("nombre"));
+        const snapshot = await getDocs(q);
+        subjectsCache = [];
+        snapshot.forEach(doc => subjectsCache.push(doc.data().nombre));
+    } catch (error) {
+        console.error("Error cargando materias:", error);
+    }
+}
+
+function toggleEditMateriaVisibility() {
+    const editRole = document.getElementById('edit-role');
+    const container = document.getElementById('container-edit-materia');
+    if (!editRole || !container) return;
+
+    if (editRole.value === 'profesor') {
+        container.classList.remove('hidden');
+    } else {
+        container.classList.add('hidden');
+    }
+}
 
 // --- VERIFICACIÓN DE ASIGNACIONES ---
 async function checkUserAssignments(email) {
@@ -95,7 +127,7 @@ window.deleteUser = async (userId, userEmail) => {
 };
 
 // --- ABRIR MODAL EDICIÓN ---
-window.editUser = (id, nombre, rol, nivelEstudios, email, telefono) => {
+window.editUser = (id, nombre, rol, nivelEstudios, email, telefono, materiaDefault) => {
     const modal = document.getElementById('modal-edit-user');
     if(!modal) return;
 
@@ -108,6 +140,19 @@ window.editUser = (id, nombre, rol, nivelEstudios, email, telefono) => {
     setVal('edit-role', rol || 'profesor');
     setVal('edit-nivel', nivelEstudios);
     setVal('edit-telefono', telefono);
+
+    // Llenar selector de materias
+    const editMateria = document.getElementById('edit-materia');
+    if (editMateria) {
+        let options = '<option value="">Sin asignar</option>';
+        subjectsCache.forEach(sub => {
+            options += `<option value="${sub}" ${sub === materiaDefault ? 'selected' : ''}>${sub}</option>`;
+        });
+        editMateria.innerHTML = options;
+        if(materiaDefault) editMateria.value = materiaDefault;
+    }
+    
+    toggleEditMateriaVisibility(); // Mostrar/ocultar según el rol cargado
 
     modal.classList.remove('hidden');
     modal.classList.add('flex');
@@ -126,6 +171,14 @@ async function handleEditUserSubmit(e) {
     const rol = getVal('edit-role');
     const nivel = getVal('edit-nivel');
     const telefono = getVal('edit-telefono');
+    const materiaDefault = (rol === 'profesor') ? getVal('edit-materia') : '';
+
+    // --- VALIDACIÓN: MATERIA OBLIGATORIA ---
+    if (rol === 'profesor' && !materiaDefault) {
+        alert("⚠️ Es obligatorio asignar una materia predeterminada a los profesores.");
+        return; // Detener el guardado
+    }
+    // ---------------------------------------
 
     btn.disabled = true;
     btn.innerHTML = 'Guardando...';
@@ -135,7 +188,8 @@ async function handleEditUserSubmit(e) {
             nombre: nombre,
             rol: rol,
             nivel_estudios: nivel,
-            telefono: telefono // Se asegura de guardar el teléfono
+            telefono: telefono,
+            materia_default: materiaDefault // Guardar la nueva materia
         });
 
         if(window.showToast) window.showToast("Datos actualizados", "success");
@@ -268,6 +322,11 @@ function renderTable(snapshot) {
         const sNivel = (user.nivel_estudios || "").replace(/'/g, "\\'");
         const sEmail = (user.email || "");
         const sPhone = (user.telefono || "").replace(/'/g, "\\'");
+        const sMateria = (user.materia_default || "").replace(/'/g, "\\'");
+
+        const materiaDisplay = user.materia_default 
+            ? `<span class="text-xs font-bold text-white bg-surface-border/50 px-2 py-0.5 rounded border border-surface-border">${user.materia_default}</span>` 
+            : `<span class="text-xs text-text-secondary/50 italic">--</span>`;
 
         row.innerHTML = `
             <td class="px-6 py-4 whitespace-nowrap">
@@ -288,14 +347,12 @@ function renderTable(snapshot) {
                 <span class="px-2 py-1 inline-flex text-[10px] leading-5 font-bold rounded-full border ${roleBadgeClass} uppercase">${user.rol || 'docente'}</span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
-                <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium text-green-400 bg-green-400/10 border border-green-400/20">
-                    <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span> Activo
-                </span>
+                ${materiaDisplay}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-text-secondary font-mono">${user.email}</td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <div class="flex justify-end gap-2">
-                    <button onclick="editUser('${userId}', '${sName}', '${sRole}', '${sNivel}', '${sEmail}', '${sPhone}')" class="text-text-secondary hover:text-white transition-colors p-2 rounded-lg hover:bg-surface-border" title="Editar">
+                    <button onclick="editUser('${userId}', '${sName}', '${sRole}', '${sNivel}', '${sEmail}', '${sPhone}', '${sMateria}')" class="text-text-secondary hover:text-white transition-colors p-2 rounded-lg hover:bg-surface-border" title="Editar">
                         <span class="material-symbols-outlined text-lg">edit</span>
                     </button>
                     <button id="btn-delete-${userId}" onclick="deleteUser('${userId}', '${sEmail}')" class="text-text-secondary hover:text-danger transition-colors p-2 rounded-lg hover:bg-danger/10" title="Eliminar">
