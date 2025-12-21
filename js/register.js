@@ -1,7 +1,8 @@
 // Importamos firebaseConfig para tener las credenciales correctas
-import { auth, db, setDoc, doc, addDoc, collection, signOut, firebaseConfig } from './firebase-config.js';
+import { auth, db, setDoc, doc, addDoc, collection, getDocs, orderBy, query } from './firebase-config.js';
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signOut as signOutSecondary } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { firebaseConfig } from './firebase-config.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log("Script de registro cargado.");
@@ -9,6 +10,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Descripciones de rol
     const roleSelect = document.getElementById('reg-role');
     const roleDesc = document.getElementById('role-desc');
+    const containerMateria = document.getElementById('container-materia');
+    const selectMateria = document.getElementById('reg-materia');
+
     const descriptions = {
         'profesor': '<span class="font-bold text-white block mb-1">Profesor:</span> Acceso limitado a sus clases asignadas.',
         'titular': '<span class="font-bold text-white block mb-1">Titular:</span> Acceso intermedio. Puede gestionar estudiantes.',
@@ -16,9 +20,47 @@ document.addEventListener('DOMContentLoaded', () => {
         'admin': '<span class="font-bold text-white block mb-1">Administrador:</span> Control total del sistema.'
     };
 
-    if (roleSelect && roleDesc) {
-        roleSelect.addEventListener('change', (e) => roleDesc.innerHTML = descriptions[e.target.value] || '');
+    // Función para manejar el cambio de rol
+    const handleRoleChange = (e) => {
+        const role = e.target.value;
+        if (roleDesc) roleDesc.innerHTML = descriptions[role] || '';
+        
+        // Mostrar selector de materia solo si es profesor
+        if (containerMateria) {
+            if (role === 'profesor') {
+                containerMateria.classList.remove('hidden');
+            } else {
+                containerMateria.classList.add('hidden');
+                if(selectMateria) selectMateria.value = ""; // Resetear
+            }
+        }
+    };
+
+    if (roleSelect) {
+        roleSelect.addEventListener('change', handleRoleChange);
+        // Inicializar estado (por si el navegador recuerda la selección al recargar)
+        handleRoleChange({ target: roleSelect });
     }
+
+    // Cargar Catálogo de Materias para el selector
+    async function loadSubjectsCatalog() {
+        if (!selectMateria) return;
+        try {
+            const q = query(collection(db, "asignaturas_catalogo"), orderBy("nombre"));
+            const snapshot = await getDocs(q);
+            
+            let optionsHTML = '<option value="">Seleccionar Materia </option>';
+            snapshot.forEach(doc => {
+                const sub = doc.data();
+                optionsHTML += `<option value="${sub.nombre}">${sub.nombre}</option>`;
+            });
+            selectMateria.innerHTML = optionsHTML;
+        } catch (error) {
+            console.error("Error cargando catálogo de materias:", error);
+        }
+    }
+    loadSubjectsCatalog();
+
 
     // Generador Pass
     const btnGenerate = document.getElementById('btn-generate-pass');
@@ -38,16 +80,42 @@ document.addEventListener('DOMContentLoaded', () => {
         formRegister.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const nombre = document.getElementById('reg-name').value;
-            const email = document.getElementById('reg-email').value;
+            const nombre = document.getElementById('reg-name').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
             const password = document.getElementById('reg-password').value;
             const rol = document.getElementById('reg-role').value;
             
             const nivelInput = document.getElementById('reg-nivel');
             const nivel = nivelInput ? nivelInput.value : '';
             
-            const telefonoInput = document.getElementById('reg-telefono');
-            const telefono = telefonoInput ? telefonoInput.value : '';
+            // --- NUEVO MANEJO DE TELÉFONO ---
+            const telPrefijo = document.getElementById('reg-telefono-prefijo').value;
+            const telNumero = document.getElementById('reg-telefono-numero').value.trim();
+            let telefonoCompleto = "";
+            
+            if(telNumero) {
+                // Formatear: +1 809-123-4567 (Añadir guión si es necesario)
+                const numLimpio = telNumero.replace(/[^0-9]/g, '');
+                if (numLimpio.length === 7) {
+                    const parte1 = numLimpio.substring(0, 3);
+                    const parte2 = numLimpio.substring(3, 7);
+                    telefonoCompleto = `${telPrefijo} ${parte1}-${parte2}`;
+                } else {
+                    telefonoCompleto = `${telPrefijo} ${numLimpio}`;
+                }
+            }
+            // ---------------------------------
+
+            // Capturar la materia predeterminada
+            const materiaInput = document.getElementById('reg-materia');
+            const materiaDefault = (materiaInput && rol === 'profesor') ? materiaInput.value : '';
+
+            // --- VALIDACIÓN: MATERIA OBLIGATORIA PARA PROFESORES ---
+            if (rol === 'profesor' && !materiaDefault) {
+                alert("⚠️ Error: Es obligatorio asignar una materia predeterminada a los profesores.");
+                return; // Detenemos el envío
+            }
+            // -------------------------------------------------------
 
             const btnSubmit = formRegister.querySelector('button[type="submit"]');
 
@@ -78,7 +146,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     email: email,
                     rol: rol,
                     nivel_estudios: nivel,
-                    telefono: telefono,
+                    telefono: telefonoCompleto, // Guardamos el formato completo
+                    materia_default: materiaDefault, 
                     creado_por: auth.currentUser.email,
                     fecha_creacion: new Date()
                 });
@@ -88,7 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     accion: "crear_usuario",
                     target_email: email,
                     admin: auth.currentUser.email,
-                    fecha: new Date()
+                    fecha: new Date(),
+                    detalles: `Rol: ${rol}, Materia Def: ${materiaDefault || 'N/A'}`
                 });
 
                 // Mensaje de éxito
@@ -102,6 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                         <h2 class="text-2xl font-bold text-white mb-2">Usuario Registrado</h2>
                         <p class="text-text-secondary text-sm mb-6">La cuenta <strong>${email}</strong> ha sido creada correctamente.</p>
+                        ${materiaDefault ? `<p class="text-xs text-primary bg-primary/10 p-2 rounded mb-4">Materia asignada: <strong>${materiaDefault}</strong></p>` : ''}
                         <div class="relative w-full bg-surface-border h-1.5 rounded-full overflow-hidden mb-2">
                             <div class="absolute top-0 left-0 h-full bg-primary animate-[shrink_1s_linear_forwards]" style="width: 100%"></div>
                         </div>
