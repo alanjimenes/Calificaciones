@@ -1,5 +1,3 @@
- // js/gradebook.js
-
 import { auth, db, doc, getDoc, updateDoc, runTransaction, collection, getDocs, setDoc, deleteDoc } from './firebase-config.js';
 
 
@@ -77,11 +75,25 @@ async function initializeGradebook(userId, userEmail) {
         courseConfig = courseDoc.data();
 
 
-        // 2. NUEVO: Cargar Estudiantes desde la SUBCOLECCIÓN
+        // --- FIX: ESTRATEGIA HÍBRIDA DE CARGA DE ESTUDIANTES ---
+        // Intenta cargar de subcolección primero, si falla, usa el array del documento padre.
 
+        // A. Intentar desde Subcolección
         const studentsSnap = await getDocs(collection(db, "cursos_globales", COURSE_ID, "estudiantes"));
+        let studentsFromSub = studentsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-        currentStudents = studentsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        // B. Intentar desde Array (Legacy/Fallback)
+        let studentsFromArray = courseConfig.estudiantes || [];
+
+        // Decisión: Usar subcolección si tiene datos, sino usar array
+        if (studentsFromSub.length > 0) {
+            currentStudents = studentsFromSub;
+            console.log(`Cargados ${currentStudents.length} estudiantes desde Subcolección.`);
+        } else {
+            currentStudents = studentsFromArray;
+            console.log(`Cargados ${currentStudents.length} estudiantes desde Array Principal.`);
+        }
+        // -------------------------------------------------------
 
 
         // Renderizar header
@@ -1297,4 +1309,4 @@ if (formActivity) {
 
     });
 
-} 
+}

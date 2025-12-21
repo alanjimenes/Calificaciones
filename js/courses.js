@@ -2,19 +2,17 @@ import { db, collection, getDocs, doc, getDoc, deleteDoc, updateDoc, setDoc, arr
 
 const grid = document.getElementById('courses-grid');
 let isAdminUser = false;
-let isSecretariaUser = false; // Nueva bandera
+let isSecretariaUser = false;
 let currentCourseIdForSubjects = null;
 let teacherOptionsCache = "";
 
 window.addEventListener('userReady', (e) => {
     const { role } = e.detail;
     isAdminUser = (role === 'admin');
-    isSecretariaUser = (role === 'secretaria'); // Detectar secretaria
+    isSecretariaUser = (role === 'secretaria');
 
-    // Las secretarias y admins ven todo
     loadCourses(isAdminUser, isSecretariaUser);
 
-    // Cargar catálogo global si es admin
     if (isAdminUser) {
         loadGlobalCatalog();
         loadTeachersIntoSelects();
@@ -81,20 +79,26 @@ async function loadCourses(isAdmin, isSecretaria) {
                 // Botones específicos según rol
                 if (isAdmin) {
                     cardContent += `
-                        <div class="p-3 border-t border-surface-border bg-black/20 flex items-center gap-2 justify-between">
-                            <button onclick="openSubjectsModal('${course.id}', '${course.nombre}')" class="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-surface-border/50 hover:bg-surface-border text-white text-xs font-bold transition-colors">
-                                <span class="material-symbols-outlined text-sm">view_list</span> Materias
-                            </button>
-                            <button onclick="openEditModal('${course.id}')" class="flex items-center justify-center p-2 rounded-lg bg-surface-border/50 hover:bg-admin hover:text-background-dark text-admin transition-colors" title="Editar Info">
-                                <span class="material-symbols-outlined text-sm">edit</span>
-                            </button>
-                            <button onclick="deleteCourse('${course.id}')" class="flex items-center justify-center p-2 rounded-lg bg-surface-border/50 hover:bg-danger hover:text-white text-danger transition-colors" title="Eliminar Curso">
-                                <span class="material-symbols-outlined text-sm">delete</span>
-                            </button>
+                        <div class="p-3 border-t border-surface-border bg-black/20 flex flex-col gap-2">
+                            <!-- BOTÓN ENTRAR CORREGIDO -->
+                            <a href="calificaciones.html?curso=${course.id}" class="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg bg-primary text-white text-xs font-bold hover:bg-primary-dark transition-colors shadow-lg shadow-primary/20">
+                                <span class="material-symbols-outlined text-sm">login</span> Entrar al Curso
+                            </a>
+                            
+                            <div class="flex items-center gap-2 justify-between">
+                                <button onclick="openSubjectsModal('${course.id}', '${course.nombre}')" class="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-surface-border/50 hover:bg-surface-border text-white text-xs font-bold transition-colors">
+                                    <span class="material-symbols-outlined text-sm">view_list</span> Materias
+                                </button>
+                                <button onclick="openEditModal('${course.id}')" class="flex items-center justify-center p-2 rounded-lg bg-surface-border/50 hover:bg-admin hover:text-background-dark text-admin transition-colors" title="Editar Info">
+                                    <span class="material-symbols-outlined text-sm">edit</span>
+                                </button>
+                                <button onclick="deleteCourse('${course.id}')" class="flex items-center justify-center p-2 rounded-lg bg-surface-border/50 hover:bg-danger hover:text-white text-danger transition-colors" title="Eliminar Curso">
+                                    <span class="material-symbols-outlined text-sm">delete</span>
+                                </button>
+                            </div>
                         </div>
                     `;
                 } else if (isSecretaria) {
-                    // La secretaria ve "Gestión" (Acceso a la grilla para agregar estudiantes)
                     cardContent += `
                         <div class="p-3 border-t border-surface-border bg-black/20 text-center flex gap-2">
                              <a href="calificaciones.html?curso=${course.id}" class="flex-1 py-2 rounded-lg bg-purple-500/20 text-purple-400 hover:bg-purple-500 hover:text-white text-xs font-bold transition-colors border border-purple-500/30 flex items-center justify-center gap-1">
@@ -103,7 +107,6 @@ async function loadCourses(isAdmin, isSecretaria) {
                         </div>
                      `;
                 } else {
-                    // Docente Titular o Normal
                     cardContent += `
                         <div class="p-3 border-t border-surface-border bg-black/20 text-center">
                             <a href="calificaciones.html?curso=${course.id}" class="block w-full py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-background-dark text-xs font-bold transition-colors">
@@ -122,15 +125,12 @@ async function loadCourses(isAdmin, isSecretaria) {
     }
 }
 
-// ... Resto del código (catálogo global, materias, etc.) igual ...
-// Solo necesitamos asegurarnos de que la funciones de carga y lógica estén disponibles
-// Copia del resto del archivo original con las funciones auxiliares (loadGlobalCatalog, etc.)
+// ... (El resto de funciones auxiliares como loadGlobalCatalog, openSubjectsModal, etc. se mantienen igual)
+// Se incluyen aquí las funciones necesarias para que el archivo sea autónomo y funcional
 
-// --- GESTIÓN DE CATÁLOGO GLOBAL ---
 async function loadGlobalCatalog() {
     const list = document.getElementById('global-catalog-list');
     const select = document.getElementById('select-global-subject');
-
     if (!list) return;
 
     try {
@@ -138,16 +138,12 @@ async function loadGlobalCatalog() {
         onSnapshot(q, (snapshot) => {
             list.innerHTML = '';
             if (select) select.innerHTML = '<option value="" disabled selected>Selecciona asignatura...</option>';
-
             if (snapshot.empty) {
                 list.innerHTML = '<p class="text-xs text-text-secondary italic text-center p-4">Catálogo vacío.</p>';
                 return;
             }
-
             snapshot.forEach(docSnap => {
                 const item = docSnap.data();
-
-                // Lista de gestión
                 const div = document.createElement('div');
                 div.className = "flex justify-between items-center p-2 bg-surface-dark border border-surface-border rounded-lg group hover:border-primary/50";
                 div.innerHTML = `
@@ -157,8 +153,6 @@ async function loadGlobalCatalog() {
                     </button>
                 `;
                 list.appendChild(div);
-
-                // Select del modal
                 if (select) {
                     const option = document.createElement('option');
                     option.value = item.nombre;
@@ -186,15 +180,11 @@ window.deleteGlobalSubject = async (id) => {
     try { await deleteDoc(doc(db, "asignaturas_catalogo", id)); } catch (e) { console.error(e); }
 }
 
-// --- GESTIÓN DE MATERIAS EN CURSO ---
-
 window.openSubjectsModal = async (courseId, courseName) => {
     currentCourseIdForSubjects = courseId;
     const titleEl = document.getElementById('modal-course-title');
     if (titleEl) titleEl.innerHTML = `Curso: <span class="text-white font-bold">${courseName}</span>`;
-
     await loadTeachersIntoSelects();
-
     if (window.toggleModal) window.toggleModal('modal-manage-subjects');
     loadCourseSubjects(courseId);
 }
@@ -203,19 +193,15 @@ window.loadCourseSubjects = async (courseId) => {
     const list = document.getElementById('subjects-list');
     const countBadge = document.getElementById('subject-count');
     if (!list) return;
-
     list.innerHTML = '<div class="text-center p-4"><div class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-primary inline-block"></div></div>';
-
     try {
         const docSnap = await getDoc(doc(db, "cursos_globales", courseId));
         if (docSnap.exists()) {
             const data = docSnap.data();
             const materias = data.materias || [];
             const profesores = data.profesores_materias || {};
-
             if (countBadge) countBadge.innerText = materias.length;
             list.innerHTML = '';
-
             if (materias.length === 0) {
                 list.innerHTML = `<p class="text-center text-xs text-text-secondary py-4">Sin asignaturas.</p>`;
             } else {
@@ -223,11 +209,9 @@ window.loadCourseSubjects = async (courseId) => {
                     const teacherEmail = profesores[materia] || "";
                     const isAssigned = !!teacherEmail;
                     const cleanMateria = materia.replace(/'/g, "\\'");
-
                     const item = document.createElement('div');
                     item.id = `subject-row-${cleanMateria.replace(/\s+/g, '-')}`;
                     item.className = "flex items-center justify-between p-2.5 bg-surface-dark rounded-xl border border-surface-border mb-2";
-
                     item.innerHTML = `
                         <div class="flex-1">
                             <p class="text-white font-bold text-sm">${materia}</p>
@@ -261,7 +245,6 @@ window.enableEditSubject = (materia, currentEmail) => {
     const safeId = materia.replace(/\s+/g, '-');
     const row = document.getElementById(`subject-row-${safeId}`);
     if (!row) return;
-
     row.innerHTML = `
         <div class="flex-1 flex flex-col gap-2">
              <p class="text-white font-bold text-sm">${materia}</p>
@@ -278,7 +261,6 @@ window.enableEditSubject = (materia, currentEmail) => {
             </button>
         </div>
     `;
-
     const select = document.getElementById(`edit-select-${safeId}`);
     if (select) select.value = currentEmail;
 }
@@ -286,10 +268,8 @@ window.enableEditSubject = (materia, currentEmail) => {
 window.saveSubjectTeacher = async (materia, selectId) => {
     const select = document.getElementById(selectId);
     const newEmail = select.value;
-
     const btn = select.parentElement.nextElementSibling.querySelector('button');
     btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-sm">refresh</span>';
-
     try {
         const updateData = {};
         if (newEmail) {
@@ -297,10 +277,8 @@ window.saveSubjectTeacher = async (materia, selectId) => {
         } else {
             updateData[`profesores_materias.${materia}`] = deleteField();
         }
-
         await updateDoc(doc(db, "cursos_globales", currentCourseIdForSubjects), updateData);
         if (window.showToast) window.showToast("Profesor actualizado", "success");
-
         loadCourseSubjects(currentCourseIdForSubjects);
     } catch (e) {
         console.error(e);
@@ -311,42 +289,30 @@ window.saveSubjectTeacher = async (materia, selectId) => {
 window.addSubjectToCourse = async () => {
     const selectSubject = document.getElementById('select-global-subject');
     const selectTeacher = document.getElementById('new-subject-teacher');
-
     const subjectName = selectSubject.value;
     const teacherEmail = selectTeacher.value;
-
     if (!subjectName || !currentCourseIdForSubjects) {
         alert("Selecciona una asignatura del catálogo.");
         return;
     }
-
     try {
-        const updateData = {
-            materias: arrayUnion(subjectName)
-        };
+        const updateData = { materias: arrayUnion(subjectName) };
         if (teacherEmail) {
             updateData[`profesores_materias.${subjectName}`] = teacherEmail;
         }
-
         await updateDoc(doc(db, "cursos_globales", currentCourseIdForSubjects), updateData);
         await loadCourseSubjects(currentCourseIdForSubjects);
         loadCourses(isAdminUser, isSecretariaUser);
         if (window.showToast) window.showToast("Materia agregada", "success");
-
     } catch (e) { console.error(e); alert("Error: " + e.message); }
 }
 
 window.removeSubjectFromCourse = async (materiaName) => {
     if (!confirm(`¿Quitar "${materiaName}" del curso? \n\nSe eliminará la asignación del profesor y la materia de la lista.`)) return;
-
     try {
-        const updateData = {
-            materias: arrayRemove(materiaName)
-        };
+        const updateData = { materias: arrayRemove(materiaName) };
         updateData[`profesores_materias.${materiaName}`] = deleteField();
-
         await updateDoc(doc(db, "cursos_globales", currentCourseIdForSubjects), updateData);
-
         await loadCourseSubjects(currentCourseIdForSubjects);
         loadCourses(isAdminUser, isSecretariaUser);
         if (window.showToast) window.showToast("Asignatura eliminada", "info");
@@ -354,27 +320,18 @@ window.removeSubjectFromCourse = async (materiaName) => {
 }
 
 async function loadTeachersIntoSelects() {
-    const selects = [
-        document.getElementById('course-teacher-email'),
-        document.getElementById('new-subject-teacher')
-    ];
-
+    const selects = [document.getElementById('course-teacher-email'), document.getElementById('new-subject-teacher')];
     try {
         const usersSnap = await getDocs(collection(db, "usuarios"));
         const optionsHTML = ['<option value="" selected>Sin asignar</option>'];
-
         usersSnap.forEach(doc => {
             const user = doc.data();
             if (user.email !== 'admin@mail.com') {
                 optionsHTML.push(`<option value="${user.email}">${user.nombre || user.email}</option>`);
             }
         });
-
         teacherOptionsCache = optionsHTML.join('');
-
-        selects.forEach(sel => {
-            if (sel) sel.innerHTML = teacherOptionsCache;
-        });
+        selects.forEach(sel => { if (sel) sel.innerHTML = teacherOptionsCache; });
     } catch (e) { console.error("Error cargando profesores", e); }
 }
 
@@ -383,7 +340,6 @@ window.openEditModal = async (courseId) => {
     const form = document.getElementById('form-create-course');
     form.reset();
     await loadTeachersIntoSelects();
-
     try {
         const docSnap = await getDoc(doc(db, "cursos_globales", courseId));
         if (docSnap.exists()) {
