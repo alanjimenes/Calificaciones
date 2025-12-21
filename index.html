@@ -4,11 +4,11 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>EduSys - Dashboard</title>
+    <title>EduSys - Panel Principal</title>
 
     <link rel="stylesheet" href="css/styles.css">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    
+
     <!-- CONFIGURACIÓN DE TEMA -->
     <script>
         tailwind.config = {
@@ -35,39 +35,26 @@
             },
         }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
 </head>
 
 <body class="bg-background-dark text-white font-display antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300" id="main-body">
 
-    <!-- Auth Guard -->
-    <script type="module">
-        import { auth, onAuthStateChanged } from './js/firebase-config.js';
-        const body = document.getElementById('main-body');
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                body.classList.remove('opacity-0');
-            } else {
-                window.location.href = 'login.html';
-            }
-        });
-    </script>
-
-    <!-- EL SIDEBAR SE INYECTA CON JS (js/layout.js) -->
+    <!-- EL SIDEBAR SE INYECTA CON JS (layout.js) -->
 
     <!-- CONTENIDO PRINCIPAL -->
-    <main class="flex-1 flex flex-col overflow-y-auto relative bg-background-dark p-6 md:p-8 scroll-smooth" id="main-content">
-        
-        <!-- Decoración de fondo -->
+    <main class="flex-1 flex flex-col overflow-y-auto relative bg-background-dark p-6 md:p-8 scroll-smooth transition-all duration-300" id="main-content">
+
+        <!-- Fondo -->
         <div class="fixed top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
             <div class="absolute top-[10%] right-[20%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px]"></div>
-            <div class="absolute bottom-[10%] left-[10%] w-[300px] h-[300px] bg-admin/5 rounded-full blur-[100px]"></div>
+            <div class="absolute bottom-[10%] left-[10%] w-[300px] h-[300px] bg-blue-500/5 rounded-full blur-[100px]"></div>
         </div>
 
         <div class="relative z-10 max-w-7xl mx-auto w-full">
-            
+
             <!-- Header Móvil -->
             <div class="lg:hidden flex items-center justify-between mb-6">
                 <div class="flex items-center gap-3">
@@ -76,71 +63,192 @@
                     </div>
                     <span class="font-bold text-white text-lg">EduSys</span>
                 </div>
-                <!-- El botón se controla en layout.js -->
                 <button id="mobile-menu-btn" class="text-white material-symbols-outlined p-2 hover:bg-surface-dark rounded-lg transition-colors">menu</button>
             </div>
 
             <!-- Header Principal -->
-            <header class="mb-10 flex items-end justify-between">
-                <div>
-                    <h2 class="text-3xl font-bold text-white tracking-tight flex items-center gap-2">
-                        Dashboard
-                        <span id="header-user-role" class="px-2 py-0.5 rounded text-[10px] font-bold bg-surface-border text-text-secondary border border-surface-border/50 uppercase tracking-wider hidden md:inline-block">...</span>
-                    </h2>
-                    <p class="text-text-secondary text-sm mt-1">Bienvenido de nuevo, <span id="header-user-name" class="text-white font-medium">Usuario</span>.</p>
-                </div>
-                
-                <div class="flex items-center gap-3">
-                    <button id="btn-refresh" class="p-2 rounded-xl bg-surface-dark border border-surface-border text-text-secondary hover:text-white hover:border-primary transition shadow-sm">
-                        <span class="material-symbols-outlined">refresh</span>
+            <header class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <button id="desktop-sidebar-toggle" class="hidden lg:flex p-2 rounded-xl text-text-secondary hover:text-white hover:bg-surface-dark transition-colors" title="Ocultar/Mostrar Menú">
+                        <span class="material-symbols-outlined">menu_open</span>
                     </button>
-                    <!-- Aquí se mostrará el curso activo si se seleccionó -->
-                    <div id="active-course-badge" class="hidden px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/20 text-primary text-xs font-bold items-center gap-2">
-                        <span class="material-symbols-outlined text-sm">meeting_room</span>
-                        <span id="active-course-name">Curso</span>
+
+                    <div>
+                        <h2 class="text-3xl font-bold text-white tracking-tight">Panel de Control</h2>
+                        <p class="text-text-secondary text-sm mt-1">Resumen general de tu actividad académica.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <div id="date-display" class="text-xs font-bold text-blue-200 bg-primary/10 border border-primary/20 px-4 py-2 rounded-xl backdrop-blur-sm">
+                        Cargando fecha...
                     </div>
                 </div>
             </header>
 
-            <!-- Grid de Estadísticas (Dashboard) -->
-            <div id="stats-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-                <!-- Se llena con JS -->
-            </div>
-
-            <!-- Contenido Principal Dinámico -->
+            <!-- LAYOUT 2 COLUMNAS -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <!-- Gráfica o Tabla Grande -->
-                <div class="lg:col-span-2 bg-surface-dark border border-surface-border rounded-2xl p-6 shadow-xl min-h-[400px]">
-                    <h3 class="text-lg font-bold text-white mb-6">Resumen de Actividad</h3>
-                    <div class="flex items-center justify-center h-64 text-text-secondary text-sm bg-background-dark/50 rounded-xl border border-dashed border-surface-border">
-                        <p>Selecciona un módulo para ver detalles</p>
-                    </div>
-                </div>
 
-                <!-- Lista Lateral / Avisos -->
-                <div class="bg-surface-dark border border-surface-border rounded-2xl p-6 shadow-xl">
-                    <h3 class="text-lg font-bold text-white mb-6">Avisos Recientes</h3>
-                    <div class="space-y-4">
-                        <div class="p-4 rounded-xl bg-background-dark/50 border border-surface-border flex gap-3">
-                            <span class="material-symbols-outlined text-admin mt-0.5">campaign</span>
-                            <div>
-                                <h4 class="text-sm font-bold text-white">Mantenimiento</h4>
-                                <p class="text-xs text-text-secondary mt-1">El sistema se actualizará este viernes a las 22:00.</p>
-                            </div>
+                <!-- COLUMNA IZQUIERDA: CURSOS -->
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                            <span class="material-symbols-outlined text-primary">auto_stories</span>
+                            Mis Cursos
+                        </h3>
+                        <a href="cursos.html" class="text-xs font-bold text-text-secondary hover:text-white transition-colors flex items-center gap-1 group">
+                            Ver todos <span class="material-symbols-outlined text-[14px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                        </a>
+                    </div>
+
+                    <div id="dashboard-courses-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Skeleton Loader -->
+                        <div class="h-40 rounded-2xl bg-surface-dark border border-surface-border animate-pulse flex flex-col p-5 gap-3">
+                            <div class="h-10 w-10 bg-surface-border rounded-lg"></div>
+                            <div class="h-4 w-3/4 bg-surface-border rounded"></div>
                         </div>
                     </div>
                 </div>
-            </div>
 
+                <!-- COLUMNA DERECHA: WIDGETS -->
+                <div class="space-y-6">
+
+                    <!-- WIDGET NOTIFICACIONES (RESTAURADO) -->
+                    <div class="bg-surface-dark border border-surface-border rounded-2xl p-6 shadow-xl relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-transparent"></div>
+                        
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                                <span class="material-symbols-outlined text-admin">campaign</span>
+                                Avisos Recientes
+                            </h3>
+                            <span class="flex h-2 w-2 relative">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-admin opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-admin"></span>
+                            </span>
+                        </div>
+
+                        <div id="dashboard-notifications-list" class="space-y-3 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                            <!-- Se llena con JS -->
+                            <p class="text-xs text-text-secondary italic text-center py-4">Cargando avisos...</p>
+                        </div>
+                    </div>
+
+                    <!-- Widget: Tarea Rápida -->
+                    <div class="bg-surface-dark border border-surface-border rounded-2xl p-6 sticky top-6 shadow-xl backdrop-blur-sm">
+                        <div class="flex items-center gap-3 mb-6 pb-4 border-b border-surface-border/50">
+                            <div class="p-2.5 rounded-xl bg-gradient-to-br from-primary to-primary-dark text-white shadow-lg shadow-primary/20">
+                                <span class="material-symbols-outlined text-xl">bolt</span>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-white leading-none">Tarea Rápida</h3>
+                                <p class="text-xs text-text-secondary mt-1">Asigna actividad sin entrar al curso</p>
+                            </div>
+                        </div>
+
+                        <form id="form-quick-task" class="space-y-4">
+                            <!-- Selector Curso -->
+                            <div>
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1 tracking-wider">1. Curso Destino</label>
+                                <div class="relative">
+                                    <select id="quick-task-course" required
+                                        class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all appearance-none cursor-pointer">
+                                        <option value="" disabled selected>Cargando cursos...</option>
+                                    </select>
+                                    <span class="material-symbols-outlined absolute right-3 top-3 text-text-secondary pointer-events-none">expand_more</span>
+                                </div>
+                            </div>
+
+                            <!-- Selector Materia -->
+                            <div id="subject-container" class="hidden animate-fade-in">
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1 tracking-wider">2. Asignatura</label>
+                                <div class="relative">
+                                    <select id="quick-task-subject" required
+                                        class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all appearance-none cursor-pointer">
+                                        <option value="" disabled selected>Selecciona materia...</option>
+                                    </select>
+                                    <span class="material-symbols-outlined absolute right-3 top-3 text-text-secondary pointer-events-none">expand_more</span>
+                                </div>
+                            </div>
+
+                            <!-- Detalles -->
+                            <div id="details-container" class="hidden animate-fade-in space-y-4">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1 tracking-wider">3. Título Actividad</label>
+                                    <input type="text" id="quick-task-name" placeholder="Ej: Examen Unidad 1" required
+                                        class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm focus:border-primary outline-none">
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1 tracking-wider">Valor (%)</label>
+                                        <input type="number" id="quick-task-value" placeholder="20" min="1" max="100" required
+                                            class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm focus:border-primary outline-none">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1 tracking-wider">Periodo</label>
+                                        <div class="relative">
+                                            <select id="quick-task-period"
+                                                class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm focus:border-primary outline-none appearance-none cursor-pointer">
+                                                <option value="p1">P1</option>
+                                                <option value="p2">P2</option>
+                                                <option value="p3">P3</option>
+                                                <option value="p4">P4</option>
+                                            </select>
+                                            <span class="material-symbols-outlined absolute right-3 top-3 text-text-secondary pointer-events-none text-lg">expand_more</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button type="submit"
+                                    class="w-full py-3.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 mt-2 group">
+                                    <span>Crear Tarea</span>
+                                    <span class="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform">add_task</span>
+                                </button>
+                            </div>
+                            <p id="quick-status" class="text-xs text-center text-text-secondary/60 italic py-2">* Selecciona un curso para habilitar.</p>
+                        </form>
+                    </div>
+
+                    <!-- Widget: Estado Sistema (Manteniendo lo que tenías) -->
+                    <div class="bg-surface-dark border border-surface-border rounded-2xl p-6 shadow-lg">
+                        <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                            Estado del Sistema
+                        </h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between text-xs p-2 rounded-lg bg-background-dark/50 border border-surface-border/50">
+                                <span class="text-text-secondary">Servidor Base de Datos</span>
+                                <span class="text-green-400 font-bold">Conectado</span>
+                            </div>
+                            <div class="flex items-center justify-between text-xs p-2 rounded-lg bg-background-dark/50 border border-surface-border/50">
+                                <span class="text-text-secondary">Sincronización</span>
+                                <span class="text-blue-400 font-bold">Automática</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
         </div>
     </main>
 
-    <!-- Script Lógica -->
-    <script type="module" src="js/firebase-config.js"></script>
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- SCRIPTS -->
     <script type="module" src="js/layout.js"></script>
+    <script type="module" src="js/main.js"></script>
     <script type="module" src="js/dashboard.js"></script>
-    
-    <!-- IMPORTANTE: El controlador de sesión al final -->
-    <script type="module" src="js/session-controller.js"></script>
+
+    <script>
+        const dateEl = document.getElementById('date-display');
+        if (dateEl) {
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const dateStr = new Date().toLocaleDateString('es-ES', options);
+            dateEl.innerText = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+        }
+    </script>
 </body>
 </html>
