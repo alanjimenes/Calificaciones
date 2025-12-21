@@ -4,11 +4,11 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>EduSys - Directorio Global de Estudiantes</title>
+    <title>EduSys - Directorio Estudiantes</title>
 
     <link rel="stylesheet" href="css/styles.css">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-
+    
     <!-- CONFIGURACIÓN DE TEMA -->
     <script>
         tailwind.config = {
@@ -26,7 +26,6 @@
                         "white": "#f8fafc",
                         "danger": "#ef4444",
                         "admin": "#f59e0b",
-                        "warning": "#f59e0b",
                     },
                     fontFamily: { "display": ["Spline Sans", "sans-serif"] },
                     animation: {
@@ -36,80 +35,51 @@
             },
         }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+
+    <style>
+        /* Scrollbar personalizado para el modal */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
 </head>
 
-<body
-    class="bg-background-dark text-white font-display antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300"
-    id="main-body">
+<body class="bg-background-dark text-white font-display antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300" id="main-body">
 
-    <!-- Auth Guard (Admin o Secretaria) -->
+    <!-- Auth Guard -->
     <script type="module">
         import { auth, onAuthStateChanged, doc, getDoc, db } from './js/firebase-config.js';
         const body = document.getElementById('main-body');
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                let role = 'profesor'; // Default
-
-                // 1. Check Super Admin Hardcoded
-                if (user.email === 'admin@mail.com' || user.email === 'director@edusys.com') {
-                    role = 'admin';
-                } else {
-                    try {
-                        // 2. Intentar obtener por UID
-                        let userDoc = await getDoc(doc(db, "usuarios", user.uid));
-
-                        // 3. Fallback: Intentar obtener por Email (Legacy support)
-                        if (!userDoc.exists()) {
-                            const userDocByEmail = await getDoc(doc(db, "usuarios", user.email));
-                            if (userDocByEmail.exists()) {
-                                userDoc = userDocByEmail;
-                            }
-                        }
-
-                        if (userDoc.exists()) {
-                            const data = userDoc.data();
-                            role = data.rol || 'profesor';
-                        }
-                    } catch (e) {
-                        console.error("Error verificando permisos:", e);
-                    }
-                }
-
-                // Permitir acceso a Admin y Secretaria
-                if (role === 'admin' || role === 'secretaria') {
-                    body.classList.remove('opacity-0');
-                    window.dispatchEvent(new CustomEvent('userReady', { detail: { role: role, user: user } }));
-                } else {
-                    alert(`Acceso denegado.\n\nEsta sección es solo para Administración o Secretaría.\nTu rol actual es: ${role}`);
-                    window.location.href = 'index.html';
-                }
+                body.classList.remove('opacity-0');
+                window.dispatchEvent(new CustomEvent('userReady', { detail: { user: user } }));
             } else {
                 window.location.href = 'login.html';
             }
         });
     </script>
 
-    <!-- EL SIDEBAR SE INYECTA CON JS (layout.js) -->
+    <!-- EL SIDEBAR SE INYECTA CON JS -->
 
-    <!-- CONTENIDO PRINCIPAL -->
-    <main
-        class="flex-1 flex flex-col overflow-y-auto relative bg-background-dark p-6 md:p-8 scroll-smooth transition-all duration-300"
-        id="main-content">
-
-        <!-- Decoración de fondo -->
-        <div class="fixed top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-            <div class="absolute top-[10%] right-[20%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px]">
-            </div>
-            <div class="absolute bottom-[10%] left-[10%] w-[300px] h-[300px] bg-purple-500/5 rounded-full blur-[100px]">
-            </div>
-        </div>
-
+    <main class="flex-1 flex flex-col overflow-y-auto relative bg-background-dark p-6 md:p-8 scroll-smooth transition-all duration-300" id="main-content">
+        
         <div class="relative z-10 max-w-7xl mx-auto w-full">
-
+            
             <!-- Header Móvil -->
             <div class="lg:hidden flex items-center justify-between mb-6">
                 <div class="flex items-center gap-3">
@@ -118,173 +88,265 @@
                     </div>
                     <span class="font-bold text-white text-lg">EduSys</span>
                 </div>
-                <button id="mobile-menu-btn"
-                    class="text-white material-symbols-outlined p-2 hover:bg-surface-dark rounded-lg transition-colors">menu</button>
+                <button id="mobile-menu-btn" class="text-white material-symbols-outlined p-2 hover:bg-surface-dark rounded-lg transition-colors">menu</button>
             </div>
 
             <!-- Header Principal -->
             <header class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div class="flex items-center gap-4">
-                    <button id="desktop-sidebar-toggle"
-                        class="hidden lg:flex p-2 rounded-xl text-text-secondary hover:text-white hover:bg-surface-dark transition-colors"
-                        title="Ocultar/Mostrar Menú">
+                    <button id="desktop-sidebar-toggle" class="hidden lg:flex p-2 rounded-xl text-text-secondary hover:text-white hover:bg-surface-dark transition-colors">
                         <span class="material-symbols-outlined">menu_open</span>
                     </button>
 
                     <div>
                         <h2 class="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
-                            Directorio Global
-                            <span
-                                class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-400 border border-purple-500/20 uppercase tracking-wider">Gestión
-                                Académica</span>
+                            Directorio Estudiantes
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-400 border border-purple-500/20 uppercase tracking-wider">Global</span>
                         </h2>
-                        <p class="text-text-secondary text-sm mt-1">Consulta el rendimiento académico y observaciones de
-                            todos los
-                            estudiantes.</p>
+                        <p class="text-text-secondary text-sm mt-1">Gestión centralizada de todos los alumnos registrados.</p>
                     </div>
-                </div>
-
-                <div class="flex items-center gap-3 w-full md:w-auto">
-                    <!-- Selector de Periodo -->
-                    <div class="relative">
-                        <select id="period-filter"
-                            class="appearance-none bg-surface-dark border border-surface-border text-white text-sm rounded-xl pl-4 pr-10 py-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all shadow-sm cursor-pointer">
-                            <option value="p1" selected>Periodo 1</option>
-                            <option value="p2">Periodo 2</option>
-                            <option value="p3">Periodo 3</option>
-                            <option value="p4">Periodo 4</option>
-                        </select>
-                        <span
-                            class="material-symbols-outlined absolute right-3 top-2.5 text-text-secondary pointer-events-none text-lg">calendar_month</span>
-                    </div>
-
-                    <!-- Buscador -->
-                    <div class="relative group flex-1 md:flex-none">
-                        <span
-                            class="material-symbols-outlined absolute left-3 top-2.5 text-text-secondary group-focus-within:text-primary transition-colors text-lg">search</span>
-                        <input type="text" id="global-search" placeholder="Buscar estudiante, ID o curso..."
-                            class="w-full md:w-80 bg-surface-dark border border-surface-border text-white text-sm rounded-xl pl-10 pr-4 py-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all shadow-sm placeholder-text-secondary/50">
-                    </div>
-
-                    <button onclick="loadGlobalStudents()"
-                        class="p-2.5 rounded-xl bg-surface-dark border border-surface-border text-text-secondary hover:text-white hover:border-white/20 transition-all"
-                        title="Recargar Datos">
-                        <span class="material-symbols-outlined text-lg">refresh</span>
-                    </button>
                 </div>
             </header>
 
-            <!-- Contenedor Tabla -->
-            <div
-                class="bg-surface-dark border border-surface-border rounded-2xl shadow-xl overflow-hidden flex flex-col min-h-[500px]">
-
-                <!-- Loader Overlay -->
-                <div id="loader"
-                    class="absolute inset-0 flex items-center justify-center bg-background-dark/80 z-20 backdrop-blur-sm rounded-2xl">
-                    <div class="flex flex-col items-center gap-3">
-                        <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
-                        <p class="text-xs text-text-secondary animate-pulse">Compilando información de todos los
-                            cursos...</p>
-                    </div>
+            <!-- Buscador y Filtros -->
+            <div class="bg-surface-dark border border-surface-border rounded-2xl p-4 mb-6 shadow-lg flex flex-col md:flex-row gap-4 items-center">
+                <div class="relative w-full md:w-96">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary">search</span>
+                    <input type="text" id="search-input" placeholder="Buscar por nombre, matrícula o correo..." 
+                        class="w-full bg-background-dark border border-surface-border rounded-xl pl-10 pr-4 py-2.5 text-white text-sm focus:border-primary outline-none transition-colors">
                 </div>
+                <div class="text-xs text-text-secondary ml-auto">
+                    Mostrando <span id="student-count" class="font-bold text-white">0</span> estudiantes
+                </div>
+            </div>
 
-                <div class="overflow-x-auto flex-1">
+            <!-- Tabla de Estudiantes -->
+            <div class="bg-surface-dark border border-surface-border rounded-2xl shadow-xl overflow-hidden">
+                <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
-                        <thead
-                            class="bg-surface-border/20 border-b border-surface-border/50 sticky top-0 backdrop-blur-md z-10">
-                            <tr>
-                                <th
-                                    class="py-4 px-6 text-[10px] font-bold text-text-secondary uppercase tracking-wider w-16">
-                                    Ord.</th>
-                                <th
-                                    class="py-4 px-6 text-[10px] font-bold text-text-secondary uppercase tracking-wider min-w-[250px]">
-                                    Estudiante</th>
-                                <th
-                                    class="py-4 px-6 text-[10px] font-bold text-text-secondary uppercase tracking-wider">
-                                    Curso</th>
-                                <th
-                                    class="py-4 px-6 text-[10px] font-bold text-text-secondary uppercase tracking-wider">
-                                    Desempeño por Asignatura (Promedios)</th>
-                                <th
-                                    class="py-4 px-6 text-[10px] font-bold text-text-secondary uppercase tracking-wider text-right">
-                                    Acciones</th>
+                        <thead>
+                            <tr class="border-b border-surface-border bg-background-dark/50 text-[10px] uppercase tracking-wider text-text-secondary">
+                                <th class="p-4 font-bold">Estudiante</th>
+                                <th class="p-4 font-bold">Matrícula</th>
+                                <th class="p-4 font-bold">Contacto</th>
+                                <th class="p-4 font-bold">Fecha Registro</th>
+                                <th class="p-4 font-bold text-right">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody id="global-students-body" class="divide-y divide-surface-border/30 text-sm">
-                            <!-- Se llena con JS -->
+                        <tbody id="students-table-body" class="divide-y divide-surface-border text-sm">
+                            <!-- JS Cargará aquí -->
+                            <tr>
+                                <td colspan="5" class="p-8 text-center text-text-secondary">
+                                    <div class="flex flex-col items-center gap-2">
+                                        <span class="material-symbols-outlined text-3xl opacity-50">group</span>
+                                        <p>Cargando lista de estudiantes...</p>
+                                    </div>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
-
-                    <!-- Empty State -->
-                    <div id="empty-state" class="hidden flex-col items-center justify-center p-12 text-center h-full">
-                        <div
-                            class="w-16 h-16 bg-surface-dark rounded-full flex items-center justify-center mb-4 border border-surface-border shadow-lg">
-                            <span class="material-symbols-outlined text-3xl text-text-secondary">school</span>
-                        </div>
-                        <h3 class="text-lg font-bold text-white">No se encontraron estudiantes</h3>
-                        <p class="text-text-secondary text-sm mt-1">Intenta con otro término de búsqueda.</p>
-                    </div>
-                </div>
-
-                <!-- Footer Informativo -->
-                <div
-                    class="border-t border-surface-border bg-surface-dark/50 p-3 px-6 flex justify-between items-center text-xs text-text-secondary">
-                    <span id="total-count">Cargando...</span>
-                    <span class="flex items-center gap-1.5"><span
-                            class="w-2 h-2 rounded-full bg-primary/20 border border-primary"></span> Promedios
-                        calculados según actividades registradas.</span>
                 </div>
             </div>
 
         </div>
     </main>
 
-    <!-- MODAL: VER OBSERVACIÓN (READ ONLY) -->
-    <div id="modal-view-observation"
-        class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4 transition-all duration-300">
-        <div
-            class="bg-surface-dark border border-surface-border p-6 rounded-2xl w-full max-w-lg shadow-2xl relative animate-fade-in">
-            <button onclick="toggleModal('modal-view-observation')"
-                class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined p-1 rounded-full hover:bg-white/10 transition-colors">close</button>
-
-            <div class="flex items-center gap-3 mb-4">
-                <div class="p-3 rounded-xl bg-warning/20 text-warning border border-warning/20">
-                    <span class="material-symbols-outlined">rate_review</span>
-                </div>
-                <div>
-                    <h2 class="text-xl font-bold text-white">Registro de Incidencias</h2>
-                    <p class="text-xs text-text-secondary">Observación académica / disciplinaria</p>
-                </div>
-            </div>
-
-            <div class="mb-4 p-4 bg-background-dark/50 rounded-xl border border-surface-border/50">
-                <div class="flex justify-between items-start mb-2">
+    <!-- MODAL: DETALLES / EDITAR ESTUDIANTE COMPLETO -->
+    <!-- CORRECCIÓN: Flex container centrado, sin overflow en el backdrop -->
+    <div id="modal-student-details" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+        
+        <!-- CORRECCIÓN: Max-height definido y Flex column para separar header/body -->
+        <div class="w-full max-w-3xl max-h-[90vh] flex flex-col rounded-2xl bg-surface-dark border border-surface-border shadow-2xl transition-all">
+            
+            <!-- HEADER FIJO -->
+            <div class="flex items-center justify-between p-6 border-b border-surface-border shrink-0">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xl ring-2 ring-primary/20" id="detail-initials">
+                        --
+                    </div>
                     <div>
-                        <p class="text-[10px] font-bold text-text-secondary uppercase">Estudiante</p>
-                        <p id="obs-modal-student" class="text-white font-medium text-lg">Nombre Estudiante</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-[10px] font-bold text-text-secondary uppercase">Curso</p>
-                        <p id="obs-modal-course" class="text-primary font-bold text-sm">Nombre Curso</p>
+                        <h3 class="text-xl font-bold text-white">Perfil del Estudiante</h3>
+                        <p class="text-xs text-text-secondary uppercase tracking-wider font-mono" id="detail-id-display">ID: ...</p>
                     </div>
                 </div>
-            </div>
-
-            <div class="relative">
-                <span
-                    class="absolute top-3 left-3 material-symbols-outlined text-text-secondary/40 text-lg">format_quote</span>
-                <textarea id="obs-modal-text" rows="6" readonly
-                    class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 pl-10 text-white text-sm focus:border-primary outline-none transition-colors shadow-inner resize-none cursor-text opacity-90"></textarea>
-            </div>
-
-            <div class="mt-4 flex justify-end">
-                <button onclick="toggleModal('modal-view-observation')"
-                    class="px-6 py-2 rounded-xl bg-surface-border hover:bg-white/10 text-white text-sm font-bold border border-white/5 transition-colors">
-                    Cerrar
+                <button onclick="toggleModal('modal-student-details')" class="text-text-secondary hover:text-white transition-colors p-2 hover:bg-white/5 rounded-full bg-surface-border/50">
+                    <span class="material-symbols-outlined">close</span>
                 </button>
+            </div>
+
+            <!-- CUERPO CON SCROLL INTERNO -->
+            <div class="p-6 overflow-y-auto custom-scrollbar">
+                <form id="form-edit-student" class="space-y-6">
+                    <input type="hidden" id="edit-doc-id">
+                    
+                    <!-- SECCIÓN 1: DATOS PERSONALES -->
+                    <div>
+                        <h4 class="text-xs font-bold text-primary uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-sm">badge</span> Información Personal
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1">Nombre Completo</label>
+                                <input type="text" id="detail-name" disabled
+                                    class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1">Matrícula</label>
+                                <input type="text" id="detail-matricula" disabled
+                                    class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1">RNE</label>
+                                <input type="text" id="detail-rne" disabled placeholder="Sin RNE"
+                                    class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm font-mono uppercase focus:border-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1">Sexo</label>
+                                    <select id="detail-sexo" disabled
+                                        class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed appearance-none">
+                                        <option value="M">Masculino</option>
+                                        <option value="F">Femenino</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1">Nacimiento</label>
+                                    <input type="date" id="detail-nacimiento" disabled
+                                        class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1">Correo Electrónico</label>
+                                <input type="email" id="detail-email" disabled
+                                    class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1">Teléfono Personal</label>
+                                <input type="tel" id="detail-phone" disabled placeholder="Sin registrar"
+                                    class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1">Dirección</label>
+                                <input type="text" id="detail-address" disabled placeholder="Sin dirección registrada"
+                                    class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECCIÓN 2: FAMILIA -->
+                    <div class="pt-4 border-t border-surface-border/50">
+                        <h4 class="text-xs font-bold text-primary uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-sm">family_restroom</span> Información Familiar
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1">Nombre Padre</label>
+                                <input type="text" id="detail-padre" disabled placeholder="--"
+                                    class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1">Teléfono Padre</label>
+                                <input type="text" id="detail-telefono-padre" disabled placeholder="--"
+                                    class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1">Nombre Madre</label>
+                                <input type="text" id="detail-madre" disabled placeholder="--"
+                                    class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1">Teléfono Madre</label>
+                                <input type="text" id="detail-telefono-madre" disabled placeholder="--"
+                                    class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1">Tutor Legal</label>
+                                <input type="text" id="detail-tutor" disabled placeholder="--"
+                                    class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECCIÓN 3: MÉDICA Y EMERGENCIA -->
+                    <div class="pt-4 border-t border-surface-border/50">
+                        <h4 class="text-xs font-bold text-danger uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-sm">medical_services</span> Médica y Emergencia
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1">Tipo de Sangre</label>
+                                <select id="detail-sangre" disabled
+                                    class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed appearance-none">
+                                    <option value="">Seleccionar...</option>
+                                    <option value="A+">A+</option>
+                                    <option value="A-">A-</option>
+                                    <option value="B+">B+</option>
+                                    <option value="B-">B-</option>
+                                    <option value="AB+">AB+</option>
+                                    <option value="AB-">AB-</option>
+                                    <option value="O+">O+</option>
+                                    <option value="O-">O-</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1">Alergias / Padecimientos</label>
+                                <input type="text" id="detail-medica" disabled placeholder="Ninguno registrado"
+                                    class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1">Contacto Emergencia</label>
+                                <input type="text" id="detail-emergencia-nombre" disabled placeholder="--"
+                                    class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1.5 ml-1">Teléfono Emergencia</label>
+                                <input type="text" id="detail-emergencia-telefono" disabled placeholder="--"
+                                    class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECCIÓN 4: OBSERVACIONES -->
+                    <div class="pt-4 border-t border-surface-border/50">
+                        <h4 class="text-xs font-bold text-admin uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-sm">rate_review</span> Observaciones
+                        </h4>
+                        <textarea id="detail-observations" disabled rows="4" placeholder="Notas sobre conducta o desempeño..."
+                            class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm focus:border-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all resize-none"></textarea>
+                    </div>
+                </form>
+            </div>
+
+            <!-- FOOTER FIJO -->
+            <div class="p-4 border-t border-surface-border shrink-0 bg-surface-dark rounded-b-2xl">
+                <div class="flex flex-col md:flex-row gap-3">
+                    <button type="button" id="btn-enable-edit" onclick="enableEditMode()" 
+                        class="flex-1 py-3.5 rounded-xl bg-surface-dark border border-surface-border hover:bg-surface-border/50 text-white font-bold transition-all flex items-center justify-center gap-2 group">
+                        <span class="material-symbols-outlined group-hover:text-primary transition-colors">edit</span> Habilitar Edición
+                    </button>
+                    
+                    <button type="submit" id="btn-save-changes" form="form-edit-student"
+                        class="hidden flex-1 py-3.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined">save</span> Guardar Cambios
+                    </button>
+
+                    <button type="button" id="btn-delete-student" onclick="deleteStudentFromModal()"
+                        class="py-3.5 px-6 rounded-xl bg-danger/10 hover:bg-danger/20 border border-danger/20 text-danger font-bold transition-all flex items-center justify-center gap-2" title="Eliminar Estudiante">
+                        <span class="material-symbols-outlined">delete</span>
+                        <span class="hidden md:inline">Eliminar</span>
+                    </button>
+                    
+                    <button type="button" id="btn-cancel-edit" onclick="cancelEditMode()" 
+                        class="hidden py-3.5 px-6 rounded-xl text-text-secondary hover:text-white font-bold transition-all border border-transparent hover:border-surface-border">
+                        Cancelar
+                    </button>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
 
     <!-- SCRIPTS -->
     <script type="module" src="js/firebase-config.js"></script>
@@ -292,15 +354,5 @@
     <script type="module" src="js/main.js"></script>
     <script type="module" src="js/estudiantes_global.js"></script>
 
-    <script>
-        function toggleModal(id) {
-            const el = document.getElementById(id);
-            if (el) {
-                el.classList.toggle('hidden');
-                el.classList.toggle('flex');
-            }
-        }
-    </script>
 </body>
-
 </html>
