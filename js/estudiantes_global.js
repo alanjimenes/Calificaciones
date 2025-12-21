@@ -1,140 +1,170 @@
-import { db, collection, getDocs, query, orderBy } from './firebase-config.js';
+import { db, collection, addDoc, getDocs, deleteDoc, updateDoc, doc, getDoc, appId } from './firebase-config.js';
 
-let allCourses = [];
-let allStudentsFlat = [];
-let currentPeriod = 'p1';
+let allStudentsCache = [];
+let currentStudentContext = null; // Guardará el contexto: si viene de un array de curso o colección global
 
-// Escuchar evento de usuario listo
-window.addEventListener('userReady', (e) => {
-    loadGlobalStudents();
-});
-
-// Inicialización
 document.addEventListener('DOMContentLoaded', () => {
-    // Listener del Filtro de Periodo
-    const periodSelect = document.getElementById('period-filter');
-    if (periodSelect) {
-        periodSelect.addEventListener('change', (e) => {
-            currentPeriod = e.target.value;
-            renderGlobalTable(); // Re-renderizar con el nuevo periodo
-        });
-    }
-
-    // Listener del Buscador
-    const searchInput = document.getElementById('global-search');
-    if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            renderGlobalTable(e.target.value);
-        });
-    }
-});
-
-// Función Principal: Cargar Todo
-window.loadGlobalStudents = async () => {
-    const loader = document.getElementById('loader');
-    const tableBody = document.getElementById('global-students-body');
-    const totalCount = document.getElementById('total-count');
-
-    if (loader) loader.classList.remove('hidden');
-    if (tableBody) tableBody.innerHTML = '';
-
-    try {
-        // 1. Obtener todos los cursos
-        const q = query(collection(db, "cursos_globales"));
-        const snapshot = await getDocs(q);
-
-        allCourses = [];
-        allStudentsFlat = [];
-
-        snapshot.forEach(doc => {
-            const course = { id: doc.id, ...doc.data() };
-            allCourses.push(course);
-
-            // Aplanar estudiantes: Crear una lista única combinando estudiante + info de su curso
-            if (course.estudiantes && Array.isArray(course.estudiantes)) {
-                course.estudiantes.forEach(student => {
-                    allStudentsFlat.push({
-                        ...student,
-                        courseId: course.id,
-                        courseName: course.nombre,
-                        courseActivities: course.actividades || {}, // Necesario para calcular promedios
-                        courseSubjects: course.materias || []
-                    });
-                });
-            }
-        });
-
-        // 2. Renderizar
-        if (totalCount) totalCount.innerText = `Total: ${allStudentsFlat.length} estudiantes`;
-        renderGlobalTable();
-
-    } catch (error) {
-        console.error("Error cargando directorio global:", error);
-        if (tableBody) tableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-danger">Error: ${error.message}</td></tr>`;
-    } finally {
-        if (loader) loader.classList.add('hidden');
-    }
-};
-
-// Función de Renderizado
-function renderGlobalTable(searchTerm = "") {
-    const tableBody = document.getElementById('global-students-body');
-    const emptyState = document.getElementById('empty-state');
-
-    if (!tableBody) return;
-    tableBody.innerHTML = '';
+    loadStudents();
 
     // Filtro de búsqueda
-    const term = searchTerm.toLowerCase();
-    const filtered = allStudentsFlat.filter(s =>
-        (s.nombre || "").toLowerCase().includes(term) ||
-        (s.id || "").toLowerCase().includes(term) ||
-        (s.courseName || "").toLowerCase().includes(term)
-    );
-
-    if (filtered.length === 0) {
-        if (emptyState) emptyState.classList.remove('hidden');
-        return;
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const filtered = allStudentsCache.filter(student => 
+                (student.nombre || '').toLowerCase().includes(term) ||
+                (student.matricula || '').toLowerCase().includes(term) ||
+                (student.email || '').toLowerCase().includes(term) ||
+                (student.cursoNombre || '').toLowerCase().includes(term)
+            );
+            renderStudentsTable(filtered);
+        });
     }
-    if (emptyState) emptyState.classList.add('hidden');
 
-    // Generar filas
-    filtered.forEach((student, index) => {
+    // Formulario Editar Estudiante
+    const formEdit = document.getElementById('form-edit-student');
+    if(formEdit) formEdit.addEventListener('submit', saveStudentChanges);
+});
+
+// --- CARGAR ESTUDIANTES (GLOBALES + ARRAYS DE CURSOS) ---
+async function loadStudents() {
+    const tableBody = document.getElementById('students-table-body');
+    const countSpan = document.getElementById('student-count');
+    if (!tableBody) return;
+
+    try {
+        allStudentsCache = [];
+
+        // 1. Cargar estudiantes de la colección Global (Archivos sueltos/Legacy)
+        // Intentamos leer de la raíz 'estudiantes' por si acaso hay datos antiguos ahí
+        try {
+            const globalRef = collection(db, 'estudiantes');
+            const globalSnap = await getDocs(globalRef);
+            
+            globalSnap.forEach(doc => {
+                allStudentsCache.push({ 
+                    uniqueId: `global_${doc.id}`, 
+                    realId: doc.id,
+                    ...doc.data(),
+                    cursoNombre: 'Directorio Global',
+                    _context: { type: 'global_doc', path: `estudiantes/${doc.id}` }
+                });
+            });
+        } catch (e) { console.warn("No se pudo cargar colección global raíz:", e); }
+
+        // 2. Cargar estudiantes dentro de los Arrays de Cursos (Lo que usa gradebook.js)
+        // CORRECCIÓN: Usamos la colección raíz 'cursos_globales' donde dashboard.js guarda los datos
+        const coursesRef = collection(db, 'cursos_globales');
+        const coursesSnap = await getDocs(coursesRef);
+
+        coursesSnap.forEach(courseDoc => {
+            const courseData = courseDoc.data();
+            const studentsArray = courseData.estudiantes || []; // Leemos el ARRAY, no subcolección
+
+            studentsArray.forEach(student => {
+                // Usamos student.id (ID SIGERD) como realId
+                allStudentsCache.push({
+                    uniqueId: `course_${courseDoc.id}_${student.id}`,
+                    realId: student.id,
+                    // Mapeamos campos para que coincidan con la vista
+                    nombre: student.nombre,
+                    matricula: student.id, // ID SIGERD es la matrícula usualmente
+                    rne: student.rne,
+                    email: student.email || '',
+                    telefono: student.telefono || '',
+                    creado_fecha: student.fecha_creacion || new Date().toISOString(), // Fallback fecha
+                    
+                    // Datos completos para el modal
+                    sexo: student.sexo,
+                    fecha_nacimiento: student.fecha_nacimiento,
+                    direccion: student.direccion,
+                    padre_nombre: student.padre,
+                    padre_telefono: student.telefono_padre,
+                    madre_nombre: student.madre,
+                    madre_telefono: student.telefono_madre,
+                    tutor: student.tutor,
+                    sangre: student.tipo_sangre,
+                    alergias: student.alergias_medicas,
+                    emergencia_nombre: student.emergencia_nombre,
+                    emergencia_telefono: student.emergencia_telefono,
+                    observaciones: student.observacion,
+
+                    // Metadatos de origen
+                    cursoNombre: courseData.nombre || 'Curso Sin Nombre',
+                    _context: { 
+                        type: 'course_array', 
+                        courseId: courseDoc.id, 
+                        coursePath: `cursos_globales/${courseDoc.id}`, // Ruta corregida a raíz
+                        studentId: student.id 
+                    }
+                });
+            });
+        });
+
+        // UI Vacía
+        if (allStudentsCache.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="p-8 text-center text-text-secondary">
+                        <span class="material-symbols-outlined text-4xl mb-2 opacity-50">school</span>
+                        <p>No se encontraron estudiantes.</p>
+                    </td>
+                </tr>`;
+            if(countSpan) countSpan.innerText = "0";
+            return;
+        }
+
+        // Ordenar alfabéticamente
+        allStudentsCache.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+        
+        if(countSpan) countSpan.innerText = allStudentsCache.length;
+        renderStudentsTable(allStudentsCache);
+
+    } catch (error) {
+        console.error("Error loading students:", error);
+        tableBody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-danger">Error al cargar datos. Verifica permisos.</td></tr>';
+    }
+}
+
+// --- RENDERIZAR TABLA ---
+function renderStudentsTable(students) {
+    const tableBody = document.getElementById('students-table-body');
+    tableBody.innerHTML = '';
+
+    students.forEach(student => {
+        const initials = student.nombre ? student.nombre.substring(0, 2).toUpperCase() : '??';
+        // Formato de fecha seguro
+        let date = 'N/A';
+        try { if(student.creado_fecha) date = new Date(student.creado_fecha).toLocaleDateString(); } catch(e){}
+
+        const originTag = student.cursoNombre !== 'Directorio Global' 
+            ? `<span class="text-[10px] bg-surface-border px-1.5 py-0.5 rounded text-text-secondary ml-2 border border-surface-border/50">${student.cursoNombre}</span>` 
+            : '<span class="text-[10px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded ml-2 border border-blue-500/20">Global</span>';
+
         const row = document.createElement('tr');
-        row.className = "hover:bg-surface-border/10 transition-colors border-b border-surface-border/30";
-
-        // Calcular Promedios por Materia
-        const subjectsHTML = generateSubjectsPerformance(student);
-
-        // Iniciales
-        const initials = student.nombre ? student.nombre.substring(0, 2).toUpperCase() : "NA";
-
+        row.className = "border-b border-surface-border hover:bg-surface-border/20 transition-colors group";
+        
         row.innerHTML = `
-            <td class="px-6 py-4 text-xs text-text-secondary font-mono">${index + 1}</td>
-            <td class="px-6 py-4">
+            <td class="p-4">
                 <div class="flex items-center gap-3">
-                    <div class="h-8 w-8 rounded-full bg-primary/20 text-primary border border-primary/30 flex items-center justify-center text-xs font-bold">
+                    <div class="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary text-xs font-bold">
                         ${initials}
                     </div>
                     <div>
-                        <p class="font-bold text-white text-sm">${student.nombre}</p>
-                        <p class="text-[10px] text-text-secondary uppercase tracking-wider">${student.id}</p>
+                        <p class="font-bold text-white text-sm flex items-center flex-wrap gap-1">${student.nombre} ${originTag}</p>
+                        <p class="text-xs text-text-secondary">${student.email || 'Sin correo'}</p>
                     </div>
                 </div>
             </td>
-            <td class="px-6 py-4">
-                <span class="px-2 py-1 rounded bg-surface-border/50 border border-surface-border text-xs text-white whitespace-nowrap">
-                    ${student.courseName}
-                </span>
+            <td class="p-4 text-text-secondary font-mono text-xs">${student.matricula || student.realId}</td>
+            <td class="p-4 text-text-secondary text-xs">
+                ${student.telefono || '<span class="opacity-50">--</span>'}
             </td>
-            <td class="px-6 py-4">
-                <div class="flex flex-wrap gap-2 max-w-md">
-                    ${subjectsHTML}
-                </div>
-            </td>
-            <td class="px-6 py-4 text-right">
-                <button onclick="viewObservation('${student.id}')" class="p-2 rounded-lg bg-surface-border/30 hover:bg-warning/20 hover:text-warning text-text-secondary transition-colors" title="Ver Observaciones">
-                    <span class="material-symbols-outlined text-[18px]">visibility</span>
+            <td class="p-4 text-text-secondary text-xs">${date}</td>
+            <td class="p-4 text-right">
+                <button onclick="openStudentDetails('${student.uniqueId}')" 
+                    class="p-2 rounded-lg hover:bg-surface-dark text-text-secondary hover:text-primary transition-colors" title="Ver Detalles Completos">
+                    <span class="material-symbols-outlined">visibility</span>
                 </button>
             </td>
         `;
@@ -142,94 +172,206 @@ function renderGlobalTable(searchTerm = "") {
     });
 }
 
-// Generar HTML de las pastillas de materias con promedios
-function generateSubjectsPerformance(student) {
-    if (!student.courseSubjects || student.courseSubjects.length === 0) {
-        return '<span class="text-xs text-text-secondary italic">Sin materias asignadas</span>';
-    }
-
-    let html = '';
-
-    student.courseSubjects.forEach(materia => {
-        // Filtrar actividades de esta materia y del periodo actual
-        const allActs = student.courseActivities[materia] || [];
-        const periodActs = allActs.filter(a => (a.periodo || 'p1') === currentPeriod);
-
-        if (periodActs.length > 0) {
-            // Calcular promedio
-            const promedio = calculateAverage(student.notas ? student.notas[materia] : {}, periodActs);
-
-            // Color según nota
-            let colorClass = "bg-surface-border text-text-secondary border-surface-border"; // Default
-            if (promedio >= 90) colorClass = "bg-green-500/10 text-green-400 border-green-500/20";
-            else if (promedio >= 80) colorClass = "bg-blue-500/10 text-blue-400 border-blue-500/20";
-            else if (promedio >= 70) colorClass = "bg-yellow-500/10 text-yellow-400 border-yellow-500/20";
-            else colorClass = "bg-red-500/10 text-red-400 border-red-500/20";
-
-            html += `
-                <div class="flex items-center gap-2 px-2 py-1 rounded border ${colorClass} text-[10px] font-bold">
-                    <span class="truncate max-w-[80px]" title="${materia}">${materia}</span>
-                    <span class="w-px h-3 bg-current opacity-30"></span>
-                    <span>${promedio}</span>
-                </div>
-            `;
-        } else {
-            // Materia sin actividades en este periodo
-            html += `
-                <div class="flex items-center gap-2 px-2 py-1 rounded border border-surface-border/30 bg-surface-border/10 text-text-secondary/50 text-[10px]">
-                    <span class="truncate max-w-[80px]">${materia}</span>
-                    <span>-</span>
-                </div>
-            `;
-        }
-    });
-
-    return html || '<span class="text-xs text-text-secondary italic">Sin actividad en este periodo</span>';
-}
-
-// Calculadora de Promedio (Simplificada de gradebook.js)
-function calculateAverage(notasObj, activitiesList) {
-    if (!notasObj || activitiesList.length === 0) return 0;
-
-    // Agrupar por competencia
-    const comps = {
-        c1: { sum: 0, weight: 0 }, c2: { sum: 0, weight: 0 },
-        c3: { sum: 0, weight: 0 }, c4: { sum: 0, weight: 0 }
-    };
-
-    activitiesList.forEach(act => {
-        const compId = act.competencia || 'c1';
-        const weight = parseFloat(act.valor || 0);
-        const grade = parseFloat(notasObj[act.nombre] || 0);
-
-        if (weight > 0) {
-            comps[compId].sum += (grade * weight) / 100;
-            comps[compId].weight += weight;
-        }
-    });
-
-    // Promediar las 4 competencias (Asumiendo peso 100 por comp o proporcional)
-    let total = 0;
-    ['c1', 'c2', 'c3', 'c4'].forEach(c => {
-        total += Math.round(comps[c].sum);
-    });
-
-    return Math.round(total / 4);
-}
-
-// Ver Observación (Modal Read-Only)
-window.viewObservation = (studentId) => {
-    // Buscar estudiante en la lista plana
-    const student = allStudentsFlat.find(s => s.id === studentId);
+// --- VER DETALLES COMPLETOS ---
+window.openStudentDetails = async (uniqueId) => {
+    let student = allStudentsCache.find(s => s.uniqueId === uniqueId);
     if (!student) return;
 
-    const modal = document.getElementById('modal-view-observation');
-    if (modal) {
-        document.getElementById('obs-modal-student').innerText = student.nombre;
-        document.getElementById('obs-modal-course').innerText = student.courseName;
-        document.getElementById('obs-modal-text').value = student.observacion || "Sin observaciones registradas.";
+    // Guardamos el contexto para saber cómo guardar/borrar
+    currentStudentContext = student._context;
+    document.getElementById('edit-doc-id').value = student.realId; // Solo referencia visual
+    
+    // Llenar TODOS los campos (Mapeo de nombres de campos)
+    const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val || ''; };
 
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
+    // Básicos
+    setVal('detail-name', student.nombre);
+    setVal('detail-matricula', student.matricula);
+    setVal('detail-rne', student.rne);
+    setVal('detail-sexo', student.sexo || 'M');
+    setVal('detail-nacimiento', student.fecha_nacimiento);
+    setVal('detail-email', student.email);
+    setVal('detail-phone', student.telefono);
+    setVal('detail-address', student.direccion);
+
+    // Familia
+    setVal('detail-padre', student.padre_nombre);
+    setVal('detail-telefono-padre', student.padre_telefono);
+    setVal('detail-madre', student.madre_nombre);
+    setVal('detail-telefono-madre', student.madre_telefono);
+    setVal('detail-tutor', student.tutor);
+
+    // Médica
+    setVal('detail-sangre', student.sangre);
+    setVal('detail-medica', student.alergias);
+    setVal('detail-emergencia-nombre', student.emergencia_nombre);
+    setVal('detail-emergencia-telefono', student.emergencia_telefono);
+
+    // Obs
+    setVal('detail-observations', student.observaciones);
+    
+    // Header Modal
+    const initials = (student.nombre || '??').substring(0, 2).toUpperCase();
+    document.getElementById('detail-initials').innerText = initials;
+    document.getElementById('detail-id-display').innerText = `ID: ${student.matricula || '---'}`;
+
+    cancelEditMode();
+    window.toggleModal('modal-student-details');
+}
+
+// --- MODO EDICIÓN ---
+window.enableEditMode = () => {
+    const inputs = document.querySelectorAll('#form-edit-student input, #form-edit-student textarea, #form-edit-student select');
+    inputs.forEach(input => input.disabled = false);
+    document.getElementById('detail-name').focus();
+    document.getElementById('btn-enable-edit').classList.add('hidden');
+    document.getElementById('btn-delete-student').classList.add('hidden');
+    document.getElementById('btn-save-changes').classList.remove('hidden');
+    document.getElementById('btn-cancel-edit').classList.remove('hidden');
+    document.getElementById('btn-save-changes').classList.add('flex');
+}
+
+window.cancelEditMode = () => {
+    const inputs = document.querySelectorAll('#form-edit-student input, #form-edit-student textarea, #form-edit-student select');
+    inputs.forEach(input => input.disabled = true);
+    document.getElementById('btn-enable-edit').classList.remove('hidden');
+    document.getElementById('btn-delete-student').classList.remove('hidden');
+    document.getElementById('btn-save-changes').classList.add('hidden');
+    document.getElementById('btn-cancel-edit').classList.add('hidden');
+    document.getElementById('btn-save-changes').classList.remove('flex');
+}
+
+// --- GUARDAR CAMBIOS (LÓGICA ADAPTADA) ---
+async function saveStudentChanges(e) {
+    e.preventDefault();
+    if(!currentStudentContext) return;
+
+    const btn = document.getElementById('btn-save-changes');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<span class="material-symbols-outlined animate-spin">refresh</span> Guardando...';
+    btn.disabled = true;
+
+    // Recoger valores del formulario
+    const getVal = (id) => document.getElementById(id).value.trim();
+    
+    const updates = {
+        nombre: getVal('detail-name'),
+        // La matrícula es el ID, a veces no se debe cambiar, pero aquí permitimos editar campos informativos
+        rne: getVal('detail-rne'),
+        sexo: document.getElementById('detail-sexo').value,
+        fecha_nacimiento: getVal('detail-nacimiento'),
+        email: getVal('detail-email'),
+        telefono: getVal('detail-phone'),
+        direccion: getVal('detail-address'),
+        
+        padre: getVal('detail-padre'), // Nota: gradebook usa 'padre', 'madre', etc.
+        telefono_padre: getVal('detail-telefono-padre'),
+        madre: getVal('detail-madre'),
+        telefono_madre: getVal('detail-telefono-madre'),
+        tutor: getVal('detail-tutor'),
+
+        tipo_sangre: document.getElementById('detail-sangre').value,
+        alergias_medicas: getVal('detail-medica'),
+        emergencia_nombre: getVal('detail-emergencia-nombre'),
+        emergencia_telefono: getVal('detail-emergencia-telefono'),
+        observacion: getVal('detail-observations') // gradebook usa 'observacion'
+    };
+
+    try {
+        if (currentStudentContext.type === 'course_array') {
+            // LÓGICA ARRAY: Leer curso, buscar estudiante, actualizar objeto, guardar array
+            const courseRef = doc(db, currentStudentContext.coursePath);
+            const courseSnap = await getDoc(courseRef);
+            
+            if (courseSnap.exists()) {
+                const courseData = courseSnap.data();
+                let estudiantes = courseData.estudiantes || [];
+                const index = estudiantes.findIndex(s => s.id === currentStudentContext.studentId);
+                
+                if (index !== -1) {
+                    // Mezclamos datos existentes (notas, asistencia) con los nuevos
+                    estudiantes[index] = { ...estudiantes[index], ...updates };
+                    
+                    // Si cambió el ID visual (matricula), ojo: gradebook usa ID como key. 
+                    // Aquí updates no cambia el 'id' propiedad raíz, solo campos de info.
+                    
+                    await updateDoc(courseRef, { estudiantes: estudiantes });
+                } else {
+                    throw new Error("El estudiante ya no existe en el curso origen.");
+                }
+            }
+        } else {
+            // LÓGICA GLOBAL (LEGACY)
+            const docRef = doc(db, currentStudentContext.path);
+            // Mapeo inverso para legacy si es necesario, o guardar directo
+            await updateDoc(docRef, {
+                nombre: updates.nombre,
+                matricula: updates.id || getVal('detail-matricula'),
+                rne: updates.rne,
+                email: updates.email,
+                // ... resto de campos mapeados a estructura legacy si difiere
+                observaciones: updates.observacion
+            });
+        }
+
+        if(window.showToast) window.showToast("Perfil actualizado correctamente", "success");
+        loadStudents(); 
+        cancelEditMode();
+        
+        document.getElementById('detail-initials').innerText = updates.nombre.substring(0, 2).toUpperCase();
+
+    } catch (error) {
+        console.error(error);
+        alert("Error al actualizar: " + error.message);
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
     }
-};
+}
+
+// --- ELIMINAR ESTUDIANTE ---
+window.deleteStudentFromModal = async () => {
+    if(!currentStudentContext) return;
+
+    if(!confirm("¿ESTÁS SEGURO?\n\nEsta acción eliminará permanentemente al estudiante y todos sus datos (notas, asistencia).")) return;
+
+    const btn = document.getElementById('btn-delete-student');
+    btn.disabled = true;
+    btn.innerHTML = 'Eliminando...';
+
+    try {
+        if (currentStudentContext.type === 'course_array') {
+            // LÓGICA ARRAY: Filtrar y guardar
+            const courseRef = doc(db, currentStudentContext.coursePath);
+            const courseSnap = await getDoc(courseRef);
+            
+            if (courseSnap.exists()) {
+                const courseData = courseSnap.data();
+                const nuevosEstudiantes = (courseData.estudiantes || []).filter(s => s.id !== currentStudentContext.studentId);
+                
+                await updateDoc(courseRef, { estudiantes: nuevosEstudiantes });
+            }
+        } else {
+            // LÓGICA GLOBAL
+            await deleteDoc(doc(db, currentStudentContext.path));
+        }
+        
+        if(window.showToast) window.showToast("Estudiante eliminado", "info");
+        window.toggleModal('modal-student-details');
+        loadStudents();
+
+    } catch (error) {
+        console.error(error);
+        alert("Error al eliminar: " + error.message);
+        btn.disabled = false;
+        btn.innerHTML = '<span class="material-symbols-outlined">delete</span> Eliminar';
+    }
+}
+
+window.toggleModal = (modalID) => {
+    const modal = document.getElementById(modalID);
+    if (modal) {
+        modal.classList.toggle('hidden');
+        modal.classList.toggle('flex');
+    }
+}
