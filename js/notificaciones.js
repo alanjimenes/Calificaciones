@@ -1,4 +1,4 @@
-import { db, collection, addDoc, getDocs, deleteDoc, updateDoc, doc, serverTimestamp, appId } from './firebase-config.js';
+import { db, collection, addDoc, getDocs, deleteDoc, updateDoc, doc, appId } from './firebase-config.js';
 
 let currentUser = null;
 
