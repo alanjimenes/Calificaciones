@@ -28,13 +28,12 @@ document.addEventListener('DOMContentLoaded', () => {
     setupCourseForm();
 });
 
-// --- CORRECCIÓN: CARGAR NOTIFICACIONES SIN ORDERBY ---
+// --- CARGAR NOTIFICACIONES ---
 async function loadActiveNotifications() {
     const container = document.getElementById('dashboard-notifications-list');
     if (!container) return;
 
     try {
-        // 1. Consulta SIMPLE (Trae todo, filtra en cliente)
         const notifRef = collection(db, 'artifacts', appId, 'public', 'data', 'notificaciones');
         const snapshot = await getDocs(notifRef);
 
@@ -47,7 +46,6 @@ async function loadActiveNotifications() {
             return;
         }
 
-        // 2. Ordenar en memoria
         let notifications = [];
         snapshot.forEach(docSnap => {
             notifications.push(docSnap.data());
@@ -59,7 +57,6 @@ async function loadActiveNotifications() {
             return dateB - dateA;
         });
 
-        // 3. Renderizar (Top 5)
         container.innerHTML = '';
         notifications.slice(0, 5).forEach(data => {
             let dateStr = 'Hoy';
@@ -236,6 +233,7 @@ async function saveCourseDirectly(id, data) {
     await setDoc(doc(db, "cursos_globales", id), data, { merge: true });
 }
 
+// --- CARGAR DASHBOARD (CURSOS) ---
 async function loadDashboard(isAdmin, userEmail) {
     const listContainer = document.getElementById('dashboard-courses-list');
     const courseSelect = document.getElementById('quick-task-course');
@@ -253,12 +251,21 @@ async function loadDashboard(isAdmin, userEmail) {
             return;
         }
 
+        let hasCourses = false;
+
         snapshot.forEach(docSnap => {
             const course = docSnap.data();
             course.id = docSnap.id;
+            
+            // --- CORRECCIÓN PERMISOS ---
             const isTitular = (course.titular_email === userEmail);
+            let isTeacher = false;
+            if (course.profesores_materias) {
+                isTeacher = Object.values(course.profesores_materias).some(email => email === userEmail);
+            }
 
-            if (isAdmin || isTitular) {
+            if (isAdmin || isTitular || isTeacher) {
+                hasCourses = true;
                 allCoursesCache.push(course);
                 const card = document.createElement('a');
                 card.href = `calificaciones.html?curso=${course.id}`;
@@ -268,13 +275,21 @@ async function loadDashboard(isAdmin, userEmail) {
                 const subjectCount = (course.materias || []).length;
                 const studentCount = (course.estudiantes || []).length;
 
+                // Etiqueta de Rol
+                let roleTag = "";
+                if(isTitular) roleTag = `<span class="text-[10px] bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded">Titular</span>`;
+                else if(isTeacher) roleTag = `<span class="text-[10px] bg-surface-border/50 text-text-secondary px-1.5 py-0.5 rounded">Docente</span>`;
+
                 card.innerHTML = `
                     <div class="flex justify-between items-start">
                         <div class="h-10 w-10 rounded-lg bg-surface-border flex items-center justify-center text-lg font-bold text-white group-hover:bg-primary group-hover:text-background-dark transition-colors">${initial}</div>
-                        <span class="material-symbols-outlined text-text-secondary group-hover:text-primary">arrow_outward</span>
+                        <div class="flex flex-col items-end gap-1">
+                            <span class="material-symbols-outlined text-text-secondary group-hover:text-primary">arrow_outward</span>
+                            ${roleTag}
+                        </div>
                     </div>
                     <div>
-                        <h4 class="text-lg font-bold text-white leading-tight mb-1 group-hover:text-primary transition-colors">${course.nombre}</h4>
+                        <h4 class="text-lg font-bold text-white leading-tight mb-1 group-hover:text-primary transition-colors truncate" title="${course.nombre}">${course.nombre}</h4>
                         <p class="text-xs text-text-secondary">${subjectCount} Materias • ${studentCount} Estudiantes</p>
                     </div>
                 `;
@@ -288,11 +303,13 @@ async function loadDashboard(isAdmin, userEmail) {
                 }
             }
         });
-        if (allCoursesCache.length === 0) {
+        
+        if (!hasCourses) {
             listContainer.innerHTML = '<p class="text-text-secondary col-span-full text-center py-10 bg-surface-dark rounded-xl border border-surface-border">No tienes cursos asignados.</p>';
         }
     } catch (error) {
         console.error("Error cargando dashboard:", error);
+        listContainer.innerHTML = '<p class="text-danger col-span-full text-center py-4">Error cargando cursos.</p>';
     }
 }
 
@@ -310,8 +327,23 @@ if (courseSelect) {
         const selectedCourse = allCoursesCache.find(c => c.id === courseId);
         subjectSelect.innerHTML = '<option value="" disabled selected>Selecciona materia...</option>';
 
-        if (selectedCourse && selectedCourse.materias && selectedCourse.materias.length > 0) {
-            selectedCourse.materias.forEach(materia => {
+        // Solo mostrar materias donde el usuario es profesor o si es titular/admin ve todas
+        let materiasDisponibles = selectedCourse.materias || [];
+        
+        // Si no es admin ni titular, filtrar materias
+        // (Nota: Esta lógica es opcional, ya que el backend debería validar, 
+        // pero mejora UX mostrar solo donde puede editar)
+        const currentUserEmail = auth.currentUser.email;
+        if(auth.currentUser && selectedCourse.titular_email !== currentUserEmail && currentUserEmail !== 'admin@mail.com') {
+             if (selectedCourse.profesores_materias) {
+                 materiasDisponibles = materiasDisponibles.filter(m => selectedCourse.profesores_materias[m] === currentUserEmail);
+             } else {
+                 materiasDisponibles = []; // No tiene asignaciones específicas
+             }
+        }
+
+        if (materiasDisponibles.length > 0) {
+            materiasDisponibles.forEach(materia => {
                 const opt = document.createElement('option');
                 opt.value = materia;
                 opt.textContent = materia;
@@ -322,7 +354,7 @@ if (courseSelect) {
         } else {
             subjectContainer.classList.add('hidden');
             detailsContainer.classList.add('hidden');
-            if (window.showToast) window.showToast("Curso sin materias.", "error");
+            if (window.showToast) window.showToast("No tienes materias asignadas en este curso.", "warning");
         }
     });
 
