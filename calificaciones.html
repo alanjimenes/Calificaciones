@@ -19,9 +19,9 @@
                         "primary": "#2563eb",
                         "primary-dark": "#1d4ed8",
                         "background-light": "#f8fafc",
-                        "background-dark": "#0f172a", /* Fondo principal oscuro */
-                        "surface-dark": "#1e293b",     /* Fondo de tarjetas */
-                        "surface-border": "#334155",   /* Bordes sutiles */
+                        "background-dark": "#0f172a",
+                        "surface-dark": "#1e293b",
+                        "surface-border": "#334155",
                         "text-secondary": "#94a3b8",
                         "white": "#f8fafc",
                         "danger": "#ef4444",
@@ -37,116 +37,54 @@
             },
         }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
 
     <style>
-        /* Ajustes específicos para la planilla */
         input[type=number]::-webkit-inner-spin-button,
-        input[type=number]::-webkit-outer-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-
-        input[type=number] {
-            -moz-appearance: textfield;
-        }
-
-        .grade-cell-wrapper:focus-within {
-            background-color: rgba(37, 99, 235, 0.1);
-            border-radius: 8px;
-        }
-
-        .attendance-btn {
-            @apply w-8 h-8 rounded-lg flex items-center justify-center border border-transparent transition-all;
-        }
-
-        .attendance-btn:hover {
-            @apply bg-white/5;
-        }
-
-        .attendance-btn.active {
-            @apply ring-2 ring-offset-2 ring-offset-[#1e293b] scale-110 font-bold shadow-lg;
-        }
-
-        /* Scrollbar personalizada para la tabla */
-        .custom-scrollbar::-webkit-scrollbar {
-            height: 8px;
-            width: 8px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #0f172a;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #334155;
-            border-radius: 4px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #475569;
-        }
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+        .grade-cell-wrapper:focus-within { background-color: rgba(37, 99, 235, 0.1); border-radius: 8px; }
+        .attendance-btn { @apply w-8 h-8 rounded-lg flex items-center justify-center border border-transparent transition-all; }
+        .attendance-btn:hover { @apply bg-white/5; }
+        .attendance-btn.active { @apply ring-2 ring-offset-2 ring-offset-[#1e293b] scale-110 font-bold shadow-lg; }
+        .custom-scrollbar::-webkit-scrollbar { height: 8px; width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
     </style>
 </head>
 
-<body
-    class="bg-background-dark text-white font-display antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300"
-    id="main-body">
+<body class="bg-background-dark text-white font-display antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300" id="main-body">
 
     <!-- EL SIDEBAR SE INYECTA CON JS (layout.js) -->
 
-    <!-- CONTENIDO PRINCIPAL -->
     <main class="flex-1 flex flex-col overflow-hidden relative bg-background-dark" id="main-content">
 
-        <!-- Decoración de fondo -->
-        <div class="fixed top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-            <div class="absolute top-[10%] right-[20%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px]">
-            </div>
-            <div class="absolute bottom-[10%] left-[10%] w-[300px] h-[300px] bg-blue-500/5 rounded-full blur-[100px]">
-            </div>
-        </div>
-
         <!-- Header Fijo -->
-        <div
-            class="shrink-0 px-6 pt-6 pb-4 bg-background-dark/80 backdrop-blur-md z-20 flex flex-col gap-4 border-b border-surface-border sticky top-0">
-
+        <div class="shrink-0 px-6 pt-6 pb-4 bg-background-dark/80 backdrop-blur-md z-20 flex flex-col gap-4 border-b border-surface-border sticky top-0">
             <!-- Mobile Header -->
             <div class="lg:hidden flex items-center justify-between mb-2">
                 <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                        <span class="material-symbols-outlined text-white text-lg">school</span>
-                    </div>
+                    <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-white text-lg">school</span></div>
                     <span class="font-bold text-white text-lg">EduSys</span>
                 </div>
-                <button id="mobile-menu-btn"
-                    class="text-white material-symbols-outlined p-2 hover:bg-surface-dark rounded-lg transition-colors">menu</button>
+                <button id="mobile-menu-btn" class="text-white material-symbols-outlined p-2 hover:bg-surface-dark rounded-lg transition-colors">menu</button>
             </div>
 
             <!-- Top Bar -->
             <div class="flex flex-wrap items-center justify-between gap-4">
                 <div class="flex items-center gap-4">
-                    <!-- Botón Sidebar Escritorio -->
-                    <button id="desktop-sidebar-toggle"
-                        class="hidden lg:flex p-2 rounded-xl text-text-secondary hover:text-white hover:bg-surface-dark transition-colors"
-                        title="Ocultar/Mostrar Menú">
+                    <button id="desktop-sidebar-toggle" class="hidden lg:flex p-2 rounded-xl text-text-secondary hover:text-white hover:bg-surface-dark transition-colors" title="Ocultar/Mostrar Menú">
                         <span class="material-symbols-outlined">menu_open</span>
                     </button>
-
-                    <!-- Botón Volver -->
-                    <button id="btn-back-to-subjects" onclick="window.returnToSubjects()"
-                        class="hidden p-2 rounded-xl bg-surface-dark border border-surface-border text-text-secondary hover:text-white hover:border-primary transition-all group"
-                        title="Volver al dashboard">
-                        <span
-                            class="material-symbols-outlined text-lg group-hover:-translate-x-1 transition-transform">arrow_back</span>
+                    <button id="btn-back-to-subjects" onclick="window.returnToSubjects()" class="hidden p-2 rounded-xl bg-surface-dark border border-surface-border text-text-secondary hover:text-white hover:border-primary transition-all group" title="Volver al dashboard">
+                        <span class="material-symbols-outlined text-lg group-hover:-translate-x-1 transition-transform">arrow_back</span>
                     </button>
-
                     <div>
                         <div class="flex items-center gap-3">
                             <h2 class="text-2xl font-bold text-white tracking-tight">Gestión Académica</h2>
-                            <span id="saving-indicator"
-                                class="hidden text-[10px] font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded animate-pulse flex items-center gap-1">
+                            <span id="saving-indicator" class="hidden text-[10px] font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded animate-pulse flex items-center gap-1">
                                 <span class="material-symbols-outlined text-[12px]">cloud_upload</span> GUARDANDO...
                             </span>
                         </div>
@@ -157,9 +95,7 @@
                 </div>
 
                 <div class="flex items-center gap-3">
-                    <!-- Botón Añadir Estudiante -->
-                    <button id="btn-add-student" onclick="prepareAddStudent()"
-                        class="hidden flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-dark border border-surface-border hover:bg-surface-border hover:text-white transition-all text-text-secondary text-sm font-bold shadow-sm">
+                    <button id="btn-add-student" onclick="prepareAddStudent()" class="hidden flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-dark border border-surface-border hover:bg-surface-border hover:text-white transition-all text-text-secondary text-sm font-bold shadow-sm">
                         <span class="material-symbols-outlined text-[18px]">person_add</span>
                         <span class="hidden md:inline">Nuevo Estudiante</span>
                     </button>
@@ -167,141 +103,76 @@
             </div>
 
             <!-- CONTROLES (Barra Inferior) -->
-            <div id="controls-gradebook"
-                class="hidden flex-col xl:flex-row xl:items-center justify-between gap-4 mt-1 animate-fade-in">
-
-                <!-- Info Materia y Periodo -->
+            <div id="controls-gradebook" class="hidden flex-col xl:flex-row xl:items-center justify-between gap-4 mt-1 animate-fade-in">
                 <div class="flex flex-wrap items-center gap-3">
-                    <!-- Label Materia -->
-                    <div
-                        class="pl-3 pr-4 py-2 bg-surface-dark border border-surface-border text-white text-sm rounded-xl min-w-[200px] flex items-center gap-2 shadow-sm">
-                        <div class="p-1 rounded bg-primary/20 text-primary">
-                            <span class="material-symbols-outlined text-sm">auto_stories</span>
-                        </div>
+                    <div class="pl-3 pr-4 py-2 bg-surface-dark border border-surface-border text-white text-sm rounded-xl min-w-[200px] flex items-center gap-2 shadow-sm">
+                        <div class="p-1 rounded bg-primary/20 text-primary"><span class="material-symbols-outlined text-sm">auto_stories</span></div>
                         <span id="current-subject-label" class="font-bold truncate">Materia</span>
                     </div>
-
                     <div class="h-8 w-px bg-surface-border hidden md:block"></div>
-
-                    <!-- Selector Periodo -->
                     <div id="period-selector-container" class="relative group">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <span
-                                class="material-symbols-outlined text-text-secondary group-hover:text-primary transition-colors text-lg">date_range</span>
-                        </div>
-                        <select id="period-selector"
-                            class="pl-10 pr-8 py-2 bg-surface-dark border border-surface-border text-white text-sm rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all cursor-pointer appearance-none min-w-[140px]">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><span class="material-symbols-outlined text-text-secondary group-hover:text-primary transition-colors text-lg">date_range</span></div>
+                        <select id="period-selector" class="pl-10 pr-8 py-2 bg-surface-dark border border-surface-border text-white text-sm rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all cursor-pointer appearance-none min-w-[140px]">
                             <option value="p1" selected>Periodo 1</option>
                             <option value="p2">Periodo 2</option>
                             <option value="p3">Periodo 3</option>
                             <option value="p4">Periodo 4</option>
                         </select>
-                        <span
-                            class="material-symbols-outlined absolute right-2 top-2.5 text-text-secondary pointer-events-none text-lg">expand_more</span>
+                        <span class="material-symbols-outlined absolute right-2 top-2.5 text-text-secondary pointer-events-none text-lg">expand_more</span>
                     </div>
                 </div>
 
-                <!-- TABS NAVEGACIÓN -->
-                <div
-                    class="flex p-1 bg-surface-dark border border-surface-border rounded-xl gap-1 overflow-x-auto shadow-sm">
-                    <button id="tab-grades"
-                        class="whitespace-nowrap flex-1 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all bg-primary text-white shadow-md">
+                <div class="flex p-1 bg-surface-dark border border-surface-border rounded-xl gap-1 overflow-x-auto shadow-sm">
+                    <button id="tab-grades" class="whitespace-nowrap flex-1 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all bg-primary text-white shadow-md">
                         <span class="material-symbols-outlined text-[18px]">assignment</span> Planilla
                     </button>
-                    <button id="tab-tasks"
-                        class="whitespace-nowrap flex-1 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold text-text-secondary hover:text-white hover:bg-white/5 transition-all">
+                    <button id="tab-tasks" class="whitespace-nowrap flex-1 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold text-text-secondary hover:text-white hover:bg-white/5 transition-all">
                         <span class="material-symbols-outlined text-[18px]">checklist</span> Tareas
                     </button>
-                    <button id="tab-attendance"
-                        class="whitespace-nowrap flex-1 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold text-text-secondary hover:text-white hover:bg-white/5 transition-all">
+                    <button id="tab-attendance" class="whitespace-nowrap flex-1 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold text-text-secondary hover:text-white hover:bg-white/5 transition-all">
                         <span class="material-symbols-outlined text-[18px]">calendar_today</span> Asistencia
                     </button>
                 </div>
             </div>
-
-            <!-- STATUS BAR -->
-            <div class="hidden flex items-center gap-2 px-1" id="subject-status">
-                <!-- Se llena con JS -->
-            </div>
+            <div class="hidden flex items-center gap-2 px-1" id="subject-status"></div>
         </div>
 
-        <!-- VISTAS (Contenedor con Scroll) -->
+        <!-- VISTAS -->
         <div class="flex-1 overflow-auto p-4 md:p-6 relative custom-scrollbar z-10">
-
-            <div id="loader"
-                class="absolute inset-0 flex items-center justify-center bg-background-dark/80 backdrop-blur-sm z-50 rounded-2xl">
+            <div id="loader" class="absolute inset-0 flex items-center justify-center bg-background-dark/80 backdrop-blur-sm z-50 rounded-2xl">
                 <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
             </div>
 
             <!-- VISTA 0: DASHBOARD DE MATERIAS -->
             <div id="view-subjects-dashboard" class="max-w-[1400px] mx-auto w-full animate-fade-in pb-20">
-                <!-- Stats Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                    <!-- Stat Card 1 -->
-                    <div
-                        class="bg-surface-dark p-4 rounded-xl border border-surface-border shadow-sm flex items-center justify-between group hover:border-primary/50 transition-all cursor-default">
-                        <div>
-                            <p
-                                class="text-text-secondary text-xs font-bold uppercase tracking-wider group-hover:text-primary transition-colors">
-                                Total Materias</p>
-                            <p id="dash-total-subjects" class="text-white text-3xl font-bold mt-1">0</p>
-                        </div>
-                        <div
-                            class="p-3 rounded-xl bg-primary/10 text-primary border border-primary/20 group-hover:bg-primary group-hover:text-white transition-colors shadow-lg shadow-primary/5">
-                            <span class="material-symbols-outlined text-3xl">auto_stories</span>
-                        </div>
+                    <div class="bg-surface-dark p-4 rounded-xl border border-surface-border shadow-sm flex items-center justify-between">
+                        <div><p class="text-text-secondary text-xs font-bold uppercase tracking-wider">Total Materias</p><p id="dash-total-subjects" class="text-white text-3xl font-bold mt-1">0</p></div>
+                        <div class="p-3 rounded-xl bg-primary/10 text-primary border border-primary/20"><span class="material-symbols-outlined text-3xl">auto_stories</span></div>
                     </div>
-
-                    <!-- Stat Card 2 -->
-                    <div
-                        class="bg-surface-dark p-4 rounded-xl border border-surface-border shadow-sm flex items-center justify-between group hover:border-green-500/50 transition-all cursor-default">
-                        <div>
-                            <p
-                                class="text-text-secondary text-xs font-bold uppercase tracking-wider group-hover:text-green-400 transition-colors">
-                                Estudiantes</p>
-                            <p id="dash-total-students" class="text-white text-3xl font-bold mt-1">0</p>
-                        </div>
-                        <div
-                            class="p-3 rounded-xl bg-green-500/10 text-green-500 border border-green-500/20 group-hover:bg-green-500 group-hover:text-white transition-colors shadow-lg shadow-green-500/5">
-                            <span class="material-symbols-outlined text-3xl">groups</span>
-                        </div>
+                    <div class="bg-surface-dark p-4 rounded-xl border border-surface-border shadow-sm flex items-center justify-between">
+                        <div><p class="text-text-secondary text-xs font-bold uppercase tracking-wider">Estudiantes</p><p id="dash-total-students" class="text-white text-3xl font-bold mt-1">0</p></div>
+                        <div class="p-3 rounded-xl bg-green-500/10 text-green-500 border border-green-500/20"><span class="material-symbols-outlined text-3xl">groups</span></div>
                     </div>
-
-                    <!-- Search Bar -->
                     <div class="md:col-span-2 flex items-end">
                         <div class="w-full relative group">
-                            <span
-                                class="material-symbols-outlined absolute left-4 top-3.5 text-text-secondary group-focus-within:text-primary transition-colors">search</span>
-                            <input id="dash-subject-search"
-                                class="w-full pl-12 pr-4 py-3.5 border border-surface-border rounded-2xl bg-surface-dark text-white placeholder-text-secondary/50 focus:border-primary focus:ring-1 focus:ring-primary shadow-lg outline-none transition-all"
-                                placeholder="Buscar materia por nombre..." type="text" />
+                            <span class="material-symbols-outlined absolute left-4 top-3.5 text-text-secondary group-focus-within:text-primary transition-colors">search</span>
+                            <input id="dash-subject-search" class="w-full pl-12 pr-4 py-3.5 border border-surface-border rounded-2xl bg-surface-dark text-white placeholder-text-secondary/50 focus:border-primary focus:ring-1 focus:ring-primary shadow-lg outline-none transition-all" placeholder="Buscar materia por nombre..." type="text" />
                         </div>
                     </div>
                 </div>
-
-                <!-- Lista de Materias -->
                 <div class="bg-surface-dark border border-surface-border rounded-2xl shadow-xl overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse">
                             <thead>
                                 <tr class="border-b border-surface-border bg-surface-dark">
-                                    <th
-                                        class="py-4 px-6 text-[10px] font-bold text-text-secondary uppercase tracking-wider">
-                                        Materia</th>
-                                    <th
-                                        class="py-4 px-6 text-[10px] font-bold text-text-secondary uppercase tracking-wider">
-                                        Profesor Responsable</th>
-                                    <th
-                                        class="py-4 px-6 text-[10px] font-bold text-text-secondary uppercase tracking-wider">
-                                        Estado</th>
-                                    <th
-                                        class="py-4 px-6 text-[10px] font-bold text-text-secondary uppercase tracking-wider text-right">
-                                        Acción</th>
+                                    <th class="py-4 px-6 text-[10px] font-bold text-text-secondary uppercase tracking-wider">Materia</th>
+                                    <th class="py-4 px-6 text-[10px] font-bold text-text-secondary uppercase tracking-wider">Profesor Responsable</th>
+                                    <th class="py-4 px-6 text-[10px] font-bold text-text-secondary uppercase tracking-wider">Estado</th>
+                                    <th class="py-4 px-6 text-[10px] font-bold text-text-secondary uppercase tracking-wider text-right">Acción</th>
                                 </tr>
                             </thead>
-                            <tbody id="subjects-dashboard-body" class="divide-y divide-surface-border/50 text-sm">
-                                <!-- Se llena con JS -->
-                            </tbody>
+                            <tbody id="subjects-dashboard-body" class="divide-y divide-surface-border/50 text-sm"></tbody>
                         </table>
                     </div>
                 </div>
@@ -309,67 +180,48 @@
 
             <!-- VISTA 1: PLANILLA (Grilla) -->
             <div id="view-grades" class="hidden min-w-[900px] animate-fade-in pb-20">
-                <div class="flex justify-end mb-4">
-                    <button onclick="toggleModal('modal-add-activity')" id="btn-add-activity-main"
-                        class="hidden flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-dark transition-all text-white text-sm font-bold shadow-lg shadow-primary/20 hover:scale-105 transform">
-                        <span class="material-symbols-outlined text-[18px]">post_add</span>
-                        Nueva Actividad
+                <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+                    <!-- Buscador Estudiantes -->
+                    <div class="relative group w-full md:w-96">
+                        <span class="material-symbols-outlined absolute left-3 top-2.5 text-text-secondary group-focus-within:text-primary transition-colors text-lg">search</span>
+                        <input type="text" id="student-search-input" placeholder="Buscar por Nombre, ID o RNE..." class="w-full bg-surface-dark border border-surface-border text-white text-sm rounded-xl pl-10 pr-4 py-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all shadow-sm placeholder-text-secondary/50">
+                    </div>
+                    <button onclick="toggleModal('modal-add-activity')" id="btn-add-activity-main" class="hidden flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-dark transition-all text-white text-sm font-bold shadow-lg shadow-primary/20 hover:scale-105 transform whitespace-nowrap">
+                        <span class="material-symbols-outlined text-[18px]">post_add</span> Nueva Actividad
                     </button>
                 </div>
-
                 <div class="border border-surface-border rounded-2xl overflow-hidden bg-surface-dark shadow-2xl">
                     <table class="w-full text-left border-collapse">
-                        <thead
-                            class="bg-surface-border/10 sticky top-0 z-10 backdrop-blur-md border-b border-surface-border">
-                            <tr id="table-headers">
-                                <!-- Headers JS -->
-                            </tr>
+                        <thead class="bg-surface-border/10 sticky top-0 z-10 backdrop-blur-md border-b border-surface-border">
+                            <tr id="table-headers"></tr>
                         </thead>
-                        <tbody id="students-table-body" class="divide-y divide-surface-border/30 text-sm">
-                            <!-- Rows JS -->
-                        </tbody>
+                        <tbody id="students-table-body" class="divide-y divide-surface-border/30 text-sm"></tbody>
                     </table>
                 </div>
             </div>
 
             <!-- VISTA 2: TAREAS -->
             <div id="view-tasks" class="hidden animate-fade-in max-w-6xl mx-auto pb-20">
-                <!-- Lista Tareas -->
                 <div id="tasks-list-container">
                     <div class="flex justify-between items-center mb-6">
                         <h3 class="text-xl font-bold text-white">Actividades Registradas</h3>
-                        <button onclick="toggleModal('modal-add-activity')" id="btn-add-activity-tasks"
-                            class="hidden flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-dark transition-all text-white text-sm font-bold shadow-lg shadow-primary/20">
-                            <span class="material-symbols-outlined text-[18px]">post_add</span>
-                            Crear Tarea
+                        <button onclick="toggleModal('modal-add-activity')" id="btn-add-activity-tasks" class="hidden flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-dark transition-all text-white text-sm font-bold shadow-lg shadow-primary/20">
+                            <span class="material-symbols-outlined text-[18px]">post_add</span> Crear Tarea
                         </button>
                     </div>
-                    <div id="tasks-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        <!-- JS -->
-                    </div>
+                    <div id="tasks-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
                 </div>
-
-                <!-- Calificar Individual -->
                 <div id="single-task-container" class="hidden">
                     <div class="flex items-center gap-4 mb-6">
-                        <button onclick="closeTaskGrading()"
-                            class="p-2 rounded-xl bg-surface-dark border border-surface-border hover:border-white/50 text-white transition-all">
-                            <span class="material-symbols-outlined">arrow_back</span>
-                        </button>
+                        <button onclick="closeTaskGrading()" class="p-2 rounded-xl bg-surface-dark border border-surface-border hover:border-white/50 text-white transition-all"><span class="material-symbols-outlined">arrow_back</span></button>
                         <div>
-                            <h3 class="text-xl font-bold text-white flex items-center gap-3">
-                                <span id="grading-task-name">Tarea</span>
-                                <span id="grading-task-value"
-                                    class="text-xs bg-primary/20 text-primary border border-primary/20 px-2 py-0.5 rounded font-bold">0%</span>
-                            </h3>
+                            <h3 class="text-xl font-bold text-white flex items-center gap-3"><span id="grading-task-name">Tarea</span><span id="grading-task-value" class="text-xs bg-primary/20 text-primary border border-primary/20 px-2 py-0.5 rounded font-bold">0%</span></h3>
                             <p class="text-xs text-text-secondary font-mono mt-1" id="grading-task-period">Periodo 1</p>
                         </div>
                     </div>
-                    <div
-                        class="border border-surface-border rounded-2xl overflow-hidden bg-surface-dark shadow-2xl max-w-4xl mx-auto">
+                    <div class="border border-surface-border rounded-2xl overflow-hidden bg-surface-dark shadow-2xl max-w-4xl mx-auto">
                         <table class="w-full text-left border-collapse">
-                            <thead
-                                class="bg-surface-border/10 text-xs uppercase tracking-wider text-text-secondary border-b border-surface-border">
+                            <thead class="bg-surface-border/10 text-xs uppercase tracking-wider text-text-secondary border-b border-surface-border">
                                 <tr>
                                     <th class="p-4 w-16 text-center">#</th>
                                     <th class="p-4">Estudiante</th>
@@ -384,36 +236,22 @@
 
             <!-- VISTA 3: ASISTENCIA -->
             <div id="view-attendance" class="hidden min-w-[900px] animate-fade-in pb-20">
-                <div
-                    class="flex flex-wrap justify-between items-center mb-6 gap-4 bg-surface-dark p-4 rounded-2xl border border-surface-border shadow-lg">
+                <div class="flex flex-wrap justify-between items-center mb-6 gap-4 bg-surface-dark p-4 rounded-2xl border border-surface-border shadow-lg">
                     <div class="flex items-center gap-4">
-                        <div class="p-2 rounded-lg bg-primary/10 text-primary">
-                            <span class="material-symbols-outlined">calendar_month</span>
-                        </div>
+                        <div class="p-2 rounded-lg bg-primary/10 text-primary"><span class="material-symbols-outlined">calendar_month</span></div>
                         <div>
-                            <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">Fecha de
-                                Registro</label>
-                            <input type="date" id="attendance-date"
-                                class="bg-background-dark border border-surface-border text-white text-sm rounded-lg focus:border-primary focus:ring-1 focus:ring-primary block p-2 outline-none">
+                            <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">Fecha de Registro</label>
+                            <input type="date" id="attendance-date" class="bg-background-dark border border-surface-border text-white text-sm rounded-lg focus:border-primary focus:ring-1 focus:ring-primary block p-2 outline-none">
                         </div>
                     </div>
                     <div class="flex gap-3">
-                        <div
-                            class="flex items-center gap-2 px-4 py-2 rounded-xl bg-background-dark border border-surface-border shadow-inner">
-                            <span class="w-2.5 h-2.5 rounded-full bg-primary"></span>
-                            <span class="text-xs font-bold text-white" id="stat-present">P: 0</span>
-                        </div>
-                        <div
-                            class="flex items-center gap-2 px-4 py-2 rounded-xl bg-background-dark border border-surface-border shadow-inner">
-                            <span class="w-2.5 h-2.5 rounded-full bg-danger"></span>
-                            <span class="text-xs font-bold text-white" id="stat-absent">A: 0</span>
-                        </div>
+                        <div class="flex items-center gap-2 px-4 py-2 rounded-xl bg-background-dark border border-surface-border shadow-inner"><span class="w-2.5 h-2.5 rounded-full bg-primary"></span><span class="text-xs font-bold text-white" id="stat-present">P: 0</span></div>
+                        <div class="flex items-center gap-2 px-4 py-2 rounded-xl bg-background-dark border border-surface-border shadow-inner"><span class="w-2.5 h-2.5 rounded-full bg-danger"></span><span class="text-xs font-bold text-white" id="stat-absent">A: 0</span></div>
                     </div>
                 </div>
                 <div class="border border-surface-border rounded-2xl overflow-hidden bg-surface-dark shadow-2xl">
                     <table class="w-full text-left border-collapse">
-                        <thead
-                            class="bg-surface-border/10 text-xs uppercase tracking-wider text-text-secondary border-b border-surface-border">
+                        <thead class="bg-surface-border/10 text-xs uppercase tracking-wider text-text-secondary border-b border-surface-border">
                             <tr>
                                 <th class="p-4 w-16 text-center">#</th>
                                 <th class="p-4">Estudiante</th>
@@ -427,246 +265,228 @@
             </div>
 
             <!-- Estado Vacío -->
-            <div id="empty-state"
-                class="hidden flex flex-col items-center justify-center p-12 text-center mt-10 border border-dashed border-surface-border rounded-2xl bg-surface-dark/30">
-                <div
-                    class="w-16 h-16 bg-surface-dark rounded-full flex items-center justify-center mb-4 border border-surface-border shadow-lg">
-                    <span class="material-symbols-outlined text-3xl text-text-secondary">assignment_late</span>
-                </div>
+            <div id="empty-state" class="hidden flex flex-col items-center justify-center p-12 text-center mt-10 border border-dashed border-surface-border rounded-2xl bg-surface-dark/30">
+                <div class="w-16 h-16 bg-surface-dark rounded-full flex items-center justify-center mb-4 border border-surface-border shadow-lg"><span class="material-symbols-outlined text-3xl text-text-secondary">assignment_late</span></div>
                 <p class="text-text-secondary text-sm">No hay datos disponibles en esta vista.</p>
             </div>
         </div>
     </main>
 
-    <!-- ================= MODALES (REDISEÑADOS) ================= -->
+    <!-- ================= MODALES ================= -->
 
     <!-- MODAL: CREAR ACTIVIDAD -->
-    <div id="modal-add-activity"
-        class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4 transition-all duration-300">
-        <div
-            class="bg-surface-dark border border-surface-border p-8 rounded-2xl w-full max-w-sm shadow-2xl relative animate-fade-in">
-            <button onclick="toggleModal('modal-add-activity')"
-                class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined p-1 rounded-full hover:bg-white/10 transition-colors">close</button>
-
+    <div id="modal-add-activity" class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4 transition-all duration-300">
+        <div class="bg-surface-dark border border-surface-border p-8 rounded-2xl w-full max-w-sm shadow-2xl relative animate-fade-in">
+            <button onclick="toggleModal('modal-add-activity')" class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined p-1 rounded-full hover:bg-white/10 transition-colors">close</button>
             <div class="flex items-center gap-3 mb-6">
-                <div class="p-3 rounded-xl bg-primary/20 text-primary border border-primary/20">
-                    <span class="material-symbols-outlined">post_add</span>
-                </div>
+                <div class="p-3 rounded-xl bg-primary/20 text-primary border border-primary/20"><span class="material-symbols-outlined">post_add</span></div>
                 <h2 class="text-xl font-bold text-white">Nueva Actividad</h2>
             </div>
-
             <form id="form-add-activity" class="space-y-5">
                 <div>
-                    <label
-                        class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Nombre</label>
-                    <input type="text" id="activity-name" placeholder="Ej: Examen Parcial"
-                        class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm focus:border-primary outline-none transition-colors shadow-sm">
+                    <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Nombre</label>
+                    <input type="text" id="activity-name" placeholder="Ej: Examen Parcial" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm focus:border-primary outline-none transition-colors shadow-sm">
                 </div>
-
-                <!-- NUEVO: Selector de Competencia -->
                 <div>
-                    <label
-                        class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Competencia
-                        a Evaluar</label>
+                    <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Competencia</label>
                     <div class="relative">
-                        <select id="activity-competencia" required
-                            class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm focus:border-primary outline-none transition-colors appearance-none shadow-sm cursor-pointer truncate pr-8">
+                        <select id="activity-competencia" required class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm focus:border-primary outline-none transition-colors appearance-none shadow-sm cursor-pointer truncate pr-8">
                             <option value="c1">1. Comunicativa</option>
-                            <option value="c2">2. Pensamiento Lógico, Creativo y Crítico...</option>
+                            <option value="c2">2. Pensamiento Lógico, Creativo...</option>
                             <option value="c3">3. Científica y Tecnológica...</option>
                             <option value="c4">4. Ética y Ciudadana...</option>
                         </select>
-                        <span
-                            class="material-symbols-outlined absolute right-3 top-3 text-text-secondary pointer-events-none text-lg">expand_more</span>
+                        <span class="material-symbols-outlined absolute right-3 top-3 text-text-secondary pointer-events-none text-lg">expand_more</span>
                     </div>
                 </div>
-
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label
-                            class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Valor
-                            (%)</label>
-                        <input type="number" id="activity-value" placeholder="20"
-                            class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm focus:border-primary outline-none transition-colors shadow-sm">
+                        <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Valor (%)</label>
+                        <input type="number" id="activity-value" placeholder="20" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm focus:border-primary outline-none transition-colors shadow-sm">
                     </div>
                     <div>
-                        <label
-                            class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Periodo</label>
+                        <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Periodo</label>
                         <div class="relative">
-                            <select id="activity-period"
-                                class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm focus:border-primary outline-none transition-colors appearance-none shadow-sm cursor-pointer">
+                            <select id="activity-period" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm focus:border-primary outline-none transition-colors appearance-none shadow-sm cursor-pointer">
                                 <option value="p1">P1</option>
                                 <option value="p2">P2</option>
                                 <option value="p3">P3</option>
                                 <option value="p4">P4</option>
                             </select>
-                            <span
-                                class="material-symbols-outlined absolute right-3 top-3 text-text-secondary pointer-events-none text-lg">expand_more</span>
+                            <span class="material-symbols-outlined absolute right-3 top-3 text-text-secondary pointer-events-none text-lg">expand_more</span>
                         </div>
                     </div>
                 </div>
-                <button type="submit"
-                    class="w-full py-3 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-sm shadow-lg shadow-primary/20 mt-4 transition-all">
-                    Guardar Actividad
-                </button>
+                <button type="submit" class="w-full py-3 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-sm shadow-lg shadow-primary/20 mt-4 transition-all">Guardar Actividad</button>
             </form>
         </div>
     </div>
 
-    <!-- MODAL: REGISTRAR ESTUDIANTE -->
-    <div id="modal-add-student"
-        class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4 overflow-y-auto">
-        <div
-            class="bg-surface-dark border border-surface-border p-8 rounded-2xl w-full max-w-lg shadow-2xl relative my-auto animate-fade-in">
-            <button onclick="toggleModal('modal-add-student')"
-                class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined p-1 rounded-full hover:bg-white/10 transition-colors">close</button>
+    <!-- MODAL: REGISTRAR ESTUDIANTE (EXPANDIDO) -->
+    <div id="modal-add-student" class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4 overflow-y-auto">
+        <div class="bg-surface-dark border border-surface-border p-8 rounded-2xl w-full max-w-3xl shadow-2xl relative my-auto animate-fade-in">
+            <button onclick="toggleModal('modal-add-student')" class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined p-1 rounded-full hover:bg-white/10 transition-colors">close</button>
 
-            <div class="flex items-center gap-3 mb-6">
-                <div class="p-3 rounded-xl bg-surface-border/50 text-white border border-surface-border">
-                    <span class="material-symbols-outlined" id="modal-student-icon">person_add</span>
-                </div>
-                <div>
-                    <h2 class="text-xl font-bold text-white" id="modal-student-title">Registrar Estudiante</h2>
-                    <p class="text-xs text-text-secondary">Ficha de inscripción del alumno</p>
-                </div>
+            <div class="flex items-center gap-3 mb-6 pb-4 border-b border-surface-border">
+                <div class="p-3 rounded-xl bg-surface-border/50 text-white border border-surface-border"><span class="material-symbols-outlined" id="modal-student-icon">person_add</span></div>
+                <div><h2 class="text-xl font-bold text-white" id="modal-student-title">Registrar Estudiante</h2><p class="text-xs text-text-secondary">Ficha de inscripción completa</p></div>
             </div>
 
             <form id="form-add-student" class="space-y-4">
                 <input type="hidden" id="edit-student-original-id" value="">
 
-                <!-- Fila 1 -->
-                <div class="grid grid-cols-4 gap-3">
-                    <div class="col-span-1">
-                        <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">#
-                            Orden</label>
-                        <input type="number" id="student-num-orden" placeholder="1" required
-                            class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2.5 text-white text-sm text-center focus:border-primary outline-none transition-colors">
+                <!-- 1. Info Básica -->
+                <h3 class="text-xs font-bold text-primary uppercase tracking-wider mb-2">1. Información Básica</h3>
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div class="md:col-span-2">
+                        <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase"># Orden</label>
+                        <input type="number" id="student-num-orden" placeholder="1" required class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2.5 text-white text-sm text-center focus:border-primary outline-none">
                     </div>
-                    <div class="col-span-3">
-                        <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Nombre
-                            Completo</label>
-                        <input type="text" id="student-name" placeholder="Ej: Juan Pérez" required
-                            class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none transition-colors">
+                    <div class="md:col-span-5">
+                        <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Nombre Completo</label>
+                        <input type="text" id="student-name" placeholder="Ej: Juan Pérez" required class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none">
+                    </div>
+                    <div class="md:col-span-5">
+                        <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">ID SIGERD</label>
+                        <input type="text" id="student-id" placeholder="123456" required class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm font-mono focus:border-primary outline-none">
                     </div>
                 </div>
 
-                <!-- Fila 2 -->
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">ID
-                            SIGERD</label>
-                        <input type="text" id="student-id" placeholder="123456" required
-                            class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm font-mono focus:border-primary outline-none transition-colors">
-                    </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">RNE</label>
-                        <input type="text" id="student-rne" placeholder="ABC123456"
-                            class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm font-mono uppercase focus:border-primary outline-none transition-colors">
+                        <input type="text" id="student-rne" placeholder="ABC123456" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm font-mono uppercase focus:border-primary outline-none">
                     </div>
-                </div>
-
-                <!-- Fila 3 -->
-                <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label
-                            class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Sexo</label>
+                        <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Sexo</label>
                         <div class="relative">
-                            <select id="student-sexo"
-                                class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none appearance-none cursor-pointer">
+                            <select id="student-sexo" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none appearance-none cursor-pointer">
                                 <option value="M">Masculino</option>
                                 <option value="F">Femenino</option>
                             </select>
-                            <span
-                                class="material-symbols-outlined absolute right-3 top-2.5 text-text-secondary pointer-events-none text-lg">expand_more</span>
+                            <span class="material-symbols-outlined absolute right-3 top-2.5 text-text-secondary pointer-events-none text-lg">expand_more</span>
                         </div>
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Fecha
-                            Nacimiento</label>
-                        <input type="date" id="student-nacimiento"
-                            class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none transition-colors">
+                        <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Fecha Nacimiento</label>
+                        <input type="date" id="student-nacimiento" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none">
                     </div>
                 </div>
 
-                <div>
-                    <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Condición
-                        Académica</label>
-                    <div class="relative">
-                        <select id="student-condicion"
-                            class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none appearance-none cursor-pointer">
-                            <option value="Promovido">Promovido</option>
-                            <option value="Nuevo Ingreso">Nuevo Ingreso</option>
-                            <option value="Repitente">Repitente</option>
-                            <option value="Reingreso">Reingreso</option>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div>
+                        <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Condición Académica</label>
+                        <div class="relative">
+                            <select id="student-condicion" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none appearance-none cursor-pointer">
+                                <option value="Promovido">Promovido</option>
+                                <option value="Nuevo Ingreso">Nuevo Ingreso</option>
+                                <option value="Repitente">Repitente</option>
+                            </select>
+                            <span class="material-symbols-outlined absolute right-3 top-2.5 text-text-secondary pointer-events-none text-lg">expand_more</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Nacionalidad</label>
+                        <input type="text" id="student-nacionalidad" placeholder="Dominicana" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none">
+                    </div>
+                </div>
+
+                <!-- 2. Familia -->
+                <h3 class="text-xs font-bold text-primary uppercase tracking-wider mb-2 mt-4 pt-4 border-t border-surface-border">2. Información Familiar</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Nombre Padre</label>
+                        <input type="text" id="student-padre" placeholder="Nombre completo" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Teléfono Padre</label>
+                        <input type="text" id="student-telefono-padre" placeholder="(809) ..." class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                    <div>
+                        <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Nombre Madre</label>
+                        <input type="text" id="student-madre" placeholder="Nombre completo" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none">
+                    </div>
+                    <div>
+                         <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Teléfono Madre</label>
+                        <input type="text" id="student-telefono-madre" placeholder="(809) ..." class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none">
+                    </div>
+                </div>
+                 <div class="mt-2">
+                    <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Nombre Tutor (Opcional)</label>
+                    <input type="text" id="student-tutor" placeholder="Tutor legal" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none">
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                     <div>
+                        <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Teléfono Contacto (Personal/Casa)</label>
+                        <input type="text" id="student-telefono" placeholder="(809) 000-0000" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Dirección</label>
+                        <input type="text" id="student-direccion" placeholder="Sector, Ciudad" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none">
+                    </div>
+                </div>
+
+                <!-- 3. Emergencia -->
+                <h3 class="text-xs font-bold text-primary uppercase tracking-wider mb-2 mt-4 pt-4 border-t border-surface-border">3. Contacto de Emergencia</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                       <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Nombre Contacto</label>
+                       <input type="text" id="student-emergencia-nombre" placeholder="Nombre completo" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none">
+                   </div>
+                   <div>
+                       <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Teléfono Emergencia</label>
+                       <input type="text" id="student-emergencia-telefono" placeholder="(809) 000-0000" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none">
+                   </div>
+               </div>
+
+                <!-- 4. Salud -->
+                 <h3 class="text-xs font-bold text-primary uppercase tracking-wider mb-2 mt-4 pt-4 border-t border-surface-border">4. Información Médica</h3>
+                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                     <div>
+                        <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Tipo de Sangre</label>
+                        <select id="student-sangre" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none appearance-none cursor-pointer">
+                            <option value="">--</option>
+                            <option value="O+">O+</option>
+                            <option value="O-">O-</option>
+                            <option value="A+">A+</option>
+                            <option value="A-">A-</option>
+                            <option value="B+">B+</option>
+                            <option value="B-">B-</option>
+                            <option value="AB+">AB+</option>
                         </select>
-                        <span
-                            class="material-symbols-outlined absolute right-3 top-2.5 text-text-secondary pointer-events-none text-lg">expand_more</span>
                     </div>
-                </div>
-
-                <!-- Sección Extra -->
-                <div class="border-t border-surface-border pt-4 mt-2">
-                    <h3 class="text-xs font-bold text-white mb-3 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-sm text-primary">family_restroom</span>
-                        Información Familiar
-                    </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                        <input type="text" id="student-madre" placeholder="Nombre Madre"
-                            class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-xs focus:border-primary outline-none">
-                        <input type="text" id="student-padre" placeholder="Nombre Padre"
-                            class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2 text-white text-xs focus:border-primary outline-none">
-                        <input type="text" id="student-tutor" placeholder="Nombre Tutor" class="hidden">
-                        <!-- Campos ocultos pero existentes para el script -->
-                        <input type="text" id="student-telefono" placeholder="Teléfono" class="hidden">
-                        <input type="text" id="student-lugar-nac" class="hidden">
-                        <input type="text" id="student-nacionalidad" class="hidden">
-                        <input type="text" id="student-direccion" class="hidden">
-                        <input type="text" id="student-sangre" class="hidden">
-                        <input type="text" id="student-emergencia" class="hidden">
-                        <input type="text" id="student-medica" class="hidden">
+                     <div class="md:col-span-2">
+                        <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Enfermedades / Alergias</label>
+                        <input type="text" id="student-medica" placeholder="Ninguna conocida" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary outline-none">
                     </div>
-                </div>
+                 </div>
 
-                <button type="submit" id="btn-submit-student"
-                    class="w-full py-3 mt-4 rounded-xl bg-surface-border text-white font-bold text-sm border border-white/5 shadow-md hover:bg-white/10 transition-all flex items-center justify-center gap-2">
-                    <span class="material-symbols-outlined">save</span>
-                    Guardar Estudiante
+                <button type="submit" id="btn-submit-student" class="w-full py-4 mt-6 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-sm shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 transform active:scale-[0.99]">
+                    <span class="material-symbols-outlined">save</span> Guardar y Registrar Estudiante
                 </button>
             </form>
         </div>
     </div>
 
     <!-- MODAL: OBSERVACIONES -->
-    <div id="modal-observations"
-        class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4">
-        <div
-            class="bg-surface-dark border border-surface-border p-6 rounded-2xl w-full max-w-lg shadow-2xl relative animate-fade-in">
-            <button onclick="toggleModal('modal-observations')"
-                class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined p-1 rounded-full hover:bg-white/10 transition-colors">close</button>
-
+    <div id="modal-observations" class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="bg-surface-dark border border-surface-border p-6 rounded-2xl w-full max-w-lg shadow-2xl relative animate-fade-in">
+            <button onclick="toggleModal('modal-observations')" class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined p-1 rounded-full hover:bg-white/10 transition-colors">close</button>
             <div class="flex items-center gap-3 mb-4">
-                <div class="p-3 rounded-xl bg-primary/20 text-primary border border-primary/20">
-                    <span class="material-symbols-outlined">rate_review</span>
-                </div>
-                <div>
-                    <h2 class="text-xl font-bold text-white">Observaciones / Bitácora</h2>
-                    <p id="obs-student-name" class="text-xs text-text-secondary">Estudiante: ...</p>
-                </div>
+                <div class="p-3 rounded-xl bg-primary/20 text-primary border border-primary/20"><span class="material-symbols-outlined">rate_review</span></div>
+                <div><h2 class="text-xl font-bold text-white">Observaciones / Bitácora</h2><p id="obs-student-name" class="text-xs text-text-secondary">Estudiante: ...</p></div>
             </div>
-
             <form id="form-observations" class="space-y-4">
                 <input type="hidden" id="obs-student-id">
                 <div>
-                    <label
-                        class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Registro
-                        de Comportamiento y Notas</label>
-                    <textarea id="observation-text" rows="6"
-                        placeholder="Escribe aquí las observaciones sobre el estudiante (ej: comportamiento, incidencias, notas del profesor titular)..."
-                        class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm focus:border-primary outline-none transition-colors shadow-inner resize-none"></textarea>
+                    <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Registro de Comportamiento y Notas</label>
+                    <textarea id="observation-text" rows="6" placeholder="Escribe aquí las observaciones..." class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm focus:border-primary outline-none transition-colors shadow-inner resize-none"></textarea>
                 </div>
                 <div class="flex justify-end pt-2">
-                    <button type="submit"
-                        class="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-sm shadow-lg shadow-primary/20 flex items-center gap-2">
+                    <button type="submit" class="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-sm shadow-lg shadow-primary/20 flex items-center gap-2">
                         <span class="material-symbols-outlined text-lg">save</span> Guardar Observación
                     </button>
                 </div>
@@ -685,17 +505,14 @@
             const el = document.getElementById(id);
             if (el) el.classList.toggle('hidden');
         }
-
         window.prepareAddStudent = () => {
             document.getElementById('form-add-student').reset();
             document.getElementById('edit-student-original-id').value = "";
             document.getElementById('modal-student-title').innerText = "Registrar Estudiante";
-            document.getElementById('modal-student-icon').innerText = "person_add";
             const btn = document.getElementById('btn-submit-student');
             if (btn) btn.innerHTML = '<span class="material-symbols-outlined">save</span> Registrar en Curso';
             toggleModal('modal-add-student');
         }
     </script>
 </body>
-
 </html>
