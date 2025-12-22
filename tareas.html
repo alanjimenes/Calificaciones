@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html class="dark" lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>EduSys - Gestión de Tareas</title>
+
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    
+    <!-- CONFIGURACIÓN DE TEMA -->
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2563eb",
+                        "primary-dark": "#1d4ed8",
+                        "background-light": "#f8fafc",
+                        "background-dark": "#0f172a",
+                        "surface-dark": "#1e293b",
+                        "surface-border": "#334155",
+                        "text-secondary": "#94a3b8",
+                        "white": "#f8fafc",
+                        "danger": "#ef4444",
+                        "success": "#10b981",
+                        "warning": "#f59e0b",
+                    },
+                    fontFamily: { "display": ["Spline Sans", "sans-serif"] },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                        'slide-up': 'slideUp 0.4s ease-out',
+                    }
+                },
+            },
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+</head>
+
+<body class="bg-background-dark text-white font-display antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300" id="main-body">
+
+    <!-- Auth Guard -->
+    <script type="module">
+        import { auth, onAuthStateChanged } from './js/firebase-config.js';
+        const body = document.getElementById('main-body');
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                body.classList.remove('opacity-0');
+                window.dispatchEvent(new CustomEvent('userReady', { detail: { user: user } }));
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+    </script>
+
+    <!-- EL SIDEBAR SE INYECTA CON JS (layout.js) -->
+
+    <main class="flex-1 flex flex-col overflow-y-auto relative bg-background-dark p-6 md:p-8 scroll-smooth transition-all duration-300" id="main-content">
+        
+        <div class="relative z-10 max-w-7xl mx-auto w-full">
+            
+            <!-- Header Móvil -->
+            <div class="lg:hidden flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-lg">school</span>
+                    </div>
+                    <span class="font-bold text-white text-lg">EduSys</span>
+                </div>
+                <button id="mobile-menu-btn" class="text-white material-symbols-outlined p-2 hover:bg-surface-dark rounded-lg transition-colors">menu</button>
+            </div>
+
+            <!-- Header Principal -->
+            <header class="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <button id="desktop-sidebar-toggle" class="hidden lg:flex p-2 rounded-xl text-text-secondary hover:text-white hover:bg-surface-dark transition-colors">
+                        <span class="material-symbols-outlined">menu_open</span>
+                    </button>
+
+                    <div>
+                        <h2 class="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
+                            Aula Virtual
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-400 border border-purple-500/20 uppercase tracking-wider">Tareas</span>
+                        </h2>
+                        <p class="text-text-secondary text-sm mt-1">Asigna, gestiona y evalúa las actividades de tus estudiantes.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <button onclick="openCreateTaskModal()" class="bg-primary hover:bg-primary-dark text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95">
+                        <span class="material-symbols-outlined text-lg">add_task</span>
+                        Crear Tarea
+                    </button>
+                </div>
+            </header>
+
+            <!-- Filtros y Estadísticas Rápidas -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                <!-- Buscador -->
+                <div class="md:col-span-2 bg-surface-dark border border-surface-border rounded-2xl p-2 shadow-lg flex items-center">
+                    <span class="material-symbols-outlined text-text-secondary ml-3 text-lg">search</span>
+                    <input type="text" id="search-input" placeholder="Buscar por título, curso o materia..." 
+                        class="w-full bg-transparent border-none text-white text-sm focus:ring-0 placeholder-text-secondary/50 py-2.5 px-3">
+                </div>
+                
+                <!-- Filtro Estado -->
+                <div class="relative">
+                    <select id="filter-status" class="w-full bg-surface-dark border border-surface-border rounded-2xl px-4 py-3.5 text-white text-sm focus:border-primary outline-none appearance-none cursor-pointer">
+                        <option value="all">Todas las tareas</option>
+                        <option value="active">Activas (Pendientes)</option>
+                        <option value="expired">Vencidas</option>
+                    </select>
+                    <span class="material-symbols-outlined absolute right-4 top-3.5 text-text-secondary pointer-events-none">filter_list</span>
+                </div>
+
+                <!-- Filtro Prioridad -->
+                <div class="relative">
+                    <select id="filter-priority" class="w-full bg-surface-dark border border-surface-border rounded-2xl px-4 py-3.5 text-white text-sm focus:border-primary outline-none appearance-none cursor-pointer">
+                        <option value="all">Cualquier prioridad</option>
+                        <option value="Alta">Alta Prioridad</option>
+                        <option value="Media">Media Prioridad</option>
+                        <option value="Baja">Baja Prioridad</option>
+                    </select>
+                    <span class="material-symbols-outlined absolute right-4 top-3.5 text-text-secondary pointer-events-none">priority_high</span>
+                </div>
+            </div>
+
+            <!-- Grid de Tareas -->
+            <div id="tasks-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in pb-10">
+                <!-- Skeleton Loader -->
+                <div class="bg-surface-dark border border-surface-border rounded-2xl p-6 h-56 animate-pulse flex flex-col justify-between">
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <div class="w-1/3 h-4 bg-surface-border rounded"></div>
+                            <div class="w-6 h-6 bg-surface-border rounded"></div>
+                        </div>
+                        <div class="w-3/4 h-6 bg-surface-border rounded"></div>
+                        <div class="w-full h-12 bg-surface-border rounded"></div>
+                    </div>
+                    <div class="flex justify-between items-end mt-4">
+                         <div class="w-20 h-6 bg-surface-border rounded"></div>
+                         <div class="w-8 h-8 bg-surface-border rounded-full"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estado Vacío -->
+            <div id="empty-state" class="hidden flex flex-col items-center justify-center py-20 opacity-50">
+                <div class="w-24 h-24 bg-surface-dark rounded-full flex items-center justify-center mb-6 border border-surface-border relative">
+                    <span class="material-symbols-outlined text-5xl text-text-secondary">assignment_add</span>
+                    <div class="absolute top-0 right-0 w-6 h-6 bg-primary rounded-full animate-pulse"></div>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2">No hay tareas asignadas</h3>
+                <p class="text-sm text-text-secondary max-w-sm text-center">Tus tareas activas aparecerán aquí. Crea una nueva para comenzar.</p>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- MODAL CREAR/EDITAR TAREA -->
+    <div id="modal-task" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 transition-all duration-300">
+        <div class="bg-surface-dark border border-surface-border p-6 md:p-8 rounded-2xl w-full max-w-2xl shadow-2xl relative animate-slide-up overflow-y-auto max-h-[95vh]">
+            
+            <button onclick="toggleModal('modal-task')" class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined p-2 rounded-full hover:bg-white/10 transition-colors">close</button>
+            
+            <div class="flex items-center gap-3 mb-8">
+                <div class="p-3 rounded-xl bg-gradient-to-br from-primary to-primary-dark text-white shadow-lg shadow-primary/20">
+                    <span class="material-symbols-outlined text-xl">assignment</span>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-white" id="modal-title">Nueva Tarea</h2>
+                    <p class="text-xs text-text-secondary">Detalles de la actividad</p>
+                </div>
+            </div>
+
+            <form id="form-task" class="space-y-6">
+                <input type="hidden" id="task-id">
+
+                <!-- Título -->
+                <div>
+                    <label class="block text-xs font-bold text-text-secondary mb-2 ml-1 uppercase tracking-wider">Título de la Tarea</label>
+                    <input type="text" id="task-title" required placeholder="Ej: Investigación sobre la Célula"
+                        class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3.5 text-white text-sm focus:border-primary outline-none transition-all shadow-inner focus:ring-1 focus:ring-primary">
+                </div>
+
+                <!-- Curso y Asignatura -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-xs font-bold text-text-secondary mb-2 ml-1 uppercase tracking-wider">Curso</label>
+                        <div class="relative">
+                            <select id="task-course" required class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3.5 text-white text-sm focus:border-primary outline-none appearance-none cursor-pointer transition-all">
+                                <option value="">Cargando cursos...</option>
+                            </select>
+                            <span class="material-symbols-outlined absolute right-4 top-3.5 text-text-secondary pointer-events-none">expand_more</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-text-secondary mb-2 ml-1 uppercase tracking-wider">Asignatura</label>
+                        <div class="relative">
+                            <select id="task-subject" required class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3.5 text-white text-sm focus:border-primary outline-none appearance-none cursor-pointer transition-all">
+                                <option value="">Selecciona curso primero</option>
+                            </select>
+                            <span class="material-symbols-outlined absolute right-4 top-3.5 text-text-secondary pointer-events-none">expand_more</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detalles de Calificación (NUEVO) -->
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-text-secondary mb-2 ml-1 uppercase tracking-wider">Periodo</label>
+                        <div class="relative">
+                            <select id="task-period" required class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3.5 text-white text-sm focus:border-primary outline-none appearance-none cursor-pointer">
+                                <option value="p1">P1</option>
+                                <option value="p2">P2</option>
+                                <option value="p3">P3</option>
+                                <option value="p4">P4</option>
+                            </select>
+                            <span class="material-symbols-outlined absolute right-3 top-3.5 text-text-secondary pointer-events-none">expand_more</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-text-secondary mb-2 ml-1 uppercase tracking-wider">Valor (%)</label>
+                        <input type="number" id="task-value" required min="0" max="100" placeholder="100"
+                            class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3.5 text-white text-sm focus:border-primary outline-none transition-all shadow-inner">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-text-secondary mb-2 ml-1 uppercase tracking-wider">Competencia</label>
+                        <div class="relative">
+                            <select id="task-competence" class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3.5 text-white text-sm focus:border-primary outline-none appearance-none cursor-pointer">
+                                <option value="c1">C1 - Com.</option>
+                                <option value="c2">C2 - P. Lóg.</option>
+                                <option value="c3">C3 - Cient.</option>
+                                <option value="c4">C4 - Ética</option>
+                            </select>
+                            <span class="material-symbols-outlined absolute right-3 top-3.5 text-text-secondary pointer-events-none">expand_more</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fecha y Prioridad -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-xs font-bold text-text-secondary mb-2 ml-1 uppercase tracking-wider">Fecha y Hora de Entrega</label>
+                        <div class="relative">
+                            <input type="datetime-local" id="task-date" required
+                                class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3.5 text-white text-sm focus:border-primary outline-none transition-colors shadow-inner appearance-none [color-scheme:dark]">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-text-secondary mb-2 ml-1 uppercase tracking-wider">Prioridad</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <label class="cursor-pointer relative">
+                                <input type="radio" name="task-priority" value="Baja" class="peer sr-only">
+                                <div class="h-11 rounded-xl border border-surface-border bg-background-dark flex items-center justify-center text-xs font-bold text-text-secondary peer-checked:bg-success/20 peer-checked:text-success peer-checked:border-success transition-all hover:bg-surface-border/30">
+                                    Baja
+                                </div>
+                            </label>
+                            <label class="cursor-pointer relative">
+                                <input type="radio" name="task-priority" value="Media" class="peer sr-only" checked>
+                                <div class="h-11 rounded-xl border border-surface-border bg-background-dark flex items-center justify-center text-xs font-bold text-text-secondary peer-checked:bg-warning/20 peer-checked:text-warning peer-checked:border-warning transition-all hover:bg-surface-border/30">
+                                    Media
+                                </div>
+                            </label>
+                            <label class="cursor-pointer relative">
+                                <input type="radio" name="task-priority" value="Alta" class="peer sr-only">
+                                <div class="h-11 rounded-xl border border-surface-border bg-background-dark flex items-center justify-center text-xs font-bold text-text-secondary peer-checked:bg-danger/20 peer-checked:text-danger peer-checked:border-danger transition-all hover:bg-surface-border/30">
+                                    Alta
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Descripción -->
+                <div>
+                    <label class="block text-xs font-bold text-text-secondary mb-2 ml-1 uppercase tracking-wider">Instrucciones / Descripción</label>
+                    <textarea id="task-desc" rows="4" required placeholder="Describe los detalles de la tarea aquí..."
+                        class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3.5 text-white text-sm focus:border-primary outline-none transition-colors shadow-inner resize-none"></textarea>
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit" id="btn-save-task" class="w-full py-4 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 group relative overflow-hidden">
+                        <div class="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                        <span class="material-symbols-outlined relative z-10 group-hover:-translate-y-0.5 transition-transform">save</span>
+                        <span id="btn-text-task" class="relative z-10">Publicar Tarea</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- SCRIPTS -->
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/layout.js"></script>
+    <script type="module" src="js/main.js"></script>
+    <script type="module" src="js/tareas.js"></script>
+
+    <script>
+        function toggleModal(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.classList.toggle('hidden');
+                el.classList.toggle('flex');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -15,13 +15,14 @@ function renderSidebar() {
 
     const links = [
         { href: 'index.html', icon: 'dashboard', text: 'Inicio' },
-        { href: 'cursos.html', icon: 'auto_stories', text: 'Cursos' }
+        { href: 'cursos.html', icon: 'auto_stories', text: 'Cursos' },
+        // --- NUEVO LINK ---
+        { href: 'tareas.html', icon: 'assignment_add', text: 'Tareas' }
     ];
 
     const managementLinks = [
         { href: 'boletin.html', icon: 'description', text: 'Boletines' },
         { href: 'estudiantes_global.html', icon: 'groups', text: 'Estudiantes Global' },
-        // --- NUEVO LINK ---
         { href: 'notificaciones.html', icon: 'campaign', text: 'Tablón Anuncios' } 
     ];
 
