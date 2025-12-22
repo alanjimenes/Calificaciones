@@ -1,4 +1,4 @@
-import { db, auth, onAuthStateChanged, collection, query, getDocs, getDoc, doc } from './firebase-config.js';
+import { db, auth, onAuthStateChanged, collection, query, getDocs, getDoc, doc, orderBy } from './firebase-config.js';
 
 const coursesGrid = document.getElementById('courses-grid');
 
@@ -6,7 +6,6 @@ const coursesGrid = document.getElementById('courses-grid');
 async function initCourses() {
     const user = auth.currentUser;
     if (!user) {
-        // Si no hay usuario, limpiamos la grilla por seguridad
         if (coursesGrid) {
             coursesGrid.innerHTML = `
                 <div class="col-span-full flex flex-col items-center justify-center py-12 text-text-secondary opacity-50">
@@ -19,7 +18,18 @@ async function initCourses() {
     }
 
     try {
+        // Cargar la lista de cursos
         await loadCourses(user);
+        
+        // CORRECCIÓN: Cargar la lista de profesores para los modales
+        // Solo intentamos cargar si somos admin o secretaria (quienes gestionan cursos)
+        const userDoc = await getDoc(doc(db, "usuarios", user.uid));
+        const rol = user.email === 'admin@mail.com' ? 'admin' : (userDoc.exists() ? userDoc.data().rol : 'profesor');
+        
+        if (rol === 'admin' || rol === 'secretaria') {
+            await fillTeacherSelects();
+        }
+
     } catch (error) {
         console.error("Error al cargar cursos:", error);
         if (coursesGrid) {
@@ -28,20 +38,67 @@ async function initCourses() {
     }
 }
 
+/**
+ * Busca todos los usuarios con roles docentes y llena los selectores de los modales.
+ */
+async function fillTeacherSelects() {
+    try {
+        const usersRef = collection(db, "usuarios");
+        // Traemos todos los usuarios para filtrar en memoria (más flexible)
+        const snapshot = await getDocs(usersRef);
+        
+        const teachers = [];
+        snapshot.forEach(docSnap => {
+            const data = docSnap.data();
+            const role = (data.rol || '').toLowerCase();
+            // Incluimos admin, titular y profesor como candidatos a impartir clases
+            if (['admin', 'titular', 'profesor'].includes(role)) {
+                teachers.push({
+                    email: data.email,
+                    nombre: data.nombre || data.email,
+                    rol: role
+                });
+            }
+        });
+
+        // Ordenar por nombre
+        teachers.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+        // IDs de los selectores que necesitan la lista de profesores
+        const selectIds = [
+            'course-teacher-email',        // Modal crear curso
+            'new-subject-teacher',         // Modal gestionar materias
+            'conflict-replacement-select'  // Modal conflicto de titulares
+        ];
+
+        selectIds.forEach(id => {
+            const select = document.getElementById(id);
+            if (select) {
+                let html = '<option value="" selected>Seleccionar docente...</option>';
+                teachers.forEach(t => {
+                    html += `<option value="${t.email}">${t.nombre} (${t.rol.toUpperCase()})</option>`;
+                });
+                select.innerHTML = html;
+            }
+        });
+
+    } catch (error) {
+        console.error("Error cargando lista de profesores para selects:", error);
+    }
+}
+
 // Escuchar cambios en la autenticación
 onAuthStateChanged(auth, (user) => {
     if (user) {
-        // Siempre intentar cargar cursos cuando hay usuario autenticado
         initCourses();
     } else {
-        // Usuario cerró sesión
         if (coursesGrid) {
             coursesGrid.innerHTML = '';
         }
     }
 });
 
-// También escuchar el evento personalizado 'appReady' (por si llega después)
+// También escuchar el evento personalizado 'appReady'
 window.addEventListener('appReady', () => {
     initCourses();
 });
@@ -49,7 +106,6 @@ window.addEventListener('appReady', () => {
 async function loadCourses(user) {
     let rol = 'profesor';
 
-    // Super admin hardcoded
     if (user.email === 'admin@mail.com') {
         rol = 'admin';
     } else {
@@ -62,7 +118,6 @@ async function loadCourses(user) {
     const userEmail = user.email;
     let coursesList = [];
 
-    // Obtener todos los cursos globales
     const q = query(collection(db, "cursos_globales"));
     const snapshot = await getDocs(q);
 
@@ -71,10 +126,8 @@ async function loadCourses(user) {
         course.id = docSnap.id;
 
         if (rol === 'admin' || rol === 'secretaria') {
-            // Admin y secretaria ven TODOS los cursos
             coursesList.push(course);
         } else {
-            // Profesores: solo si son titular o imparten alguna materia
             const isTitular = (course.titular_email === userEmail);
             let isTeacher = false;
 
@@ -119,7 +172,6 @@ function renderCourses(courses, currentUserEmail, isAdmin) {
         const studentsCount = (course.estudiantes || []).length;
         const subjectsCount = (course.materias || []).length;
 
-        // Determinar rol visible en la tarjeta
         let myRole = "Docente";
         if (course.titular_email === currentUserEmail) myRole = "Titular";
         if (isAdmin) myRole = "Admin";
