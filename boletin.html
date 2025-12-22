@@ -1,275 +1,307 @@
 <!DOCTYPE html>
 <html class="dark" lang="es">
+
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>EduSys - Generador de Boletines (MODO PRUEBA)</title>
-<!-- Tailwind CSS -->
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<!-- PDF-Lib -->
-<script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
-<!-- Download Helper -->
-<script src="https://unpkg.com/downloadjs@1.4.7/download.min.js"></script>
-<!-- Fonts -->
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
-<!-- Material Symbols -->
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<script id="tailwind-config">
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>EduSys - Boletines de Calificaciones</title>
+
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+
+    <!-- CONFIGURACIÓN DE TEMA -->
+    <script>
         tailwind.config = {
             darkMode: "class",
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#137fec",
-                        "background-light": "#f6f7f8",
-                        "background-dark": "#101922",
+                        "primary": "#2563eb",
+                        "primary-dark": "#1d4ed8",
+                        "background-light": "#f8fafc",
+                        "background-dark": "#0f172a",
+                        "surface-dark": "#1e293b",
+                        "surface-border": "#334155",
+                        "text-secondary": "#94a3b8",
+                        "white": "#f8fafc",
+                        "danger": "#ef4444",
+                        "admin": "#f59e0b",
                     },
-                    fontFamily: {
-                        "display": ["Lexend", "sans-serif"],
-                        "serif": ["Times New Roman", "serif"]
-                    },
-                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                    fontFamily: { "display": ["Spline Sans", "sans-serif"] },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                    }
                 },
             },
         }
     </script>
-<style>
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #111a22; }
-        ::-webkit-scrollbar-thumb { background: #233648; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #324d67; }
-        
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { 
-            -webkit-appearance: none; 
-            margin: 0; 
+    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+
+    <style>
+        /* --- ESTILOS DE IMPRESIÓN CORREGIDOS --- */
+        @media print {
+
+            /* 1. Configuración de Hoja */
+            @page {
+                size: letter landscape;
+                /* Carta Horizontal */
+                margin: 0mm;
+                /* Sin márgenes para control total */
+            }
+
+            /* 2. Resetear body y html */
+            html,
+            body {
+                width: 100%;
+                height: 100%;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: white !important;
+                overflow: visible !important;
+            }
+
+            /* 3. Ocultar interfaz del sistema (Display None para no ocupar espacio) */
+            #layout-header,
+            #layout-control-panel,
+            .no-print,
+            nav,
+            aside,
+            .fixed,
+            #mobile-menu-btn,
+            #desktop-sidebar-toggle {
+                display: none !important;
+            }
+
+            /* 4. Desbloquear contenedores padres para permitir flujo de páginas */
+            #main-content,
+            #main-wrapper,
+            #preview-area {
+                display: block !important;
+                position: static !important;
+                /* Importante para que el contenido fluya */
+                width: 100% !important;
+                height: auto !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: visible !important;
+                border: none !important;
+                background: white !important;
+            }
+
+            /* 5. Estilos del Boletín */
+            #boletin-preview {
+                display: block !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                position: static !important;
+                box-shadow: none !important;
+            }
+
+            /* Asegurar que el contenido interno sea visible */
+            #boletin-preview * {
+                visibility: visible !important;
+            }
         }
-        .test-badge {
-            background: repeating-linear-gradient(45deg, #f59e0b, #f59e0b 10px, #d97706 10px, #d97706 20px);
+
+        /* Estilos visuales para pantalla (Preview) */
+        .print-preview {
+            width: 27.94cm;
+            /* Letter Landscape Width */
+            min-height: 21.59cm;
+            /* Letter Landscape Height */
+            margin: 0 auto;
+            background: white;
+            color: black;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            padding: 0;
+            /* Padding 0 para que el JS controle los márgenes internos */
+            position: relative;
+        }
+
+        .boletin-table td,
+        .boletin-table th {
+            border: 1px solid #000;
+            padding: 4px 6px;
+            font-size: 11px;
+            color: black;
         }
     </style>
 </head>
-<body class="bg-background-light dark:bg-background-dark font-display text-white overflow-hidden h-screen flex flex-col">
-<!-- Barra Superior -->
-<header class="flex flex-shrink-0 items-center justify-between border-b border-solid border-b-[#233648] bg-[#111a22] px-6 py-3 z-20 relative shadow-sm">
-    <div class="flex items-center gap-4 text-white">
-        <div class="size-8 flex items-center justify-center text-primary">
-            <span class="material-symbols-outlined" style="font-size: 32px;">school</span>
-        </div>
-        <div>
-            <h2 class="text-white text-xl font-bold leading-tight tracking-[-0.015em]">EduSys</h2>
-            <span class="text-[10px] text-orange-400 font-bold uppercase tracking-widest">Entorno de Pruebas</span>
-        </div>
-    </div>
-    <div class="flex items-center gap-3">
-        <button onclick="fillRandomGrades()" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-orange-500/10 text-orange-400 border border-orange-500/20 hover:bg-orange-500/20 transition-all">
-            <span class="material-symbols-outlined text-[18px]">casino</span>
-            Notas Aleatorias
-        </button>
-        <button onclick="clearGrades()" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all">
-            <span class="material-symbols-outlined text-[18px]">delete_sweep</span>
-            Limpiar
-        </button>
-    </div>
-</header>
 
-<main class="flex flex-1 overflow-hidden">
-    <!-- Barra Lateral -->
-    <aside class="w-full max-w-[300px] flex flex-col bg-[#111a22] border-r border-[#233648] h-full flex-shrink-0 z-10">
-        <div class="p-4 border-b border-[#233648]">
-            <h3 class="text-white text-lg font-bold">Pilotos de Prueba</h3>
-        </div>
-        <div class="flex-1 overflow-y-auto p-4 space-y-3">
-            <div class="relative flex items-center gap-3 p-3 bg-primary/20 border-l-4 border-primary cursor-pointer" onclick="selectStudent('Alumno de Prueba A', '2023-TEST-01')">
-                <div class="bg-slate-700 rounded-full h-10 w-10 flex-shrink-0 flex items-center justify-center font-bold">A</div>
-                <div class="flex flex-col flex-1 min-w-0">
-                    <p class="text-white text-sm font-medium truncate">Alumno de Prueba A</p>
-                    <p class="text-primary text-xs truncate">ID: 2023-TEST-01</p>
-                </div>
-            </div>
-            <div class="relative flex items-center gap-3 p-3 border-l-4 border-transparent hover:bg-[#1f2d3b] cursor-pointer" onclick="selectStudent('Alumno de Prueba B', '2023-TEST-02')">
-                <div class="bg-slate-700 rounded-full h-10 w-10 flex-shrink-0 flex items-center justify-center font-bold">B</div>
-                <div class="flex flex-col flex-1 min-w-0">
-                    <p class="text-white text-sm font-medium truncate">Alumno de Prueba B</p>
-                    <p class="text-[#92adc9] text-xs truncate">ID: 2023-TEST-02</p>
-                </div>
-            </div>
-        </div>
-    </aside>
+<body
+    class="bg-background-dark text-white font-display antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300"
+    id="main-body">
 
-    <!-- Panel de Edición y Generación -->
-    <section class="flex flex-1 flex-col bg-[#0b1219] relative min-w-0">
-        <div class="h-16 border-b border-[#233648] bg-[#111a22] flex items-center justify-between px-6 flex-shrink-0 z-10">
-            <div class="flex items-center gap-4">
-                <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#192633] border border-[#324d67]">
-                    <span id="statusIcon" class="material-symbols-outlined text-[18px] text-yellow-500">pending</span>
-                    <span id="templateStatus" class="text-xs font-bold text-[#92adc9]">Esperando PDF...</span>
-                </div>
-                <label id="manualUploadBtn" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 cursor-pointer border border-blue-600/30 transition-all">
-                    <span class="material-symbols-outlined text-[18px]">upload_file</span>
-                    <span class="text-xs font-bold uppercase">Cargar Plantilla PDF</span>
-                    <input type="file" id="templateInput" accept="application/pdf" class="hidden" onchange="loadTemplateManual()">
-                </label>
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="flex-1 flex flex-col overflow-y-auto relative bg-background-dark" id="main-content">
+
+        <!-- Decoración de fondo -->
+        <div class="fixed top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none no-print">
+            <div class="absolute top-[10%] right-[20%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px]">
             </div>
-            <button onclick="fillPDF()" id="generateBtn" class="flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold text-white bg-primary hover:bg-blue-600 transition-all disabled:opacity-50 shadow-lg shadow-blue-500/20" disabled>
-                <span class="material-symbols-outlined">picture_as_pdf</span>
-                GENERAR Y VERIFICAR
-            </button>
+            <div class="absolute bottom-[10%] left-[10%] w-[300px] h-[300px] bg-purple-500/5 rounded-full blur-[100px]">
+            </div>
         </div>
-        
-        <div class="flex-1 overflow-auto p-8 flex flex-col items-center bg-neutral-900/50">
-            <div class="bg-white text-black shadow-2xl w-full max-w-[850px] p-10 flex flex-col gap-6 font-serif">
-                <div class="flex justify-between items-center border-b-2 border-black pb-4">
-                    <div>
-                        <h1 class="text-xl font-bold uppercase">Consola de Pruebas de Datos</h1>
-                        <p class="text-[10px] text-gray-500">Verifica que los números caigan en el cuadro correcto del PDF</p>
+
+        <!-- Header Fijo (ID layout-header para ocultarlo al imprimir) -->
+        <div id="layout-header"
+            class="shrink-0 px-6 py-4 border-b border-surface-border bg-background-dark/80 backdrop-blur-md z-30 sticky top-0 no-print">
+            <!-- Mobile Header -->
+            <div class="lg:hidden flex items-center justify-between mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-lg">school</span>
                     </div>
-                    <div class="test-badge px-3 py-1 text-white text-[10px] font-black italic rounded transform rotate-3">TEST MODE</div>
+                    <span class="font-bold text-white text-lg">EduSys</span>
                 </div>
-                
-                <div class="grid grid-cols-2 gap-4 border border-black p-4 bg-gray-50">
-                    <p><strong>Estudiante:</strong> <span id="previewName" class="border-b border-black px-2">Alumno de Prueba A</span></p>
-                    <p><strong>ID:</strong> <span id="previewID" class="border-b border-black px-2">2023-TEST-01</span></p>
+                <button id="mobile-menu-btn"
+                    class="text-white material-symbols-outlined p-2 hover:bg-surface-dark rounded-lg transition-colors">menu</button>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <button id="desktop-sidebar-toggle"
+                        class="hidden lg:flex p-2 rounded-xl text-text-secondary hover:text-white hover:bg-surface-dark transition-colors"
+                        title="Ocultar/Mostrar Menú">
+                        <span class="material-symbols-outlined">menu_open</span>
+                    </button>
+
+                    <div>
+                        <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                            <span class="material-symbols-outlined text-admin">description</span>
+                            Generador de Boletines
+                        </h2>
+                    </div>
                 </div>
 
-                <table class="w-full border-collapse border border-black text-[11px] mt-4">
-                    <thead>
-                        <tr class="bg-gray-200">
-                            <th class="border border-black p-2 text-left w-[40%]">Asignatura (Eje Y)</th>
-                            <th class="border border-black p-1 text-center">Compet. 1<br>(X:170)</th>
-                            <th class="border border-black p-1 text-center">Compet. 2<br>(X:270)</th>
-                            <th class="border border-black p-1 text-center">Compet. 3<br>(X:370)</th>
-                            <th class="border border-black p-1 text-center">Compet. 4<br>(X:470)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="gradesTableBody"></tbody>
-                </table>
+                <div class="flex items-center gap-3">
+                    <button onclick="window.print()"
+                        class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold transition shadow-lg shadow-primary/20 hover:scale-105 transform">
+                        <span class="material-symbols-outlined text-[18px]">print</span>
+                        <span class="hidden md:inline">Imprimir Boletín</span>
+                    </button>
+                </div>
             </div>
         </div>
-    </section>
-</main>
 
-<script>
-    const { PDFDocument, rgb, StandardFonts } = PDFLib;
-    let templateBytes = null;
-    
-    const ASSET_PATH = 'assets/Boletin-de-calificaciones-6to-grado-NS_110723.pdf';
+        <!-- Layout Principal (Columna para panel horizontal arriba) -->
+        <div id="main-wrapper" class="flex flex-col h-full overflow-hidden relative z-10">
 
-    const subjects = [
-        "Lengua Española (Fila 0)", 
-        "Lenguas Ext. Inglés (Fila 1)",
-        "Lenguas Ext. Francés (Fila 2)",
-        "Matemática (Fila 3)",
-        "Ciencias Sociales (Fila 4)",
-        "Ciencias Naturaleza (Fila 5)",
-        "Ed. Artística (Fila 6)",
-        "Ed. Física (Fila 7)",
-        "Formación Humana (Fila 8)"
-    ];
+            <!-- PANEL DE CONTROL HORIZONTAL (ID layout-control-panel) -->
+            <div id="layout-control-panel"
+                class="w-full bg-surface-dark border-b border-surface-border p-4 no-print shrink-0 z-20 shadow-md">
 
-    function initGradesTable() {
-        const tbody = document.getElementById('gradesTableBody');
-        tbody.innerHTML = '';
-        subjects.forEach((subject, rowIndex) => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td class="border border-black p-2 font-bold bg-gray-50 text-[9px]">${subject}</td>
-                ${[0,1,2,3].map(col => `
-                    <td class="border border-black p-0">
-                        <input type="number" class="grade-input w-full border-0 text-center p-2 text-[10px] focus:ring-0" 
-                        data-row="${rowIndex}" data-col="${col}" value="0">
-                    </td>
-                `).join('')}
-            `;
-            tbody.appendChild(tr);
-        });
-    }
+                <div class="max-w-7xl mx-auto w-full flex flex-col lg:flex-row items-end gap-4">
 
-    function fillRandomGrades() {
-        document.querySelectorAll('.grade-input').forEach(input => {
-            input.value = Math.floor(Math.random() * (100 - 70 + 1)) + 70;
-        });
-    }
+                    <!-- Icono / Título pequeño -->
+                    <div class="hidden lg:flex flex-col gap-1 mr-2 pb-1 text-center items-center">
+                        <div class="p-2 bg-white/5 rounded-lg text-text-secondary w-fit border border-surface-border">
+                            <span class="material-symbols-outlined">tune</span>
+                        </div>
+                        <span class="text-[9px] font-bold text-text-secondary uppercase">Config</span>
+                    </div>
 
-    function clearGrades() {
-        document.querySelectorAll('.grade-input').forEach(input => input.value = 0);
-    }
+                    <!-- Contenedor de Inputs -->
+                    <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 w-full">
 
-    window.addEventListener('DOMContentLoaded', async () => {
-        initGradesTable();
-        const statusText = document.getElementById('templateStatus');
-        const statusIcon = document.getElementById('statusIcon');
-        const generateBtn = document.getElementById('generateBtn');
+                        <!-- Select Curso -->
+                        <div class="lg:col-span-3">
+                            <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">1.
+                                Seleccionar Curso</label>
+                            <div class="relative">
+                                <select id="select-course"
+                                    class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none appearance-none cursor-pointer shadow-sm transition-all hover:border-primary/50">
+                                    <option value="">Cargando cursos...</option>
+                                </select>
+                                <span
+                                    class="material-symbols-outlined absolute right-3 top-2.5 text-text-secondary pointer-events-none text-lg">expand_more</span>
+                            </div>
+                        </div>
 
-        try {
-            const response = await fetch(ASSET_PATH);
-            if (!response.ok) throw new Error();
-            templateBytes = await response.arrayBuffer();
-            statusText.textContent = "PDF Detectado";
-            statusText.className = "text-xs font-bold text-green-400";
-            statusIcon.textContent = "check_circle";
-            statusIcon.className = "material-symbols-outlined text-[18px] text-green-400";
-            generateBtn.disabled = false;
-        } catch (error) {
-            statusText.textContent = "Cargar PDF para probar";
-            statusIcon.textContent = "help";
-        }
-    });
+                        <!-- Select Estudiante -->
+                        <div class="lg:col-span-4">
+                            <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">2.
+                                Seleccionar Estudiante</label>
+                            <div class="relative">
+                                <select id="select-student" disabled
+                                    class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-2.5 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none appearance-none cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                                    <option value="">Primero elige un curso</option>
+                                </select>
+                                <span
+                                    class="material-symbols-outlined absolute right-3 top-2.5 text-text-secondary pointer-events-none text-lg">expand_more</span>
+                            </div>
+                        </div>
 
-    async function loadTemplateManual() {
-        const input = document.getElementById('templateInput');
-        if (input.files.length > 0) {
-            templateBytes = await input.files[0].arrayBuffer();
-            document.getElementById('templateStatus').textContent = "Plantilla de Prueba Cargada";
-            document.getElementById('templateStatus').className = "text-xs font-bold text-blue-400";
-            document.getElementById('statusIcon').textContent = "task_alt";
-            document.getElementById('generateBtn').disabled = false;
-        }
-    }
+                        <!-- Fechas -->
+                        <div class="lg:col-span-3 flex gap-2">
+                            <div class="flex-1">
+                                <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Año
+                                    Inicio</label>
+                                <input type="number" id="year-from" placeholder="2024" value="2024"
+                                    class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2.5 text-white text-sm focus:border-primary outline-none transition-all shadow-sm">
+                            </div>
+                            <div class="flex-1">
+                                <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase">Año
+                                    Fin</label>
+                                <input type="number" id="year-to" placeholder="2025" value="2025"
+                                    class="w-full bg-background-dark border border-surface-border rounded-xl px-3 py-2.5 text-white text-sm focus:border-primary outline-none transition-all shadow-sm">
+                            </div>
+                        </div>
 
-    async function fillPDF() {
-        if (!templateBytes) return alert("Primero carga un PDF");
-        try {
-            const pdfDoc = await PDFDocument.load(templateBytes);
-            const helveticaFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-            const pages = pdfDoc.getPages();
-            const gradesPage = pages[1]; 
+                        <!-- Botón Actualizar -->
+                        <div class="lg:col-span-2">
+                            <label
+                                class="block text-[10px] font-bold text-transparent mb-1.5 ml-1 uppercase select-none">Acción</label>
+                            <button onclick="generateBoletin()"
+                                class="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold border border-white/10 transition-all flex items-center justify-center gap-2 group h-[42px]">
+                                <span
+                                    class="material-symbols-outlined group-hover:rotate-180 transition-transform duration-500 text-lg">sync</span>
+                                <span class="text-xs">Generar</span>
+                            </button>
+                        </div>
 
-            const inputs = document.querySelectorAll('.grade-input');
-            const X_START = 170;   
-            const X_STEP = 100;    
-            const Y_START = 460;   
-            const Y_STEP = 25;     
+                    </div>
+                </div>
+            </div>
 
-            inputs.forEach(input => {
-                const val = input.value || "0";
-                if(val == "0") return;
+            <!-- VISTA PREVIA (ID preview-area) -->
+            <div id="preview-area"
+                class="flex-1 bg-[#2d3748] p-8 overflow-y-auto flex justify-center items-start shadow-inner relative">
+                <!-- Fondo de cuadrícula sutil -->
+                <div class="absolute inset-0 opacity-[0.03]"
+                    style="background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 20px 20px;">
+                </div>
 
-                const row = parseInt(input.dataset.row);
-                const col = parseInt(input.dataset.col);
+                <div id="boletin-preview"
+                    class="print-preview transition-transform origin-top duration-300 transform scale-90 lg:scale-100 mt-4 lg:mt-0">
+                    <!-- Placeholder Inicial -->
+                    <div
+                        class="h-full flex flex-col items-center justify-center text-gray-400 border-2 border-dashed border-gray-200 rounded-xl p-10 m-8 min-h-[500px]">
+                        <div class="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-6">
+                            <span class="material-symbols-outlined text-5xl text-gray-300">description</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-700 mb-2">Vista Previa del Documento</h3>
+                        <p class="text-sm text-gray-500 text-center max-w-xs">
+                            Utiliza el panel superior para seleccionar el curso y el estudiante. El boletín se generará
+                            automáticamente aquí.
+                        </p>
+                    </div>
+                </div>
+            </div>
 
-                gradesPage.drawText(val, {
-                    x: X_START + (col * X_STEP),
-                    y: Y_START - (row * Y_STEP),
-                    size: 9,
-                    font: helveticaFont,
-                    color: rgb(0, 0, 0),
-                });
-            });
+        </div>
 
-            const pdfBytes = await pdfDoc.save();
-            download(pdfBytes, "TEST_BOLETIN.pdf", "application/pdf");
-        } catch (e) {
-            alert("Error en proceso: " + e.message);
-        }
-    }
+    </main>
 
-    function selectStudent(name, id) {
-        document.getElementById('previewName').innerText = name;
-        document.getElementById('previewID').innerText = id;
-    }
-</script>
+    <!-- SCRIPTS -->
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/layout.js"></script>
+    <script type="module" src="js/main.js"></script>
+    <script type="module" src="js/boletin.js"></script>
+
 </body>
+
 </html>

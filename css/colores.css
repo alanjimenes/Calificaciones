@@ -1,0 +1,109 @@
+/* =========================================
+   VARIABLES DE TEMA (theme.css)
+   ========================================= */
+:root {
+    /* TEMA OSCURO (Por defecto) */
+    --bg-body: #1a1a2e;
+    --bg-sidebar: #16213e;
+    --bg-card: #0f3460;
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0a0;
+    --accent-color: #e94560;
+    --border-color: #2a2a40;
+    --input-bg: #16213e;
+}
+
+/* TEMA CLARO (Se activa con la clase .light-theme) */
+body.light-theme {
+    --bg-body: #f4f6f9;
+    --bg-sidebar: #ffffff;
+    --bg-card: #ffffff;
+    --text-primary: #333333;
+    --text-secondary: #666666;
+    --accent-color: #d6304a;
+    --border-color: #ddd;
+    --input-bg: #f9f9f9;
+}
+
+/* Aplicación de variables globales */
+body {
+    background-color: var(--bg-body);
+    color: var(--text-primary);
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.sidebar {
+    background-color: var(--bg-sidebar);
+    border-right: 1px solid var(--border-color);
+}
+
+.card,
+.form-group {
+    background-color: var(--bg-card);
+    border-color: var(--border-color);
+}
+
+.menu-item {
+    color: var(--text-secondary);
+}
+
+.menu-item:hover,
+.menu-item.active {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+}
+
+/* Estilos del Switch (Interruptor) */
+.theme-switch-wrapper {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.theme-switch {
+    display: inline-block;
+    height: 34px;
+    position: relative;
+    width: 60px;
+}
+
+.theme-switch input {
+    display: none;
+}
+
+.slider {
+    background-color: #ccc;
+    bottom: 0;
+    cursor: pointer;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    background-color: #fff;
+    bottom: 4px;
+    content: "";
+    height: 26px;
+    left: 4px;
+    position: absolute;
+    transition: .4s;
+    width: 26px;
+    border-radius: 50%;
+}
+
+input:checked+.slider {
+    background-color: var(--accent-color);
+}
+
+input:checked+.slider:before {
+    transform: translateX(26px);
+}
+
+.status-label {
+    margin-left: 15px;
+    font-weight: bold;
+}
