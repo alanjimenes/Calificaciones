@@ -8,7 +8,7 @@
 
     <link rel="stylesheet" href="css/styles.css">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-
+    
     <!-- CONFIGURACIÓN DE TEMA -->
     <script>
         tailwind.config = {
@@ -25,45 +25,32 @@
                         "text-secondary": "#94a3b8",
                         "white": "#f8fafc",
                         "danger": "#ef4444",
-                        "admin": "#f59e0b",
+                        "success": "#10b981",
+                        "warning": "#f59e0b",
                     },
                     fontFamily: { "display": ["Spline Sans", "sans-serif"] },
                     animation: {
                         'fade-in': 'fadeIn 0.5s ease-out',
+                        'slide-up': 'slideUp 0.4s ease-out',
                     }
                 },
             },
         }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
 </head>
 
-<body
-    class="bg-background-dark text-white font-display antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300"
-    id="main-body">
+<body class="bg-background-dark text-white font-display antialiased h-screen flex overflow-hidden opacity-0 transition-opacity duration-300" id="main-body">
 
-    <!-- Auth Guard (Solo Admin) -->
+    <!-- Auth Guard -->
     <script type="module">
-        import { auth, onAuthStateChanged, doc, getDoc, db } from './js/firebase-config.js';
+        import { auth, onAuthStateChanged } from './js/firebase-config.js';
         const body = document.getElementById('main-body');
-
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                const userDoc = await getDoc(doc(db, "usuarios", user.uid));
-                const isAdmin = (user.email === 'admin@mail.com') || (userDoc.exists() && userDoc.data().rol === 'admin');
-
-                if (isAdmin) {
-                    body.classList.remove('opacity-0');
-                    window.dispatchEvent(new CustomEvent('userReady', {
-                        detail: { user: user, uid: user.uid, role: 'admin', email: user.email }
-                    }));
-                    window.dispatchEvent(new CustomEvent('adminReady'));
-                } else {
-                    alert("Acceso denegado.");
-                    window.location.href = 'index.html';
-                }
+                body.classList.remove('opacity-0');
+                window.dispatchEvent(new CustomEvent('userReady', { detail: { user: user } }));
             } else {
                 window.location.href = 'login.html';
             }
@@ -72,155 +59,190 @@
 
     <!-- EL SIDEBAR SE INYECTA CON JS -->
 
-    <main
-        class="flex-1 flex flex-col overflow-y-auto relative bg-background-dark p-6 md:p-8 scroll-smooth transition-all duration-300"
-        id="main-content">
-
-        <div class="fixed top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-            <div class="absolute top-[10%] right-[20%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px]">
-            </div>
-        </div>
-
+    <main class="flex-1 flex flex-col overflow-y-auto relative bg-background-dark p-6 md:p-8 scroll-smooth transition-all duration-300" id="main-content">
+        
         <div class="relative z-10 max-w-7xl mx-auto w-full">
+            
+            <!-- Header Móvil -->
+            <div class="lg:hidden flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-lg">school</span>
+                    </div>
+                    <span class="font-bold text-white text-lg">EduSys</span>
+                </div>
+                <button id="mobile-menu-btn" class="text-white material-symbols-outlined p-2 hover:bg-surface-dark rounded-lg transition-colors">menu</button>
+            </div>
 
+            <!-- Header Principal -->
             <header class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div class="flex items-center gap-4">
-                    <button id="desktop-sidebar-toggle"
-                        class="hidden lg:flex p-2 rounded-xl text-text-secondary hover:text-white hover:bg-surface-dark transition-colors">
+                    <button id="desktop-sidebar-toggle" class="hidden lg:flex p-2 rounded-xl text-text-secondary hover:text-white hover:bg-surface-dark transition-colors">
                         <span class="material-symbols-outlined">menu_open</span>
                     </button>
+
                     <div>
                         <h2 class="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
-                            Catálogo de Asignaturas
-                            <span
-                                class="px-2 py-0.5 rounded text-[10px] font-bold bg-admin/20 text-admin border border-admin/20 uppercase tracking-wider">Admin</span>
+                            Áreas Académicas
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/20 text-primary border border-primary/20 uppercase tracking-wider">Catálogo</span>
                         </h2>
-                        <p class="text-text-secondary text-sm mt-1">Gestiona la lista maestra de materias y niveles.</p>
+                        <p class="text-text-secondary text-sm mt-1">Gestiona las asignaturas disponibles para los cursos.</p>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-3 w-full md:w-auto">
-                    <div class="relative group flex-1 md:flex-none">
-                        <span
-                            class="material-symbols-outlined absolute left-3 top-2.5 text-text-secondary group-focus-within:text-primary transition-colors text-lg">search</span>
-                        <input type="text" id="search-input" placeholder="Buscar asignatura..."
-                            class="w-full md:w-64 bg-surface-dark border border-surface-border text-white text-sm rounded-xl pl-10 pr-4 py-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all shadow-sm placeholder-text-secondary/50">
+                <div class="flex items-center gap-3">
+                    <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-dark border border-surface-border text-xs text-text-secondary">
+                        <span class="w-2 h-2 rounded-full bg-success"></span>
+                        <span id="total-subjects">0</span> Activas
                     </div>
-
-                    <button onclick="window.syncCatalog()"
-                        class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-surface-dark border border-surface-border hover:bg-surface-border text-text-secondary hover:text-white transition-all shadow-sm text-sm shrink-0 group"
-                        title="Sincronizar materias de cursos">
-                        <span
-                            class="material-symbols-outlined text-lg group-hover:rotate-180 transition-transform duration-500">sync</span>
-                        <span class="hidden md:inline">Sincronizar</span>
-                    </button>
-
-                    <button onclick="window.prepareCreate()"
-                        class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-admin text-white font-bold hover:bg-yellow-500 transition shadow-lg shadow-admin/20 whitespace-nowrap text-sm shrink-0">
-                        <span class="material-symbols-outlined text-lg">add</span>
-                        <span class="hidden md:inline">Nueva Asignatura</span>
+                    <button onclick="openCreateModal()" class="bg-primary hover:bg-primary-dark text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95">
+                        <span class="material-symbols-outlined text-lg">add_circle</span>
+                        Nueva Asignatura
                     </button>
                 </div>
             </header>
 
-            <div class="relative min-h-[400px]">
-                <div id="loader"
-                    class="absolute inset-0 flex items-center justify-center bg-background-dark/50 z-20 backdrop-blur-sm rounded-2xl">
-                    <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-admin"></div>
-                </div>
+            <!-- Buscador -->
+            <div class="bg-surface-dark border border-surface-border rounded-2xl p-2 mb-8 shadow-lg flex items-center max-w-2xl">
+                <span class="material-symbols-outlined text-text-secondary ml-3 text-lg">search</span>
+                <input type="text" id="search-input" placeholder="Buscar asignatura por nombre o código..." 
+                    class="w-full bg-transparent border-none text-white text-sm focus:ring-0 placeholder-text-secondary/50 py-2.5 px-3">
+            </div>
 
-                <div id="subjects-grid"
-                    class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-10"></div>
-
-                <div id="empty-state"
-                    class="hidden flex-col items-center justify-center p-12 text-center mt-10 border border-dashed border-surface-border rounded-2xl bg-surface-dark/30">
-                    <div
-                        class="w-16 h-16 bg-surface-dark rounded-full flex items-center justify-center mb-4 border border-surface-border shadow-lg">
-                        <span class="material-symbols-outlined text-3xl text-text-secondary">auto_stories</span>
+            <!-- Grid de Asignaturas -->
+            <div id="subjects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-fade-in">
+                <!-- Skeleton Loader -->
+                <div class="bg-surface-dark border border-surface-border rounded-2xl p-6 h-40 animate-pulse flex flex-col justify-between">
+                    <div class="flex items-start justify-between">
+                        <div class="w-10 h-10 bg-surface-border rounded-xl"></div>
+                        <div class="w-6 h-6 bg-surface-border rounded-md"></div>
                     </div>
-                    <h3 class="text-lg font-bold text-white">Catálogo vacío</h3>
-                    <p class="text-text-secondary text-sm max-w-xs mx-auto mt-1 mb-4">No hay asignaturas registradas.
-                    </p>
+                    <div class="space-y-2">
+                        <div class="h-4 bg-surface-border rounded w-3/4"></div>
+                        <div class="h-3 bg-surface-border rounded w-1/2"></div>
+                    </div>
                 </div>
+            </div>
+
+            <!-- Estado Vacío -->
+            <div id="empty-state" class="hidden flex flex-col items-center justify-center py-20 opacity-50">
+                <div class="w-20 h-20 bg-surface-dark rounded-full flex items-center justify-center mb-4 border border-surface-border">
+                    <span class="material-symbols-outlined text-4xl text-text-secondary">library_books</span>
+                </div>
+                <h3 class="text-lg font-bold text-white">No hay asignaturas</h3>
+                <p class="text-sm text-text-secondary max-w-xs text-center">Comienza agregando las materias que se impartirán en el centro.</p>
             </div>
 
         </div>
     </main>
 
-    <!-- MODAL: CREAR / EDITAR -->
-    <div id="modal-manage-subject"
-        class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4 transition-all duration-300">
-        <div
-            class="bg-surface-dark border border-surface-border p-8 rounded-2xl w-full max-w-md shadow-2xl relative animate-fade-in">
-            <button onclick="toggleModal('modal-manage-subject')"
-                class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined p-1 rounded-full hover:bg-white/10 transition-colors">close</button>
-
+    <!-- MODAL CREAR/EDITAR -->
+    <div id="modal-subject" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 transition-all duration-300">
+        <div class="bg-surface-dark border border-surface-border p-8 rounded-2xl w-full max-w-md shadow-2xl relative animate-slide-up overflow-y-auto max-h-[90vh]">
+            
+            <button onclick="toggleModal('modal-subject')" class="absolute top-4 right-4 text-text-secondary hover:text-white material-symbols-outlined p-1 rounded-full hover:bg-white/10 transition-colors">close</button>
+            
             <div class="flex items-center gap-3 mb-6">
-                <div class="p-3 rounded-xl bg-admin/20 text-admin border border-admin/20">
-                    <span class="material-symbols-outlined text-2xl" id="modal-icon">add</span>
+                <div class="p-3 rounded-xl bg-primary/20 text-primary border border-primary/20">
+                    <span class="material-symbols-outlined text-xl" id="modal-icon">book_2</span>
                 </div>
                 <div>
                     <h2 class="text-xl font-bold text-white" id="modal-title">Nueva Asignatura</h2>
-                    <p class="text-xs text-text-secondary">Definición de materia y nivel</p>
+                    <p class="text-xs text-text-secondary">Información académica</p>
                 </div>
             </div>
 
             <form id="form-subject" class="space-y-5">
-                <input type="hidden" id="edit-id" value="">
+                <input type="hidden" id="subject-id">
 
-                <!-- Nombre -->
                 <div>
-                    <label
-                        class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Nombre
-                        de la Asignatura</label>
-                    <input type="text" id="subject-name" placeholder="Ej: Matemáticas Avanzadas" required
-                        class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white placeholder-text-secondary/30 focus:border-admin focus:ring-1 focus:ring-admin outline-none transition-all shadow-sm text-sm">
+                    <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Nombre de la Asignatura</label>
+                    <input type="text" id="subject-name" required placeholder="Ej: Matemáticas"
+                        class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm focus:border-primary outline-none transition-colors shadow-inner">
                 </div>
 
-                <!-- Nivel Educativo (SELECTOR) -->
-                <div>
-                    <label
-                        class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Nivel
-                        Educativo</label>
-                    <div class="relative">
-                        <select id="subject-level"
-                            class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white focus:border-admin focus:ring-1 focus:ring-admin outline-none transition-all shadow-sm appearance-none cursor-pointer text-sm pr-10">
-                            <option value="primario">Nivel Primario</option>
-                            <option value="secundario">Nivel Secundario</option>
-                            <option value="ambos" selected>Ambos</option>
-                        </select>
-                        <span
-                            class="material-symbols-outlined absolute right-3 top-3 text-text-secondary pointer-events-none">school</span>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Código (Opcional)</label>
+                        <input type="text" id="subject-code" placeholder="Ej: MAT-01"
+                            class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm focus:border-primary outline-none transition-colors shadow-inner uppercase font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Área / Color</label>
+                        <div class="relative">
+                            <select id="subject-area" required
+                                class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm focus:border-primary outline-none appearance-none cursor-pointer">
+                                <option value="general">General (Gris)</option>
+                                <option value="matematicas">Matemáticas (Azul)</option>
+                                <option value="lengua">Lengua (Rojo)</option>
+                                <option value="ciencias">Ciencias (Verde)</option>
+                                <option value="sociales">Sociales (Naranja)</option>
+                                <option value="idiomas">Idiomas (Morado)</option>
+                                <option value="arte">Arte (Rosa)</option>
+                                <option value="tecnica">Técnica (Cyan)</option>
+                            </select>
+                            <span class="material-symbols-outlined absolute right-3 top-3 text-text-secondary pointer-events-none text-lg">expand_more</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Profesor -->
-                <div>
-                    <label
-                        class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Coordinador
-                        Asignado</label>
-                    <div class="relative">
-                        <select id="subject-teacher"
-                            class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white focus:border-admin focus:ring-1 focus:ring-admin outline-none transition-all shadow-sm appearance-none cursor-pointer text-sm pr-10">
-                            <option value="" selected>Sin asignar</option>
-                            <option value="" disabled>Cargando lista...</option>
-                        </select>
-                        <span
-                            class="material-symbols-outlined absolute right-3 top-3 text-text-secondary pointer-events-none">expand_more</span>
+                <!-- HORARIO -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Hora Inicio</label>
+                        <div class="relative">
+                            <input type="time" id="subject-start"
+                                class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm focus:border-primary outline-none transition-colors shadow-inner appearance-none">
+                            <span class="material-symbols-outlined absolute right-3 top-3 text-text-secondary pointer-events-none text-lg">schedule</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Hora Fin</label>
+                        <div class="relative">
+                            <input type="time" id="subject-end"
+                                class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm focus:border-primary outline-none transition-colors shadow-inner appearance-none">
+                            <span class="material-symbols-outlined absolute right-3 top-3 text-text-secondary pointer-events-none text-lg">schedule</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="pt-4 flex gap-3 border-t border-surface-border/50 mt-6">
-                    <button type="button" onclick="toggleModal('modal-manage-subject')"
-                        class="flex-1 py-3 rounded-xl border border-surface-border text-text-secondary hover:text-white hover:bg-surface-border transition font-medium text-sm">
-                        Cancelar
-                    </button>
-                    <button type="submit"
-                        class="flex-1 py-3 rounded-xl bg-admin text-white font-bold hover:bg-yellow-500 transition shadow-lg shadow-admin/20 text-sm flex items-center justify-center gap-2">
-                        <span class="material-symbols-outlined text-lg">save</span>
-                        Guardar
-                    </button>
+                <!-- DÍAS DE LA SEMANA -->
+                <div>
+                    <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Días de Clase</label>
+                    <div class="flex gap-2 justify-between">
+                        <label class="cursor-pointer flex-1">
+                            <input type="checkbox" name="subject-days" value="Lun" class="peer sr-only">
+                            <span class="flex items-center justify-center h-10 w-full rounded-lg border border-surface-border text-xs text-text-secondary font-medium peer-checked:bg-primary peer-checked:text-white peer-checked:border-primary transition-all select-none hover:bg-surface-border/50">Lun</span>
+                        </label>
+                        <label class="cursor-pointer flex-1">
+                            <input type="checkbox" name="subject-days" value="Mar" class="peer sr-only">
+                            <span class="flex items-center justify-center h-10 w-full rounded-lg border border-surface-border text-xs text-text-secondary font-medium peer-checked:bg-primary peer-checked:text-white peer-checked:border-primary transition-all select-none hover:bg-surface-border/50">Mar</span>
+                        </label>
+                        <label class="cursor-pointer flex-1">
+                            <input type="checkbox" name="subject-days" value="Mié" class="peer sr-only">
+                            <span class="flex items-center justify-center h-10 w-full rounded-lg border border-surface-border text-xs text-text-secondary font-medium peer-checked:bg-primary peer-checked:text-white peer-checked:border-primary transition-all select-none hover:bg-surface-border/50">Mié</span>
+                        </label>
+                        <label class="cursor-pointer flex-1">
+                            <input type="checkbox" name="subject-days" value="Jue" class="peer sr-only">
+                            <span class="flex items-center justify-center h-10 w-full rounded-lg border border-surface-border text-xs text-text-secondary font-medium peer-checked:bg-primary peer-checked:text-white peer-checked:border-primary transition-all select-none hover:bg-surface-border/50">Jue</span>
+                        </label>
+                        <label class="cursor-pointer flex-1">
+                            <input type="checkbox" name="subject-days" value="Vie" class="peer sr-only">
+                            <span class="flex items-center justify-center h-10 w-full rounded-lg border border-surface-border text-xs text-text-secondary font-medium peer-checked:bg-primary peer-checked:text-white peer-checked:border-primary transition-all select-none hover:bg-surface-border/50">Vie</span>
+                        </label>
+                    </div>
                 </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-text-secondary mb-1.5 ml-1 uppercase tracking-wider">Descripción (Opcional)</label>
+                    <textarea id="subject-desc" rows="2" placeholder="Breve descripción..."
+                        class="w-full bg-background-dark border border-surface-border rounded-xl px-4 py-3 text-white text-sm focus:border-primary outline-none transition-colors shadow-inner resize-none"></textarea>
+                </div>
+
+                <button type="submit" id="btn-save" class="w-full py-3.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 mt-2 group">
+                    <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">save</span>
+                    <span id="btn-text">Guardar Asignatura</span>
+                </button>
             </form>
         </div>
     </div>
@@ -228,30 +250,20 @@
     <!-- Toast Container -->
     <div id="toast-container"></div>
 
+    <!-- SCRIPTS -->
     <script type="module" src="js/firebase-config.js"></script>
     <script type="module" src="js/layout.js"></script>
+    <script type="module" src="js/main.js"></script>
     <script type="module" src="js/asignaturas.js"></script>
 
     <script>
         function toggleModal(id) {
             const el = document.getElementById(id);
-            if (el) { el.classList.toggle('hidden'); el.classList.toggle('flex'); }
-        }
-
-        window.prepareCreate = () => {
-            document.getElementById('form-subject').reset();
-            document.getElementById('edit-id').value = '';
-            document.getElementById('modal-title').innerText = 'Nueva Asignatura';
-            // Default select
-            document.getElementById('subject-level').value = 'ambos';
-
-            const select = document.getElementById('subject-teacher');
-            if (select && select.options.length <= 2 && window.loadTeachers) {
-                window.loadTeachers();
+            if (el) {
+                el.classList.toggle('hidden');
+                el.classList.toggle('flex');
             }
-            toggleModal('modal-manage-subject');
         }
     </script>
 </body>
-
 </html>

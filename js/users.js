@@ -1,4 +1,4 @@
-import { db, collection, getDocs, query, orderBy, limit, startAfter, where, endBefore, limitToLast, deleteDoc, doc, updateDoc } from './firebase-config.js';
+import { db, collection, getDocs, query, orderBy, limit, startAfter, where, endBefore, limitToLast, deleteDoc, doc, updateDoc, appId } from './firebase-config.js';
 
 let lastVisible = null; 
 let firstVisible = null; 
@@ -29,7 +29,9 @@ window.addEventListener('adminReady', () => {
 // Cargar catálogo de materias para el selector de edición
 async function loadSubjectsCatalog() {
     try {
-        const q = query(collection(db, "asignaturas_catalogo"), orderBy("nombre"));
+        // CORRECCIÓN: Usar la misma ruta que asignaturas.js ('artifacts', appId, 'public', 'data', 'asignaturas')
+        const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'asignaturas');
+        const q = query(colRef, orderBy("nombre"));
         const snapshot = await getDocs(q);
         subjectsCache = [];
         snapshot.forEach(doc => subjectsCache.push(doc.data().nombre));
