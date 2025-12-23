@@ -1,341 +1,327 @@
-import { db, collection, addDoc, getDocs, deleteDoc, updateDoc, doc, query, where, orderBy, appId, auth, runTransaction } from './firebase-config.js';
+// Variables globales (declaradas pero no asignadas aún)
+let tasksTableBody, taskModal, taskForm, modalTitle, searchInput, filterSubject, btnNovaTarea;
+let taskIdInput, taskTitleInput, taskDescInput, taskSubjectSelect, taskDateInput;
+let currentUserData = null;
 
-let allTasks = [];
-let availableCourses = [];
+// Inicialización
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Asignar referencias al DOM AQUI, cuando el HTML ya cargó
+    tasksTableBody = document.getElementById('tasksTableBody');
+    taskModal = document.getElementById('taskModal');
+    taskForm = document.getElementById('taskForm');
+    modalTitle = document.getElementById('modalTitle');
+    searchInput = document.getElementById('searchInput');
+    filterSubject = document.getElementById('filterSubject');
+    btnNovaTarea = document.getElementById('btnNovaTarea');
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Configuración inicial
-    setupEventListeners();
+    taskIdInput = document.getElementById('taskId');
+    taskTitleInput = document.getElementById('taskTitle');
+    taskDescInput = document.getElementById('taskDesc');
+    taskSubjectSelect = document.getElementById('taskSubject');
+    taskDateInput = document.getElementById('taskDate');
+
+    // 2. Verificar autenticación
+    auth.onAuthStateChanged(async (user) => {
+        if (user) {
+            try {
+                const userDoc = await db.collection('usuarios').doc(user.uid).get();
+                if (userDoc.exists) {
+                    currentUserData = userDoc.data();
+
+                    // Normalizar rol a minúsculas para evitar errores (Profesor vs profesor)
+                    if (currentUserData.rol) {
+                        currentUserData.rol = currentUserData.rol.toLowerCase();
+                    }
+
+                    // Personalizar la vista según el rol
+                    setupVistaPorRol();
+
+                    // Cargar tareas (Filtro estricto desde BD)
+                    cargarTareas();
+
+                    // Cargar filtro solo si NO es profesor
+                    if (currentUserData.rol !== 'profesor') {
+                        cargarFiltroAsignaturas();
+                    }
+                } else {
+                    console.error("No se encontró el perfil del usuario.");
+                }
+            } catch (error) {
+                console.error("Error al obtener datos del usuario:", error);
+            }
+        } else {
+            window.location.href = 'login.html';
+        }
+    });
+
+    // Event Listeners
+    if (btnNovaTarea) {
+        btnNovaTarea.addEventListener('click', () => abrirModalTarea());
+    }
+
+    window.onclick = function (event) {
+        if (event.target == taskModal) {
+            cerrarModal();
+        }
+    }
+
+    if (taskForm) taskForm.addEventListener('submit', guardarTarea);
+    if (searchInput) searchInput.addEventListener('input', filtrarTareas);
+    if (filterSubject) filterSubject.addEventListener('change', filtrarTareas);
 });
 
-window.addEventListener('userReady', async (e) => {
-    await loadCoursesForSelect();
-    loadTasks();
-});
+// --- LÓGICA DE SEGURIDAD Y VISUALIZACIÓN ---
 
-function setupEventListeners() {
-    // Buscador
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) searchInput.addEventListener('input', filterTasks);
+function setupVistaPorRol() {
+    // Si es profesor, ocultamos agresivamente el menú de filtro
+    if (currentUserData.rol === 'profesor') {
+        console.log(`Configurando vista restringida para Profesor: ${currentUserData.asignatura}`);
 
-    // Filtros
-    const statusFilter = document.getElementById('filter-status');
-    const priorityFilter = document.getElementById('filter-priority');
-    if (statusFilter) statusFilter.addEventListener('change', filterTasks);
-    if (priorityFilter) priorityFilter.addEventListener('change', filterTasks);
+        if (filterSubject) {
+            // 1. Ocultar el select
+            filterSubject.style.display = 'none';
 
-    // Formulario Submit
-    const form = document.getElementById('form-task');
-    if (form) form.addEventListener('submit', handleSaveTask);
+            // 2. Intentar ocultar su etiqueta (Label)
+            const filterLabel = document.querySelector('label[for="filterSubject"]');
+            if (filterLabel) filterLabel.style.display = 'none';
 
-    // Cambio de curso en formulario (cargar asignaturas)
-    const courseSelect = document.getElementById('task-course');
-    if (courseSelect) {
-        courseSelect.addEventListener('change', (e) => {
-            const courseId = e.target.value;
-            loadSubjectsForCourse(courseId);
-        });
+            // 3. Intentar ocultar el contenedor padre si es exclusivo para el filtro 
+            // (para que no quede un hueco en la interfaz)
+            // Verificamos si el padre es pequeño (tipo col-md-3) para ocultarlo.
+            const parent = filterSubject.parentElement;
+            if (parent && parent.classList.contains('col-md-3') || parent.classList.contains('form-group')) {
+                parent.style.display = 'none';
+            }
+        }
     }
 }
 
-// --- CARGAR CURSOS ---
-async function loadCoursesForSelect() {
-    const select = document.getElementById('task-course');
-    if(!select) return;
+// Función para abrir el modal
+async function abrirModalTarea(id = null) {
+    if (!taskForm) return;
 
-    try {
-        // En una app real, filtraríamos solo los cursos del profesor si no es admin
-        const snapshot = await getDocs(collection(db, 'cursos_globales'));
-        availableCourses = [];
-        
-        let options = '<option value="">Seleccionar Curso</option>';
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            // Filtrar solo cursos relevantes si es profesor (opcional)
-            availableCourses.push({ id: doc.id, ...data });
-            options += `<option value="${doc.id}">${data.nombre}</option>`;
-        });
-        select.innerHTML = options;
-    } catch (error) {
-        console.error("Error cargando cursos:", error);
-    }
-}
+    taskForm.reset();
+    taskIdInput.value = '';
+    modalTitle.textContent = 'Nueva Tarea';
+    taskSubjectSelect.innerHTML = '';
 
-// --- CARGAR ASIGNATURAS SEGÚN CURSO ---
-function loadSubjectsForCourse(courseId) {
-    const select = document.getElementById('task-subject');
-    if(!select) return;
+    const modalLabel = document.querySelector('label[for="taskSubject"]');
 
-    if (!courseId) {
-        select.innerHTML = '<option value="">Selecciona curso primero</option>';
-        return;
-    }
+    if (currentUserData && currentUserData.rol === 'profesor') {
+        // --- MODO PROFESOR: Asignación automática ---
+        const asignaturaAsignada = currentUserData.asignatura;
 
-    const course = availableCourses.find(c => c.id === courseId);
-    if (course && course.materias) {
-        let options = '<option value="">Seleccionar Asignatura</option>';
-        course.materias.forEach(mat => {
-            options += `<option value="${mat}">${mat}</option>`;
-        });
-        select.innerHTML = options;
+        if (asignaturaAsignada) {
+            const option = document.createElement('option');
+            option.value = asignaturaAsignada;
+            option.textContent = asignaturaAsignada;
+            option.selected = true;
+            taskSubjectSelect.appendChild(option);
+
+            // OCULTAR EL MENU (SELECT) y su ETIQUETA
+            taskSubjectSelect.style.display = 'none';
+            if (modalLabel) modalLabel.style.display = 'none';
+
+            // Ocultar contenedor padre si es necesario para limpiar el modal
+            if (taskSubjectSelect.parentElement && taskSubjectSelect.parentElement.classList.contains('form-group')) {
+                taskSubjectSelect.parentElement.style.display = 'none';
+            }
+
+        } else {
+            taskSubjectSelect.innerHTML = '<option value="">Error: Sin asignatura</option>';
+            taskSubjectSelect.style.display = 'block';
+        }
+
     } else {
-        select.innerHTML = '<option value="">Sin asignaturas registradas</option>';
+        // --- MODO ADMIN ---
+        // Asegurar visibilidad
+        taskSubjectSelect.style.display = 'block';
+        if (modalLabel) modalLabel.style.display = 'block';
+        if (taskSubjectSelect.parentElement) taskSubjectSelect.parentElement.style.display = 'block';
+
+        const optionDefault = document.createElement('option');
+        optionDefault.value = "";
+        optionDefault.textContent = "Seleccione una asignatura";
+        taskSubjectSelect.appendChild(optionDefault);
+
+        try {
+            const querySnapshot = await db.collection('asignaturas').get();
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                const option = document.createElement('option');
+                option.value = data.nombre;
+                option.textContent = data.nombre;
+                taskSubjectSelect.appendChild(option);
+            });
+        } catch (error) {
+            console.error("Error asignaturas:", error);
+        }
     }
-}
 
-// --- CARGAR TAREAS ---
-async function loadTasks() {
-    const grid = document.getElementById('tasks-grid');
-    const emptyState = document.getElementById('empty-state');
-    
-    try {
-        grid.innerHTML = '<div class="col-span-full flex justify-center py-10"><span class="material-symbols-outlined animate-spin text-4xl text-primary">progress_activity</span></div>';
+    // Edición
+    if (id) {
+        modalTitle.textContent = 'Editar Tarea';
+        taskIdInput.value = id;
+        try {
+            const doc = await db.collection('tareas').doc(id).get();
+            if (doc.exists) {
+                const data = doc.data();
+                taskTitleInput.value = data.titulo;
+                taskDescInput.value = data.descripcion;
+                taskDateInput.value = data.fechaEntrega;
 
-        const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'tareas');
-        const q = query(colRef, orderBy("fecha_creacion", "desc"));
-        
-        const snapshot = await getDocs(q);
-        
-        allTasks = [];
-        snapshot.forEach(doc => {
-            allTasks.push({ id: doc.id, ...doc.data() });
-        });
-
-        filterTasks(); 
-
-    } catch (error) {
-        console.error("Error cargando tareas:", error);
-        grid.innerHTML = '<p class="text-danger col-span-full text-center">Error al cargar datos.</p>';
+                if (currentUserData.rol !== 'profesor') {
+                    taskSubjectSelect.value = data.asignatura;
+                }
+            }
+        } catch (error) {
+            console.error("Error tarea:", error);
+        }
     }
+
+    taskModal.style.display = 'block';
 }
 
-// --- FILTRADO Y RENDERIZADO ---
-function filterTasks() {
-    const term = document.getElementById('search-input')?.value.toLowerCase() || '';
-    const status = document.getElementById('filter-status')?.value || 'all';
-    const priority = document.getElementById('filter-priority')?.value || 'all';
-
-    const now = new Date();
-
-    const filtered = allTasks.filter(task => {
-        const matchesTerm = (task.titulo || '').toLowerCase().includes(term) ||
-                            (task.curso_nombre || '').toLowerCase().includes(term) ||
-                            (task.asignatura || '').toLowerCase().includes(term);
-        
-        let matchesStatus = true;
-        const taskDate = new Date(task.fecha_entrega);
-        if (status === 'active') matchesStatus = taskDate >= now;
-        if (status === 'expired') matchesStatus = taskDate < now;
-
-        let matchesPriority = true;
-        if (priority !== 'all') matchesPriority = task.prioridad === priority;
-
-        return matchesTerm && matchesStatus && matchesPriority;
-    });
-
-    renderTasks(filtered);
+function cerrarModal() {
+    taskModal.style.display = 'none';
 }
 
-function renderTasks(tasks) {
-    const grid = document.getElementById('tasks-grid');
-    const emptyState = document.getElementById('empty-state');
-    
-    if (tasks.length === 0) {
-        grid.classList.add('hidden');
-        if(emptyState) emptyState.classList.remove('hidden');
-        if(emptyState) emptyState.classList.add('flex');
+async function guardarTarea(e) {
+    e.preventDefault();
+
+    const id = taskIdInput.value;
+    let titulo = taskTitleInput.value;
+    let descripcion = taskDescInput.value;
+    let asignatura = taskSubjectSelect.value;
+    let fechaEntrega = taskDateInput.value;
+
+    // SEGURIDAD FINAL: Forzar asignatura
+    if (currentUserData.rol === 'profesor') {
+        asignatura = currentUserData.asignatura;
+    }
+
+    if (!titulo || !asignatura || !fechaEntrega) {
+        alert("Por favor completa los campos obligatorios.");
         return;
     }
 
-    if(emptyState) emptyState.classList.add('hidden');
-    if(emptyState) emptyState.classList.remove('flex');
-    grid.classList.remove('hidden');
-    grid.innerHTML = '';
-
-    tasks.forEach(task => {
-        const dateObj = new Date(task.fecha_entrega);
-        const isExpired = dateObj < new Date();
-        
-        // Formato fecha amigable
-        const options = { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit' };
-        const dateStr = dateObj.toLocaleDateString('es-ES', options);
-
-        // Estilos según prioridad
-        const priorityColors = {
-            'Alta': 'bg-danger/10 text-danger border-danger/20',
-            'Media': 'bg-warning/10 text-warning border-warning/20',
-            'Baja': 'bg-success/10 text-success border-success/20'
-        };
-        const pColor = priorityColors[task.prioridad] || priorityColors['Media'];
-
-        const card = document.createElement('div');
-        card.className = "group bg-surface-dark border border-surface-border hover:border-primary/50 rounded-2xl p-6 transition-all hover:-translate-y-1 hover:shadow-xl relative flex flex-col h-full";
-        
-        card.innerHTML = `
-            <div class="flex justify-between items-start mb-4">
-                <div class="flex gap-2">
-                    <span class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border ${pColor}">${task.prioridad}</span>
-                    ${isExpired ? '<span class="px-2 py-1 rounded text-[10px] font-bold bg-surface-border text-text-secondary border border-white/5">Vencida</span>' : ''}
-                    <span class="px-2 py-1 rounded text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">${task.valor || 0}% / ${task.periodo || 'P1'}</span>
-                </div>
-                <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onclick="deleteTask('${task.id}')" class="p-2 rounded-lg hover:bg-danger/10 text-text-secondary hover:text-danger transition-colors" title="Eliminar">
-                        <span class="material-symbols-outlined text-lg">delete</span>
-                    </button>
-                </div>
-            </div>
-
-            <h3 class="text-lg font-bold text-white mb-2 leading-tight">${task.titulo}</h3>
-            
-            <p class="text-xs text-text-secondary line-clamp-3 mb-4 flex-grow">${task.descripcion}</p>
-
-            <div class="mt-auto space-y-3 pt-4 border-t border-surface-border/50">
-                <div class="flex items-center gap-2 text-xs text-text-secondary">
-                    <span class="material-symbols-outlined text-sm">event</span>
-                    <span class="${isExpired ? 'text-danger font-medium' : ''}">${dateStr}</span>
-                </div>
-                <div class="flex items-center justify-between text-xs">
-                    <div class="flex items-center gap-1.5">
-                        <span class="w-2 h-2 rounded-full bg-primary"></span>
-                        <span class="font-medium text-white">${task.curso_nombre || 'Curso'}</span>
-                    </div>
-                    <span class="bg-surface-border/50 px-2 py-0.5 rounded text-[10px] font-mono border border-surface-border">${task.asignatura || 'Materia'}</span>
-                </div>
-            </div>
-        `;
-        grid.appendChild(card);
-    });
-}
-
-// --- CREAR / EDITAR ---
-window.openCreateTaskModal = () => {
-    document.getElementById('form-task').reset();
-    document.getElementById('task-id').value = '';
-    document.getElementById('modal-title').innerText = 'Nueva Tarea';
-    document.getElementById('btn-text-task').innerText = 'Publicar Tarea';
-    
-    // Resetear selects
-    const subSelect = document.getElementById('task-subject');
-    if(subSelect) subSelect.innerHTML = '<option value="">Selecciona curso primero</option>';
-
-    window.toggleModal('modal-task');
-};
-
-async function handleSaveTask(e) {
-    e.preventDefault();
-    const btn = document.getElementById('btn-save-task');
-    const originalText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="material-symbols-outlined animate-spin">refresh</span> Procesando...';
-
-    const id = document.getElementById('task-id').value;
-    const courseSelect = document.getElementById('task-course');
-    const subject = document.getElementById('task-subject').value;
-    const courseId = courseSelect.value;
-    const title = document.getElementById('task-title').value.trim();
-    const desc = document.getElementById('task-desc').value.trim();
-    const fechaEntrega = document.getElementById('task-date').value;
-    const prioridad = document.querySelector('input[name="task-priority"]:checked').value;
-    
-    // Nuevos campos
-    const period = document.getElementById('task-period').value;
-    const value = parseFloat(document.getElementById('task-value').value);
-    const competence = document.getElementById('task-competence').value;
-
-    const data = {
-        titulo: title,
-        descripcion: desc,
-        fecha_entrega: fechaEntrega,
-        prioridad: prioridad,
-        curso_id: courseId,
-        curso_nombre: courseSelect.options[courseSelect.selectedIndex].text,
-        asignatura: subject,
-        periodo: period,
-        valor: value,
-        competencia: competence,
-        fecha_creacion: new Date().toISOString(),
-        profesor_email: auth.currentUser ? auth.currentUser.email : 'anon'
+    const tareaData = {
+        titulo: titulo,
+        descripcion: descripcion,
+        asignatura: asignatura,
+        fechaEntrega: fechaEntrega,
+        fechaCreacion: firebase.firestore.FieldValue.serverTimestamp(),
+        creadoPor: auth.currentUser.email,
+        creadorId: auth.currentUser.uid
     };
 
     try {
-        // 1. Guardar en colección 'tareas' (Vista de Tablero)
-        const colPath = ['artifacts', appId, 'public', 'data', 'tareas'];
-        
         if (id) {
-            delete data.fecha_creacion; 
-            await updateDoc(doc(db, ...colPath, id), data);
+            await db.collection('tareas').doc(id).update(tareaData);
+            alert('Tarea actualizada correctamente');
         } else {
-            await addDoc(collection(db, ...colPath), data);
+            await db.collection('tareas').add(tareaData);
+            alert('Tarea creada correctamente');
         }
-
-        // 2. SINCRONIZAR CON EL CURSO (Para que aparezca en calificaciones)
-        if (courseId && subject) {
-            const courseRef = doc(db, "cursos_globales", courseId);
-            
-            await runTransaction(db, async (transaction) => {
-                const courseDoc = await transaction.get(courseRef);
-                if (!courseDoc.exists()) throw "El curso no existe";
-
-                const courseData = courseDoc.data();
-                let actividades = courseData.actividades || {};
-                
-                if (!actividades[subject]) actividades[subject] = [];
-
-                // Evitar duplicados por nombre exacto si es posible, o simplemente agregar
-                // Nota: gradebook.js usa el nombre de la actividad como ID.
-                const existingIndex = actividades[subject].findIndex(a => a.nombre === title);
-                
-                const activityData = {
-                    nombre: title,
-                    valor: value,
-                    periodo: period,
-                    competencia: competence,
-                    tipo: 'regular',
-                    descripcion: desc,
-                    fecha_entrega: fechaEntrega
-                };
-
-                if (existingIndex >= 0) {
-                    actividades[subject][existingIndex] = activityData; // Actualizar
-                } else {
-                    actividades[subject].push(activityData); // Crear
-                }
-
-                transaction.update(courseRef, { actividades: actividades });
-            });
-        }
-
-        if (window.showToast) window.showToast("Tarea guardada y asignada al curso", "success");
-        window.toggleModal('modal-task');
-        loadTasks();
-
+        cerrarModal();
+        cargarTareas();
     } catch (error) {
-        console.error(error);
-        alert("Error: " + error.message);
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
+        console.error("Error guardar:", error);
+        alert("Error al guardar la tarea.");
     }
 }
 
-// --- ELIMINAR ---
-window.deleteTask = async (id) => {
-    if (!confirm("¿Estás seguro de eliminar esta tarea del tablero? \nNota: Si ya se calificó en el curso, deberá eliminarse manualmente de la planilla.")) return;
+async function cargarTareas() {
+    tasksTableBody.innerHTML = '';
 
     try {
-        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tareas', id));
-        if (window.showToast) window.showToast("Tarea eliminada del tablero", "info");
-        loadTasks();
-    } catch (error) {
-        console.error(error);
-        alert("Error al eliminar: " + error.message);
-    }
-};
+        let docs = [];
 
-window.toggleModal = (id) => {
-    const el = document.getElementById(id);
-    if (el) {
-        el.classList.toggle('hidden');
-        el.classList.toggle('flex');
+        // CONSULTA SEGURA
+        if (currentUserData.rol === 'profesor') {
+            const snapshot = await db.collection('tareas')
+                .where('asignatura', '==', currentUserData.asignatura)
+                .get();
+            docs = snapshot.docs;
+        } else {
+            const snapshot = await db.collection('tareas').get();
+            docs = snapshot.docs;
+        }
+
+        let tareas = docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        tareas.sort((a, b) => {
+            const fechaA = a.fechaCreacion ? a.fechaCreacion.seconds : 0;
+            const fechaB = b.fechaCreacion ? b.fechaCreacion.seconds : 0;
+            return fechaB - fechaA;
+        });
+
+        tareas.forEach(data => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${data.titulo}</td>
+                <td>${data.asignatura}</td>
+                <td>${data.fechaEntrega}</td>
+                <td>
+                    <button class="btn-action btn-edit" onclick="abrirModalTarea('${data.id}')">Editar</button>
+                    <button class="btn-action btn-delete" onclick="eliminarTarea('${data.id}')">Eliminar</button>
+                </td>
+            `;
+            tasksTableBody.appendChild(tr);
+        });
+
+    } catch (error) {
+        console.error("Error cargar tareas:", error);
     }
-};
+}
+
+async function eliminarTarea(id) {
+    if (confirm('¿Estás seguro de eliminar esta tarea?')) {
+        try {
+            await db.collection('tareas').doc(id).delete();
+            cargarTareas();
+        } catch (error) {
+            console.error("Error eliminar:", error);
+        }
+    }
+}
+
+async function cargarFiltroAsignaturas() {
+    if (!filterSubject) return; // Seguridad extra
+    filterSubject.innerHTML = '<option value="">Todas las asignaturas</option>';
+    const snapshot = await db.collection('asignaturas').get();
+    snapshot.forEach(doc => {
+        const option = document.createElement('option');
+        option.value = doc.data().nombre;
+        option.textContent = doc.data().nombre;
+        filterSubject.appendChild(option);
+    });
+}
+
+function filtrarTareas() {
+    if (!searchInput || !filterSubject) return;
+
+    const texto = searchInput.value.toLowerCase();
+    const asignaturaFiltro = filterSubject.value;
+
+    const filas = tasksTableBody.getElementsByTagName('tr');
+
+    for (let fila of filas) {
+        const titulo = fila.cells[0].textContent.toLowerCase();
+        const asignatura = fila.cells[1].textContent;
+
+        const cumpleTexto = titulo.includes(texto);
+        const cumpleAsignatura = asignaturaFiltro === "" || asignatura === asignaturaFiltro;
+
+        if (cumpleTexto && cumpleAsignatura) {
+            fila.style.display = '';
+        } else {
+            fila.style.display = 'none';
+        }
+    }
+}
+
+// Exponer funciones globales
+window.abrirModalTarea = abrirModalTarea;
+window.cerrarModal = cerrarModal;
+window.eliminarTarea = eliminarTarea;

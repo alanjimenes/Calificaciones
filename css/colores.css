@@ -1,109 +1,138 @@
-/* =========================================
-   VARIABLES DE TEMA (theme.css)
-   ========================================= */
+/* css/colores.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
-    /* TEMA OSCURO (Por defecto) */
-    --bg-body: #1a1a2e;
-    --bg-sidebar: #16213e;
-    --bg-card: #0f3460;
-    --text-primary: #ffffff;
-    --text-secondary: #a0a0a0;
-    --accent-color: #e94560;
-    --border-color: #2a2a40;
-    --input-bg: #16213e;
+    /* --- MODO CLARO (Valores por defecto) --- */
+    /* El fondo "dark" ahora será claro en este modo */
+    --bg-body: #f1f5f9;
+    /* Un gris muy claro */
+    --bg-surface: #ffffff;
+    /* Blanco puro */
+    --border-color: #cbd5e1;
+    /* Gris borde */
+
+    /* El texto "white" ahora será oscuro para que se lea */
+    --text-main: #0f172a;
+    /* Texto casi negro */
+    --text-muted: #64748b;
+    /* Texto gris */
+
+    /* Colores de estado */
+    --color-primary: #2563eb;
+    --color-danger: #ef4444;
 }
 
-/* TEMA CLARO (Se activa con la clase .light-theme) */
-body.light-theme {
-    --bg-body: #f4f6f9;
-    --bg-sidebar: #ffffff;
-    --bg-card: #ffffff;
-    --text-primary: #333333;
-    --text-secondary: #666666;
-    --accent-color: #d6304a;
-    --border-color: #ddd;
-    --input-bg: #f9f9f9;
+/* --- MODO OSCURO --- */
+/* Cuando la etiqueta HTML tiene la clase "dark" */
+html.dark {
+    --bg-body: #0f172a;
+    /* El azul oscuro original */
+    --bg-surface: #1e293b;
+    /* El azul superficie original */
+    --border-color: #334155;
+    /* Borde oscuro */
+
+    --text-main: #f8fafc;
+    /* Texto blanco */
+    --text-muted: #94a3b8;
+    /* Texto gris claro */
 }
 
-/* Aplicación de variables globales */
+/* Aplicamos transiciones suaves a todo para que el cambio no sea brusco */
+body,
+div,
+p,
+h1,
+h2,
+h3,
+span,
+button,
+input {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+:root {
+    /* --- MODO CLARO (Por defecto) --- */
+    --color-fondo-principal: #f4f6f9;
+    --color-fondo-panel: #ffffff;
+    --color-fondo-sidebar: #343a40;
+    /* Oscuro por diseño original */
+    --color-texto-principal: #333333;
+    --color-texto-secundario: #6c757d;
+    --color-borde: #dee2e6;
+
+    /* Colores de marca */
+    --color-primario: #007bff;
+    --color-primario-hover: #0056b3;
+    --color-exito: #28a745;
+    --color-peligro: #dc3545;
+    --color-blanco: #ffffff;
+
+    /* Sombras */
+    --sombra-card: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+/* --- MODO OSCURO --- */
+[data-theme="dark"] {
+    --color-fondo-principal: #121212;
+    --color-fondo-panel: #1e1e1e;
+    --color-fondo-sidebar: #000000;
+    --color-texto-principal: #e0e0e0;
+    --color-texto-secundario: #a0a0a0;
+    --color-borde: #333333;
+
+    /* Ajustes de marca para modo oscuro (menos brillantes) */
+    --color-primario: #3391ff;
+    --color-primario-hover: #1c7cd6;
+
+    /* Sombras más sutiles en modo oscuro */
+    --sombra-card: 0 0.125rem 0.25rem rgba(255, 255, 255, 0.05);
+}
+
+/* Aplicación de variables a elementos comunes */
 body {
-    background-color: var(--bg-body);
-    color: var(--text-primary);
-    transition: background-color 0.3s, color 0.3s;
-}
-
-.sidebar {
-    background-color: var(--bg-sidebar);
-    border-right: 1px solid var(--border-color);
+    background-color: var(--color-fondo-principal);
+    color: var(--color-texto-principal);
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .card,
-.form-group {
-    background-color: var(--bg-card);
-    border-color: var(--border-color);
+.panel,
+.bg-white {
+    background-color: var(--color-fondo-panel) !important;
+    border-color: var(--color-borde) !important;
+    color: var(--color-texto-principal);
 }
 
-.menu-item {
-    color: var(--text-secondary);
+.sidebar {
+    background-color: var(--color-fondo-sidebar);
 }
 
-.menu-item:hover,
-.menu-item.active {
-    background-color: var(--bg-card);
-    color: var(--text-primary);
+/* Tablas */
+.table {
+    color: var(--color-texto-principal);
 }
 
-/* Estilos del Switch (Interruptor) */
-.theme-switch-wrapper {
-    display: flex;
-    align-items: center;
-    margin-top: 10px;
+.table td,
+.table th {
+    border-top-color: var(--color-borde);
 }
 
-.theme-switch {
-    display: inline-block;
-    height: 34px;
-    position: relative;
-    width: 60px;
+/* Inputs */
+input,
+select,
+textarea,
+.form-control {
+    background-color: var(--color-fondo-panel);
+    color: var(--color-texto-principal);
+    border-color: var(--color-borde);
 }
 
-.theme-switch input {
-    display: none;
-}
-
-.slider {
-    background-color: #ccc;
-    bottom: 0;
-    cursor: pointer;
-    left: 0;
-    position: absolute;
-    right: 0;
-    top: 0;
-    transition: .4s;
-    border-radius: 34px;
-}
-
-.slider:before {
-    background-color: #fff;
-    bottom: 4px;
-    content: "";
-    height: 26px;
-    left: 4px;
-    position: absolute;
-    transition: .4s;
-    width: 26px;
-    border-radius: 50%;
-}
-
-input:checked+.slider {
-    background-color: var(--accent-color);
-}
-
-input:checked+.slider:before {
-    transform: translateX(26px);
-}
-
-.status-label {
-    margin-left: 15px;
-    font-weight: bold;
+input:focus,
+select:focus,
+.form-control:focus {
+    background-color: var(--color-fondo-panel);
+    color: var(--color-texto-principal);
 }
