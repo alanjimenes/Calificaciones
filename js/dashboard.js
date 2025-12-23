@@ -1,9 +1,10 @@
 import { auth, db, setDoc, doc, getDoc, getDocs, collection, query, updateDoc, where, runTransaction, appId } from './firebase-config.js';
 
-let allCoursesCache = []; 
-let pendingCourseData = null; 
-let conflictDataCache = null; 
+let allCoursesCache = [];
+let pendingCourseData = null;
+let conflictDataCache = null;
 
+// Listener para cuando el usuario está listo
 window.addEventListener('userReady', (e) => {
     const { role, email } = e.detail;
     if (document.readyState === 'interactive' || document.readyState === 'complete') {
@@ -60,17 +61,17 @@ async function loadActiveNotifications() {
         container.innerHTML = '';
         notifications.slice(0, 5).forEach(data => {
             let dateStr = 'Hoy';
-            try { if (data.fecha) dateStr = new Date(data.fecha).toLocaleDateString(); } catch(e){}
-            
+            try { if (data.fecha) dateStr = new Date(data.fecha).toLocaleDateString(); } catch (e) { }
+
             let color = "bg-surface-border/30 border-surface-border";
             let icon = "info";
-            
-            if (data.tipo === 'urgent') { 
-                color = "bg-danger/10 border-danger/20"; 
+
+            if (data.tipo === 'urgent') {
+                color = "bg-danger/10 border-danger/20";
                 icon = "priority_high";
-            } else if (data.tipo === 'warning') { 
-                color = "bg-admin/10 border-admin/20"; 
-                icon = "warning"; 
+            } else if (data.tipo === 'warning') {
+                color = "bg-admin/10 border-admin/20";
+                icon = "warning";
             }
 
             const item = document.createElement('div');
@@ -256,10 +257,11 @@ async function loadDashboard(isAdmin, userEmail) {
         snapshot.forEach(docSnap => {
             const course = docSnap.data();
             course.id = docSnap.id;
-            
-            // --- CORRECCIÓN PERMISOS ---
+
+            // --- VERIFICACIÓN DE PERMISOS ---
             const isTitular = (course.titular_email === userEmail);
             let isTeacher = false;
+
             if (course.profesores_materias) {
                 isTeacher = Object.values(course.profesores_materias).some(email => email === userEmail);
             }
@@ -267,18 +269,18 @@ async function loadDashboard(isAdmin, userEmail) {
             if (isAdmin || isTitular || isTeacher) {
                 hasCourses = true;
                 allCoursesCache.push(course);
+
                 const card = document.createElement('a');
                 card.href = `calificaciones.html?curso=${course.id}`;
                 card.className = "group bg-surface-dark border border-surface-border p-5 rounded-2xl hover:border-primary/50 transition-all hover:-translate-y-1 hover:shadow-lg flex flex-col justify-between h-40";
-                
+
                 const initial = course.nombre ? course.nombre.charAt(0).toUpperCase() : 'C';
                 const subjectCount = (course.materias || []).length;
                 const studentCount = (course.estudiantes || []).length;
 
-                // Etiqueta de Rol
                 let roleTag = "";
-                if(isTitular) roleTag = `<span class="text-[10px] bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded">Titular</span>`;
-                else if(isTeacher) roleTag = `<span class="text-[10px] bg-surface-border/50 text-text-secondary px-1.5 py-0.5 rounded">Docente</span>`;
+                if (isTitular) roleTag = `<span class="text-[10px] bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded">Titular</span>`;
+                else if (isTeacher) roleTag = `<span class="text-[10px] bg-surface-border/50 text-text-secondary px-1.5 py-0.5 rounded">Docente</span>`;
 
                 card.innerHTML = `
                     <div class="flex justify-between items-start">
@@ -303,7 +305,7 @@ async function loadDashboard(isAdmin, userEmail) {
                 }
             }
         });
-        
+
         if (!hasCourses) {
             listContainer.innerHTML = '<p class="text-text-secondary col-span-full text-center py-10 bg-surface-dark rounded-xl border border-surface-border">No tienes cursos asignados.</p>';
         }
@@ -313,7 +315,9 @@ async function loadDashboard(isAdmin, userEmail) {
     }
 }
 
-// Lógica de Tarea Rápida
+// =========================================================
+// LÓGICA DE TAREA RÁPIDA (Con Seguridad y Competencias)
+// =========================================================
 const quickForm = document.getElementById('form-quick-task');
 const courseSelect = document.getElementById('quick-task-course');
 const subjectSelect = document.getElementById('quick-task-subject');
@@ -321,25 +325,56 @@ const subjectContainer = document.getElementById('subject-container');
 const detailsContainer = document.getElementById('details-container');
 const statusMsg = document.getElementById('quick-status');
 
+// --- INYECCIÓN DEL SELECTOR DE COMPETENCIA ---
+// Esta función garantiza que el selector de competencia exista en el formulario
+function injectCompetenceSelector() {
+    if (document.getElementById('quick-task-competence')) return; // Ya existe
+
+    const periodSelect = document.getElementById('quick-task-period');
+    const detailsContainer = document.getElementById('details-container');
+
+    // Creamos el contenedor del selector
+    const containerDiv = document.createElement('div');
+    containerDiv.className = "flex flex-col gap-1 w-full mt-2"; // Margen superior para separar
+    containerDiv.innerHTML = `
+        <label for="quick-task-competence" class="text-xs font-medium text-text-secondary">Competencia</label>
+        <select id="quick-task-competence" class="w-full bg-surface-dark border border-surface-border text-white text-sm rounded-xl px-4 py-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all appearance-none cursor-pointer">
+            <option value="C1">C1 - Comprensión</option>
+            <option value="C2">C2 - Aplicación</option>
+            <option value="C3">C3 - Análisis</option>
+            <option value="C4">C4 - Síntesis</option>
+        </select>
+    `;
+
+    // Lógica de inserción mejorada:
+    // Intentamos insertar después del contenedor padre del "periodo" si es posible
+    if (periodSelect && periodSelect.parentElement) {
+        periodSelect.parentElement.insertAdjacentElement('afterend', containerDiv);
+    } else if (detailsContainer) {
+        // Si no encontramos el periodo, lo agregamos al final del contenedor de detalles
+        detailsContainer.appendChild(containerDiv);
+    }
+}
+
 if (courseSelect) {
     courseSelect.addEventListener('change', (e) => {
         const courseId = e.target.value;
         const selectedCourse = allCoursesCache.find(c => c.id === courseId);
         subjectSelect.innerHTML = '<option value="" disabled selected>Selecciona materia...</option>';
 
-        // Solo mostrar materias donde el usuario es profesor o si es titular/admin ve todas
         let materiasDisponibles = selectedCourse.materias || [];
-        
-        // Si no es admin ni titular, filtrar materias
-        // (Nota: Esta lógica es opcional, ya que el backend debería validar, 
-        // pero mejora UX mostrar solo donde puede editar)
+
+        // --- FILTRADO DE SEGURIDAD ---
         const currentUserEmail = auth.currentUser.email;
-        if(auth.currentUser && selectedCourse.titular_email !== currentUserEmail && currentUserEmail !== 'admin@mail.com') {
-             if (selectedCourse.profesores_materias) {
-                 materiasDisponibles = materiasDisponibles.filter(m => selectedCourse.profesores_materias[m] === currentUserEmail);
-             } else {
-                 materiasDisponibles = []; // No tiene asignaciones específicas
-             }
+        const isAdmin = currentUserEmail === 'admin@mail.com';
+
+        // Solo el Admin ve todas. El resto solo ve donde es profesor asignado.
+        if (!isAdmin) {
+            if (selectedCourse.profesores_materias) {
+                materiasDisponibles = materiasDisponibles.filter(m => selectedCourse.profesores_materias[m] === currentUserEmail);
+            } else {
+                materiasDisponibles = [];
+            }
         }
 
         if (materiasDisponibles.length > 0) {
@@ -349,16 +384,28 @@ if (courseSelect) {
                 opt.textContent = materia;
                 subjectSelect.appendChild(opt);
             });
+
+            if (materiasDisponibles.length === 1) {
+                subjectSelect.value = materiasDisponibles[0];
+                subjectSelect.dispatchEvent(new Event('change'));
+            }
+
             subjectContainer.classList.remove('hidden');
             if (statusMsg) statusMsg.classList.add('hidden');
         } else {
             subjectContainer.classList.add('hidden');
             detailsContainer.classList.add('hidden');
-            if (window.showToast) window.showToast("No tienes materias asignadas en este curso.", "warning");
+            if (window.showToast) window.showToast("No tienes asignaturas asignadas en este curso.", "warning");
         }
     });
 
-    if (subjectSelect) subjectSelect.addEventListener('change', () => { if (subjectSelect.value) detailsContainer.classList.remove('hidden'); });
+    if (subjectSelect) subjectSelect.addEventListener('change', () => {
+        if (subjectSelect.value) {
+            detailsContainer.classList.remove('hidden');
+            // INYECTAMOS EL SELECTOR DE COMPETENCIA AQUÍ
+            injectCompetenceSelector();
+        }
+    });
 
     if (quickForm) {
         quickForm.addEventListener('submit', async (e) => {
@@ -368,6 +415,11 @@ if (courseSelect) {
             const name = document.getElementById('quick-task-name').value.trim();
             const valueInput = document.getElementById('quick-task-value');
             const period = document.getElementById('quick-task-period').value;
+
+            // CAPTURAR COMPETENCIA
+            const competenceEl = document.getElementById('quick-task-competence');
+            const competence = competenceEl ? competenceEl.value : 'C1';
+
             const value = parseFloat(valueInput.value);
 
             if (!courseId || !subject || !name || isNaN(value)) return;
@@ -381,8 +433,21 @@ if (courseSelect) {
             try {
                 const courseRef = doc(db, "cursos_globales", courseId);
                 const courseDoc = await getDoc(courseRef);
+
                 if (courseDoc.exists()) {
                     const data = courseDoc.data();
+
+                    // --- SEGURIDAD AL GUARDAR ---
+                    const currentUserEmail = auth.currentUser.email;
+                    const isAdmin = currentUserEmail === 'admin@mail.com';
+
+                    if (!isAdmin) {
+                        const profesorMateria = data.profesores_materias ? data.profesores_materias[subject] : null;
+                        if (profesorMateria !== currentUserEmail) {
+                            throw new Error("No tienes permiso para agregar tareas a esta asignatura.");
+                        }
+                    }
+
                     let actividades = data.actividades || {};
                     if (!actividades[subject]) actividades[subject] = [];
 
@@ -395,11 +460,24 @@ if (courseSelect) {
                         return;
                     }
 
-                    actividades[subject].push({ nombre: name, valor: value, periodo: period });
+                    // GUARDAR ACTIVIDAD COMPLETA
+                    actividades[subject].push({
+                        nombre: name,
+                        valor: value,
+                        periodo: period,
+                        competencia: competence, // <-- IMPORTANTE
+                        fecha: new Date().toISOString()
+                    });
+
                     await updateDoc(courseRef, { actividades: actividades });
-                    if (window.showToast) window.showToast("Tarea creada", "success");
+
+                    if (window.showToast) window.showToast("Tarea creada correctamente", "success");
                     document.getElementById('quick-task-name').value = '';
                     document.getElementById('quick-task-value').value = '';
+
+                    // Resetear formulario parcial
+                    subjectSelect.value = "";
+                    detailsContainer.classList.add('hidden');
                 }
             } catch (error) {
                 console.error(error);
