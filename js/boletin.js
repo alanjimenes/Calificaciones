@@ -79,6 +79,25 @@ function getTemplateUrl(courseName) {
     // Nombres exactos de los archivos en la carpeta assets (ruta relativa desde el HTML)
     const FILE_5TO = 'Boletin-de-calificaciones-5to-grado-NS_110723.pdf';
     const FILE_6TO = 'Boletin-de-calificaciones-6to-grado-NS_110723.pdf';
+    const FILE_4TO = 'Boletin-de-calificaciones-4to-grado-NS_110723.pdf';
+    const FILE_3TO = 'Boletin-de-calificaciones-3er-grado-NS_110723.pdf';
+    const FILE_2TO = 'Boletin-de-calificaciones-2do-grado-NS_110723.pdf';
+    const FILE_1TO = 'Boletin-de-calificaciones-1er-grado-NS_110723 (1).pdf';
+
+    if (name.includes('1') || name.includes('primero')) {
+        return `assets/${FILE_1TO}`;
+    }
+    if (name.includes('2') || name.includes('segundo')) {
+        return `assets/${FILE_2TO}`;
+    }
+
+  if (name.includes('3') || name.includes('tercero')) {
+        return `assets/${FILE_3TO}`;
+    }
+
+    if (name.includes('4') || name.includes('cuarto')) {
+        return `assets/${FILE_4TO}`;
+    }
 
     // Lógica robusta para detectar 5to
     // Busca el número "5" o la palabra "quinto"
@@ -89,6 +108,8 @@ function getTemplateUrl(courseName) {
     // Si no es 5to, asumimos 6to por defecto (o agregamos más lógica si hay más grados)
     return `assets/${FILE_6TO}`;
 }
+
+
 
 async function loadCourses(isAdminOrSecretaria, userEmail) {
     const selectCourse = document.getElementById('select-course');
